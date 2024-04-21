@@ -12,8 +12,7 @@ export default function ChatSection({ month = "December ", chats = [] }) {
         <div className="flex-grow">{month}</div>
         <div
           className=" cursor-pointer hover:text-orange-400"
-          onClick={() => setShowChats(!showChats)}
-        >
+          onClick={() => setShowChats(!showChats)}>
           {showChats ? (
             <>
               <IoMdArrowDown size={20} />
@@ -28,10 +27,16 @@ export default function ChatSection({ month = "December ", chats = [] }) {
       {showChats ? (
         <>
           <div className=" flex flex-col gap-2">
-            <Chats title="What is the value of saturn in astrology?" />
-            <Chats />
-            <Chats />
-            <Chats />
+            {chats.map((chat, index) => {
+              return (
+                <Chats
+                  key={index}
+                  title={chat.title}
+                  quesNumbers={chat.numberOfQuestions}
+                  date={new Date(chat.timestamp)}
+                />
+              );
+            })}
           </div>
         </>
       ) : (

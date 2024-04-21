@@ -12,3 +12,12 @@
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+@font-face {
+  font-family: "amiri";
+  src: url("./assets/Amiri-Regular.ttf") format("truetype");
+}
+body {
+  /* background-color: #f3f4f6; */
+  font-family: "amiri", sans-serif;
+}

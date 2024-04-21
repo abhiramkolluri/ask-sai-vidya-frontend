@@ -1,11 +1,10 @@
 import React from "react";
+import logo from "../../logo.png";
 
 export default function Logo() {
   return (
-    <div>
-      <h1 className=" w-full flex justify-center items-center p-2 text-2xl font-bold">
-        Ask Sai Vidya
-      </h1>
+    <div className="mb-4">
+      <img src={logo} alt="logo" width={200} height={42} />
     </div>
   );
 }

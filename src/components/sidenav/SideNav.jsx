@@ -1,9 +1,18 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Logo from "../logo/Logo";
 import { IoMdSearch } from "react-icons/io";
 import ChatSection from "../chat/chatSection/ChatSection";
 import { LuPencilLine } from "react-icons/lu";
-export default function SideNav() {
+import sortAndMapDataByMonthAndYear from "../../helpers/sortAndMapDataByMonthAndYear";
+import data from "../../data/chatSectionData";
+export default function SideNav({ startNewChatCallback = () => {} }) {
+  const [sectionData, setsectionData] = useState([]);
+  const [year, setyear] = useState("");
+  useEffect(() => {
+    setsectionData(sortAndMapDataByMonthAndYear(data));
+    // setyear(sortAndMapDataByMonthAndYear(data)[0].split(" ")[1]);
+    setyear("2021");
+  }, []);
   return (
     <div className=" w-full flex flex-col gap-2 p-4 text-sm h-[100vh] ">
       <div>
@@ -20,12 +29,22 @@ export default function SideNav() {
         />
       </div>
       <div className="mt-4 flex flex-col gap-2 flex-grow overflow-y-scroll no-scrollbar">
-        <ChatSection month="March" />
-        <ChatSection month="Feburary" />
-        <ChatSection month="Feburary" />
+        {sectionData.map((section, index) => {
+          return (
+            <div>
+              <ChatSection
+                key={index}
+                month={section[0].split(" ")[0]}
+                chats={section[1]}
+              />
+            </div>
+          );
+        })}
       </div>
       <div>
-        <div className=" bg-orange-400 text-white flex items-center w-full py-4 px-2 rounded">
+        <div
+          onClick={() => startNewChatCallback()}
+          className=" bg-orange-400 text-white flex items-center w-full py-4 px-2 rounded cursor-pointer">
           <LuPencilLine size={20} />
           <p className="ml-2">New Question</p>
         </div>
