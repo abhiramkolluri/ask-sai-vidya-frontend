@@ -11,8 +11,11 @@ export default function SideNav({ startNewChatCallback = () => {} }) {
   useEffect(() => {
     setsectionData(sortAndMapDataByMonthAndYear(data));
     // setyear(sortAndMapDataByMonthAndYear(data)[0].split(" ")[1]);
-    setyear("2021");
+    // setyear("2021");
   }, []);
+  let customyear =
+    sectionData.length > 0 ? sectionData[0][0].split(" ")[1] : "";
+
   return (
     <div className=" w-full flex flex-col gap-2 p-4 text-sm h-[100vh] ">
       <div>
@@ -32,6 +35,21 @@ export default function SideNav({ startNewChatCallback = () => {} }) {
         {sectionData.map((section, index) => {
           return (
             <div>
+              {customyear == section[0].split(" ")[1] ? (
+                <></>
+              ) : (
+                <>
+                  <div className=" flex items-center gap-4">
+                    <div className="flex-grow border border-gray-200 h-[0px] "></div>
+                    <div className="text-gray-500 font-bold">
+                      {section[0].split(" ")[1]}
+                    </div>
+                  </div>
+                  <div className="hidden">
+                    {(customyear = section[0].split(" ")[1])}
+                  </div>
+                </>
+              )}
               <ChatSection
                 key={index}
                 month={section[0].split(" ")[0]}
