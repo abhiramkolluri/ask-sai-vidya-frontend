@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { LuSendHorizonal } from "react-icons/lu";
+import { VscSend } from "react-icons/vsc";
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
 import { BsPersonVideo } from "react-icons/bs";
@@ -58,9 +58,9 @@ export default function ChatBox({ newChat }) {
       ) : (
         <>
           <div className="flex-grow overflow-y-scroll flex justify-center items-center">
-            <div className="flex flex-col  w-7/12  items-center justify-center gap-4">
-              <p className=" p-2 text-gray-500 font-light text-justify min-w-[350px]">
-                Ask your question to &nbsp;
+            <div className="flex flex-col  w-8/12  items-center justify-center gap-4">
+              <p className=" p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
+                Ask your question to&nbsp;
                 <b>Sai Vidya</b> and discover profound wisdom!
               </p>
               <div>
@@ -86,12 +86,19 @@ export default function ChatBox({ newChat }) {
               // clearInput();
             }}
             onKeyDown={(e) => handleKeyPress(e)}></textarea>
-          <div
-            className="text-gray-300 p-2"
-            onClick={() => {
-              askQuestion.length > 0 && setquestion((x) => [...x, askQuestion]);
-            }}>
-            <LuSendHorizonal size={36} />
+          <div className="text-gray-300 p-2">
+            <VscSend
+              className="cursor-pointer hover:shadow-lg disabled:!shadow-bg"
+              onClick={() => {
+                setaskQuestion("");
+                inputRef.current.focus();
+                askQuestion.length > 0 &&
+                  setquestion((x) => [...x, askQuestion]);
+              }}
+              size={24}
+              color={askQuestion.length && "#FE9F44"}
+              disabled={!askQuestion.length}
+            />
           </div>
         </div>
       </div>

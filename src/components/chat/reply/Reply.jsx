@@ -75,14 +75,14 @@ export default function Reply({
           <div className=" p-2 md:p-6 ">
             <div className="border-l border-orange-400 p-2 px-4 flex flex-col">
               <span className="text-orange-400">
-                <RiDoubleQuotesL size={36} />
+                <RiDoubleQuotesL size={24} />
               </span>
               <div className="px-4 flex items-end font-thin gap-1">
                 <div className="flex-flex-col gap-2 flex-grow">
                   {reply.map((item, index) => {
                     return (
                       <div key={index} className=" ">
-                        <h2 className=" font-semibold my-2 text-gray-600">
+                        <h2 className=" font-bold my-2 text-gray-600">
                           {item.heading ? item.heading : ""}
                         </h2>
                         <p>
