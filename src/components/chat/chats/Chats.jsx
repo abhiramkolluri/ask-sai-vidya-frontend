@@ -12,7 +12,7 @@ export default function Chats({
   useEffect(() => {
     setTimeout(() => {
       setactive(() => false);
-    }, 1000);
+  }, 1000);
   }, [active]);
   return (
     <div

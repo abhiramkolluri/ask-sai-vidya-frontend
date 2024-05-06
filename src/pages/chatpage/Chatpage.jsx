@@ -2,9 +2,17 @@ import React, { useState } from "react";
 import Logo from "../../components/logo/Logo";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
+import Login from "../../components/login/Login";
+import Signup from "../../components/signup/Signup";
 
 const Chatpage = () => {
   const [newChat, setnewChat] = useState(Math.random());
+  const [showModal, setshowModal] = useState(false);
+  const [showlogin, setshowlogin] = useState(false);
+  const handleShowModal = () => {
+    console.log("show modal");
+    setshowModal(true);
+  };
   const handleNewChat = () => {
     setnewChat(Math.random());
   };
@@ -16,8 +24,28 @@ const Chatpage = () => {
       </div>
       <div className="flex flex-grow ">
         {/* this will hold the chat section */}
-        <ChatBox newChat={newChat} />
+        <ChatBox newChat={newChat} modalCallback={() => handleShowModal()} />
       </div>
+      {showModal ? (
+        <>
+          <div
+            className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50"
+            onClick={handleShowModal}
+          >
+            {showlogin ? (
+              <>
+                <Login callback={() => setshowlogin(false)} />
+              </>
+            ) : (
+              <>
+                <Signup callback={() => setshowlogin(true)} />
+              </>
+            )}
+          </div>
+        </>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

@@ -4,11 +4,16 @@ import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
 import { BsPersonVideo } from "react-icons/bs";
 
-export default function ChatBox({ newChat }) {
+export default function ChatBox({
+  newChat,
+  loggedin = false,
+  modalCallback = () => {},
+}) {
   const [question, setquestion] = useState([]);
   const [askQuestion, setaskQuestion] = useState("");
   const containerRef = useRef(null);
-  const [loading, setloading] = useState(false);
+  const [count, setcount] = useState(0);
+  const [loggedIn, setloggedIn] = useState(false);
 
   const chat = [
     {
@@ -19,10 +24,21 @@ export default function ChatBox({ newChat }) {
       },
     },
   ];
+  console.log(count);
+  useEffect(() => {
+    console.log(count);
+    if (count > 3) {
+      console.log("exectung call back");
+      modalCallback();
+    }
+  }, [count]);
 
   const handleKeyPress = async (event) => {
     // Check if the pressed key is the "Enter" key
+
     if (event.key === "Enter") {
+      setcount((x) => x + 1);
+
       setquestion((x) => [...x, event.target.value]);
       setaskQuestion("");
     }
@@ -92,6 +108,7 @@ export default function ChatBox({ newChat }) {
               onClick={() => {
                 setaskQuestion("");
                 inputRef.current.focus();
+                setcount((x) => x + 1);
                 askQuestion.length > 0 &&
                   setquestion((x) => [...x, askQuestion]);
               }}
