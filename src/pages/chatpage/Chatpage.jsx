@@ -7,7 +7,7 @@ import Signup from "../../components/signup/Signup";
 
 const Chatpage = () => {
   const [newChat, setnewChat] = useState(Math.random());
-  const [showModal, setshowModal] = useState(true);
+  const [showModal, setshowModal] = useState(false);
   const [showlogin, setshowlogin] = useState(false);
   const handleShowModal = () => {
     console.log("show modal");

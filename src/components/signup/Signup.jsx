@@ -4,19 +4,29 @@ import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import MaterialInput from "../input/MaterialInput";
 
-export default function Signup({ callback = () => {} }) {
+export default function Signup({ callback = () => {}, inModal = true }) {
   return (
     <div className="w-[400px]  bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
-      <div>
-        <img src={Chat} height={"140px"} width={"400px"} alt="" />
-      </div>
+      {inModal ? (
+        <div>
+          <img src={Chat} height={"140px"} width={"400px"} alt="" />
+        </div>
+      ) : (
+        <></>
+      )}
 
       <div className="p-8 ">
         <div className=" flex flex-col gap-4">
           <div className="flex flex-col gap-4 ">
-            <h1 className="font-bold text-center my-4">
-              Sign up to continue and save your conversation
-            </h1>
+            {inModal ? (
+              <>
+                <h1 className="font-bold text-center my-4">
+                  Sign in to continue and save your conversation
+                </h1>
+              </>
+            ) : (
+              <></>
+            )}
             <div>
               {" "}
               <MaterialInput text="Email address" />
