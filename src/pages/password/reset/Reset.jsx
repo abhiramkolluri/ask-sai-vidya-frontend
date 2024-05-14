@@ -40,7 +40,7 @@ export default function Reset() {
 
               <h1 className="text-center font-thin">
                 Remember your password?{" "}
-                <Link to="/login" className="text-orange-400">
+                <Link to="/signin" className="text-orange-400">
                   <span className=" text-orange-400 cursor-pointer">
                     Sign In
                   </span>{" "}

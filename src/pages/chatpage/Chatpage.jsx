@@ -23,10 +23,10 @@ const Chatpage = () => {
         {/* this will hold the side nav section */}
         <SideNav startNewChatCallback={handleNewChat} />
       </div>
-      <div className="flex flex-col flex-grow ">
-        <div className="absolute top-0 left-0 right-0">
-          <Navbar />
-        </div>
+      <div className="absolute top-0 left-0 right-0">
+        <Navbar />
+      </div>
+      <div className="flex flex-col flex-grow mt-16">
         {/* this will hold the chat section */}
         <ChatBox newChat={newChat} modalCallback={() => handleShowModal()} />
       </div>
@@ -34,8 +34,7 @@ const Chatpage = () => {
         <>
           <div
             className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50"
-            onClick={handleShowModal}
-          >
+            onClick={handleShowModal}>
             {showlogin ? (
               <>
                 <Login callback={() => setshowlogin(false)} />

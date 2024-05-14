@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { VscSend } from "react-icons/vsc";
+import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
+
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
 import { BsPersonVideo } from "react-icons/bs";
@@ -14,6 +15,7 @@ export default function ChatBox({
   const containerRef = useRef(null);
   const [count, setcount] = useState(0);
   const [loggedIn, setloggedIn] = useState(false);
+  const inputRef = useRef(null);
 
   const chat = [
     {
@@ -36,15 +38,20 @@ export default function ChatBox({
   const handleKeyPress = async (event) => {
     // Check if the pressed key is the "Enter" key
 
+    const val = inputRef.current.value;
+    setaskQuestion(val.trim());
+
     if (event.key === "Enter") {
+      event.preventDefault();
+
+      if (val?.trim()?.length < 1) return;
+
       setcount((x) => x + 1);
 
-      setquestion((x) => [...x, event.target.value]);
-      setaskQuestion("");
+      setquestion((x) => [...x, val.trim()]);
+      inputRef.current.value = "";
     }
   };
-
-  const inputRef = useRef(null);
 
   useEffect(() => {
     setquestion((x) => []);
@@ -55,6 +62,9 @@ export default function ChatBox({
     if (containerRef.current)
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
   }, [question]);
+
+  const SendIcon = askQuestion?.length ? RiSendPlane2Fill : RiSendPlane2Line;
+
   return (
     <div className="w-full flex flex-col h-[100vh]">
       {question.length > 0 ? (
@@ -91,19 +101,20 @@ export default function ChatBox({
         <div className="flex  justify-center  border border-gray-300 gap-2 rounded">
           <textarea
             ref={inputRef}
-            className="flex-grow  rounded p-4 resize-none outline-none text-sm"
+            className="flex-grow  rounded p-4 resize-none outline-none text-lg"
             id="textBox"
             cols="10"
             rows="4"
             placeholder="Start your question"
-            value={askQuestion}
-            onChange={(e) => {
-              setaskQuestion(e.target.value);
-              // clearInput();
-            }}
-            onKeyDown={(e) => handleKeyPress(e)}></textarea>
+            // value={askQuestion}
+            // onChange={(e) => {
+            //   setaskQuestion(e.target.value);
+            //   // clearInput();
+            // }}
+            onKeyDown={(e) => handleKeyPress(e)}
+          />
           <div className="text-gray-300 p-2">
-            <VscSend
+            <SendIcon
               className="cursor-pointer hover:shadow-lg disabled:!shadow-bg"
               onClick={() => {
                 setaskQuestion("");
@@ -113,7 +124,7 @@ export default function ChatBox({
                   setquestion((x) => [...x, askQuestion]);
               }}
               size={24}
-              color={askQuestion.length && "#FE9F44"}
+              color="#FE9F44"
               disabled={!askQuestion.length}
             />
           </div>

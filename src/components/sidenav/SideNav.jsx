@@ -64,7 +64,7 @@ export default function SideNav({ startNewChatCallback = () => {} }) {
           onClick={() => startNewChatCallback()}
           className=" bg-orange-400 text-white flex items-center w-full py-4 px-2 rounded cursor-pointer">
           <LuPencilLine size={20} />
-          <p className="ml-2">New Question</p>
+          <p className="ml-2 text-base">New Question</p>
         </div>
       </div>
     </div>

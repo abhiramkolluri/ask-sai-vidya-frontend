@@ -15,9 +15,9 @@ export default function Signin({ showLogin = false }) {
       </div>
       <div className=" flex  h-full ">
         <div className="hidden md:flex flex-col items-center justify-center  flex-grow">
-          <div className="w-[600px]">
-            <h1 className=" text-2xl font-bold text-orange-400">
-              Welcome to ask Sai Vidya!
+          <div className="w-[600px] p-4">
+            <h1 className=" text-3xl font-bold text-orange-400">
+              Welcome to Ask Sai Vidya!
             </h1>
             <p className=" leading-relaxed mt-4 tracking-wide">
               Embark on a spiritual journey with Sathya Sai Baba to find deeper
@@ -30,24 +30,22 @@ export default function Signin({ showLogin = false }) {
           <div>
             <div className="w-full   flex ">
               <div
-                className={` w-full cursor-pointer transition-all ease-in flex justify-center items-center py-4 ${
+                className={` w-full cursor-pointer transition-all ease-in flex justify-center items-center py-4 text-sm ${
                   login
                     ? "border-b border-orange-400"
-                    : " border-b border-transparent text-gray-300"
+                    : " border-b border-gray-200 text-gray-400"
                 }`}
-                onClick={() => setlogin(true)}
-              >
+                onClick={() => setlogin(true)}>
                 Sign in
               </div>
               <div
-                className={` w-full cursor-pointer transition-all ease-in flex justify-center items-center py-4 ${
+                className={` w-full cursor-pointer transition-all ease-in flex justify-center items-center py-4 text-sm ${
                   !login
                     ? "border-b border-orange-400"
-                    : " border-b border-transparent text-gray-300"
+                    : " border-b border-gray-200 text-gray-400"
                 }`}
-                onClick={() => setlogin(false)}
-              >
-                Sign Up
+                onClick={() => setlogin(false)}>
+                Sign up
               </div>
             </div>
             {login ? (

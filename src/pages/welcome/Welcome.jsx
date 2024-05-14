@@ -19,9 +19,9 @@ export default function Welcome() {
       </div>
       <div className=" flex  h-full ">
         <div className="hidden md:flex flex-col items-center justify-center  flex-grow">
-          <div className="w-[600px] flex flex-col gap-4">
+          <div className="w-[600px] p-4 flex flex-col gap-4">
             <h1 className=" text-3xl font-bold text-orange-400">
-              Welcome to ask Sai Vidya!
+              Welcome to Ask Sai Vidya!
             </h1>
             <p className=" leading-relaxed  tracking-wide">
               Embark on a spiritual journey with Sathya Sai Baba to find deeper
@@ -29,7 +29,7 @@ export default function Welcome() {
               for inner peace.
               <br />
               <br />
-              <Link to="/login">
+              <Link to="/signin">
                 <button className=" gap-1 shadow px-4 py-2 bg-orange-400 text-white flex items-center rounded ">
                   <IoMdLogIn size={18} /> Sign In
                 </button>

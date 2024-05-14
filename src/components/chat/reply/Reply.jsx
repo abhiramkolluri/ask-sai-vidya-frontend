@@ -62,7 +62,7 @@ export default function Reply({
         <span className="text-orange-400">
           <BsPersonVideo size={24} />
         </span>
-        <p>{question}</p>
+        <span className="text-base">{question}</span>
       </div>
       {!fetchReply ? (
         <>
@@ -82,10 +82,10 @@ export default function Reply({
                   {reply.map((item, index) => {
                     return (
                       <div key={index} className=" ">
-                        <h2 className=" font-bold my-2 text-gray-600">
+                        <h2 className=" font-bold my-2 text-gray-600 text-base">
                           {item.heading ? item.heading : ""}
                         </h2>
-                        <p>
+                        <p className="text-base">
                           {item.text ? item.text : ""}{" "}
                           <a
                             className=" text-base text-orange-400"
@@ -110,7 +110,7 @@ export default function Reply({
                   {refrences.map((item, index) => {
                     return (
                       <div key={index} className=" text-gray-700 ">
-                        <h2 className=" flex gap-2 my-2 text-gray-600 font-semibold">
+                        <h2 className=" flex gap-2 my-2 text-gray-600 font-semibold text-base">
                           <a
                             className=" text-base text-orange-400"
                             href="http://somewebsite.com">
@@ -118,7 +118,7 @@ export default function Reply({
                           </a>
                           {item.heading ? item.heading : ""}
                         </h2>
-                        <p className="border-l-2 border-dotted p-2 ml-3 border-orange-400">
+                        <p className="border-l-2 border-dotted p-2 ml-3 border-orange-400 text-base">
                           {item.text.length > 200
                             ? item.text.slice(0, 200) + "..."
                             : item.text
