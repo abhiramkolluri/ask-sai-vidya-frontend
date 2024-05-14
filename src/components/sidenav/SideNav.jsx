@@ -17,7 +17,7 @@ export default function SideNav({ startNewChatCallback = () => {} }) {
     sectionData.length > 0 ? sectionData[0][0].split(" ")[1] : "";
 
   return (
-    <div className=" w-full flex flex-col gap-2 p-4 text-sm h-[100vh] ">
+    <div className=" w-full flex flex-col gap-2 p-4 text-sm h-[100vh] z-50">
       <div>
         <Logo />
       </div>

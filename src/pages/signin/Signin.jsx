@@ -6,7 +6,7 @@ import Signup from "../../components/signup/Signup";
 export default function Signin({ showLogin = false }) {
   const [login, setlogin] = useState(showLogin ? true : false);
   useEffect(() => {
-    setlogin(showLogin);
+    setlogin((x) => !x);
   }, [showLogin]);
   return (
     <div className=" bg-[#fffbf8]  w-full h-[100vh] text-gray-800">

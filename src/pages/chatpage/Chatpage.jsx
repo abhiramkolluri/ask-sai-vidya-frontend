@@ -4,6 +4,7 @@ import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
 import Login from "../../components/login/Login";
 import Signup from "../../components/signup/Signup";
+import Navbar from "../../components/navbar/navbar";
 
 const Chatpage = () => {
   const [newChat, setnewChat] = useState(Math.random());
@@ -22,7 +23,10 @@ const Chatpage = () => {
         {/* this will hold the side nav section */}
         <SideNav startNewChatCallback={handleNewChat} />
       </div>
-      <div className="flex flex-grow ">
+      <div className="flex flex-col flex-grow ">
+        <div className="absolute top-0 left-0 right-0">
+          <Navbar />
+        </div>
         {/* this will hold the chat section */}
         <ChatBox newChat={newChat} modalCallback={() => handleShowModal()} />
       </div>
