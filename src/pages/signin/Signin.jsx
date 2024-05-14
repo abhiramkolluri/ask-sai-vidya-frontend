@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import leaves from "../../images/leaves.png";
 import Login from "../../components/login/Login";
 import Signup from "../../components/signup/Signup";
 
-export default function Signin() {
-  const [login, setlogin] = useState(true);
+export default function Signin({ showLogin = false }) {
+  const [login, setlogin] = useState(showLogin ? true : false);
+  useEffect(() => {
+    setlogin(showLogin);
+  }, [showLogin]);
   return (
     <div className=" bg-[#fffbf8]  w-full h-[100vh] text-gray-800">
       <div className="absolute top-0 left-0">

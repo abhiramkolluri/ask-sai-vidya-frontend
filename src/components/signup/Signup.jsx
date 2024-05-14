@@ -3,6 +3,7 @@ import Chat from "../../images/chat.jpg";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import MaterialInput from "../input/MaterialInput";
+import { Link } from "react-router-dom";
 
 export default function Signup({ callback = () => {}, inModal = true }) {
   return (
@@ -47,12 +48,24 @@ export default function Signup({ callback = () => {}, inModal = true }) {
 
           <h1 className="text-center font-thin">
             Already have a account?{" "}
-            <span
-              className=" text-orange-400 cursor-pointer"
-              onClick={callback}
-            >
-              Sign In
-            </span>{" "}
+            {!inModal ? (
+              <>
+                <Link to="/signin">
+                  <span className=" text-orange-400 cursor-pointer">
+                    Sign In
+                  </span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <span
+                  className=" text-orange-400 cursor-pointer"
+                  onClick={callback}
+                >
+                  Sign In
+                </span>
+              </>
+            )}{" "}
           </h1>
 
           <div className="border-t mt-2 border-gray-300 flex justify-center items-center">

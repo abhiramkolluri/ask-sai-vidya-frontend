@@ -3,6 +3,9 @@ import Login from "./components/login/Login";
 import Chatpage from "./pages/chatpage/Chatpage";
 import { Routes, Switch, Route, Link, Router } from "react-router-dom";
 import Signin from "./pages/signin/Signin";
+import Welcome from "./pages/welcome/Welcome";
+import Reset from "./pages/password/reset/Reset";
+import NewPassword from "./pages/password/reset/NewPassword";
 
 function App() {
   return (
@@ -11,7 +14,11 @@ function App() {
 
       <Routes>
         <Route path="/" element={<Chatpage />} />
-        <Route path="/login" element={<Signin />} />
+        <Route path="/signin" element={<Signin showLogin={true} />} />
+        <Route path="/signup" element={<Signin showLogin={false} />} />
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/password/reset" element={<Reset />} />
+        <Route path="/password/newpassword" element={<NewPassword />} />
       </Routes>
     </div>
   );

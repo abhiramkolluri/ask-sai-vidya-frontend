@@ -4,6 +4,7 @@ import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
 import MaterialInput from "../input/MaterialInput";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export default function Login({ callback = () => {}, inModal = true }) {
   const [forgetPassword, setforgetPassword] = useState(false);
@@ -41,11 +42,26 @@ export default function Login({ callback = () => {}, inModal = true }) {
                 <MaterialInput text="Password" password />
               </div>
               <div className="text-orange-400 font-bold">
-                <span
-                  className="cursor-pointer"
-                  onClick={() => setforgetPassword(() => true)}>
-                  Forgot password?
-                </span>
+                {!inModal ? (
+                  <>
+                    <Link to="/password/reset">
+                      {" "}
+                      <span
+                        className="cursor-pointer"
+                        onClick={() => setforgetPassword(() => true)}>
+                        Forgot password?
+                      </span>{" "}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      className="cursor-pointer"
+                      onClick={() => setforgetPassword(() => true)}>
+                      Forgot password?
+                    </span>
+                  </>
+                )}
               </div>
               <button className="w-full h-[40px] font-bold text-white bg-orange-400 shadow flex justify-center items-center rounded">
                 Sign In
@@ -54,11 +70,23 @@ export default function Login({ callback = () => {}, inModal = true }) {
 
             <h1 className="text-center font-thin">
               Create a new account?{" "}
-              <span
-                className=" text-orange-400 cursor-pointer"
-                onClick={callback}>
-                Sign Up
-              </span>{" "}
+              {!inModal ? (
+                <>
+                  <Link to="/signup">
+                    <span className=" text-orange-400 cursor-pointer">
+                      Sign Up
+                    </span>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <span
+                    className=" text-orange-400 cursor-pointer"
+                    onClick={callback}>
+                    Sign Up
+                  </span>
+                </>
+              )}{" "}
             </h1>
 
             <div className="border-t mt-2 border-gray-300 flex justify-center items-center">
