@@ -100,7 +100,29 @@ export default function ChatBox({
 				const [primaryResponse, citations] = await Promise.all([
 					primaryResponsePromise,
 					citationsPromise,
-				]);
+        ]);
+        
+        // Update state once with both responses
+				setQuestions((prevQuestions) =>
+					prevQuestions.map((q, index) =>
+						index === newIndex
+							? {
+									...q,
+									reply: {
+										primaryResponse: primaryResponse.response,
+										citations,
+									},
+							  }
+							: q
+					)
+				);
+			} catch (error) {
+				console.error("Error fetching data:", error);
+			} finally {
+				setLoadingIndex(null); // Reset loading index
+			}
+		}
+	};
 
       
   
