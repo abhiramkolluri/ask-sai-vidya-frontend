@@ -87,9 +87,23 @@ export default function ChatBox({
         ...prevQuestions,
         { question: val, index: newIndex },
       ]);
+      
+      try {
+				const primaryResponsePromise = fetchPrimaryResponse(val);
+				const citationsPromise = primaryResponsePromise.then((result) => {
+					if (result.fetchCitations) {
+						return fetchCitations(val);
+					}
+					return [];
+				});
+
+				const [primaryResponse, citations] = await Promise.all([
+					primaryResponsePromise,
+					citationsPromise,
+				]);
 
       
-  }
+  
     
   const handleKeyPress = async (event) => {
     // Check if the pressed key is the "Enter" key
@@ -191,6 +205,4 @@ export default function ChatBox({
       </div>
     </div>
   );
-};
-};
 }
