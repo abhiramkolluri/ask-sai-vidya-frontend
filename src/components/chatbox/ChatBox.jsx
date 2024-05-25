@@ -123,27 +123,13 @@ export default function ChatBox({
 			}
 		}
 	};
-
-      
-  
     
   const handleKeyPress = async (event) => {
-    // Check if the pressed key is the "Enter" key
-
-    const val = inputRef.current.value;
-    setaskQuestion(val.trim());
-
-    if (event.key === "Enter") {
-      event.preventDefault();
-
-      if (val?.trim()?.length < 1) return;
-
-      setcount((x) => x + 1);
-
-      setquestion((x) => [...x, val.trim()]);
-      inputRef.current.value = "";
-    }
-  };
+		if (event.key === "Enter") {
+			event.preventDefault();
+			await handleSend();
+		}
+	};
 
   useEffect(() => {
     setquestion((x) => []);
