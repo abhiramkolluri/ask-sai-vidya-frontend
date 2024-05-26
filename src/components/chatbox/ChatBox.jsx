@@ -34,7 +34,19 @@ export default function ChatBox({
 				body: JSON.stringify({ query: question }),
 			}
 		);
+		const data = await response.json();
+		const fetchCitations =
+			data.response !==
+			"It seems like there might be a misunderstanding with the question you provided. I'm here to offer spiritual guidance based on the teachings of Sathya Sai Baba. If you have any questions related to spirituality, personal growth, or Sai Baba's teachings, feel free to ask!";
+		cache[question] = {
+			...cache[question],
+			primaryResponse: data.response,
+			fetchCitations,
 		};
+		console.log("Primary response:", data); // Debugging log
+		return { response: data.response, fetchCitations };
+	};
+
 	const fetchCitations = async (question) => {
 		if (cache[question]?.citations) {
 			return cache[question].citations;
