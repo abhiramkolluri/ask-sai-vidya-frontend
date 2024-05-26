@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
-
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
-import { BsPersonVideo } from "react-icons/bs";
+
+const cache = {};
 
 export default function ChatBox({
 	newChat,
@@ -15,14 +15,13 @@ export default function ChatBox({
 	const [loadingIndex, setLoadingIndex] = useState(null); // Track loading for specific question
 	const containerRef = useRef(null);
 	const [count, setCount] = useState(0);
-	const [loggedIn, setloggedIn] = useState(false);
 	const inputRef = useRef(null);
 
 	const fetchPrimaryResponse = async (question) => {
-		if ([question]?.primaryResponse) {
+		if (cache[question]?.primaryResponse) {
 			return {
-				response: [question].primaryResponse,
-				fetchCitations: [question].fetchCitations,
+				response: cache[question].primaryResponse,
+				fetchCitations: cache[question].fetchCitations,
 			};
 		}
 		const response = await fetch(
@@ -37,8 +36,8 @@ export default function ChatBox({
 		);
 		};
 	const fetchCitations = async (question) => {
-		if ([question]?.citations) {
-			return [question].citations;
+		if (cache[question]?.citations) {
+			return cache[question].citations;
 		}
 		const response = await fetch("http://localhost:5000/search", {
 			method: "POST",
@@ -48,7 +47,7 @@ export default function ChatBox({
 			body: JSON.stringify({ query: question }),
 		});
 		const data_citations = await response.json();
-		[question] = { ...[question], citations: data_citations };
+		cache[question] = { ...cache[question], citations: data_citations };
 		console.log("Citations response:", data_citations); // Debugging log
 		return data_citations; // Ensure this matches your actual API response structure
 	};
