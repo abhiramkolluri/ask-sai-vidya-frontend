@@ -27,7 +27,21 @@ export default function Reply({
 				</div>
 			</div>
 		);
-	}
+  }
+  if (!reply) {
+		return (
+			<div className="w-full text-gray-500 text-sm">
+				<div className="flex items-center gap-2">
+					<span className="text-orange-400">
+						<BsPersonVideo size={24} />
+					</span>
+					<span className="text-base">{question}</span>
+				</div>
+			</div>
+		);
+  }
+  
+  const { primaryResponse = "", citations = [] } = reply;
 
 
 {
