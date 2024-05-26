@@ -17,24 +17,25 @@ export default function ChatBox({
     const [loggedIn, setloggedIn] = useState(false);
     const inputRef = useRef(null);
 
-    const fetchPrimaryResponse = async (question) => {
-      if ([question]?.primaryResponse) {
-        return {
-          response: [question].primaryResponse,
-          fetchCitations: [question].fetchCitations,
-        };
+  const fetchPrimaryResponse = async (question) => {
+    if ([question]?.primaryResponse) {
+      return {
+        response: [question].primaryResponse,
+        fetchCitations: [question].fetchCitations,
+      };
+    }
+    const response = await fetch(
+      "http://localhost:5000/api/primarysource/query",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: question }),
       }
-      const response = await fetch(
-        "http://localhost:5000/api/primarysource/query",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ query: question }),
-        }
-      );
-
+    );
+  
+  }
       const fetchCitations = async (question) => {
         if ([question]?.citations) {
           return [question].citations;
@@ -52,12 +53,12 @@ export default function ChatBox({
           ...[question],
           citations: data_citations,
         };
-
+          
         console.log("Citations response", data_citations); //Debugging purpose
 
         return data_citations; //Return the citations from API response structure
       };
-
+      
       const handleSend = async () => {
         const val = inputRef.current.value.trim();
         if (val.length > 0) {
@@ -170,5 +171,4 @@ export default function ChatBox({
           </div>
         </div>
       );
-    };
-  }
+    }
