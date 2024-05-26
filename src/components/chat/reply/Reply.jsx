@@ -27,6 +27,7 @@ export default function Reply({
 			</div>
 		);
 	}
+
 	if (!reply) {
 		return (
 			<div className="w-full text-gray-500 text-sm">
@@ -41,6 +42,7 @@ export default function Reply({
 	}
 
 	const { primaryResponse = "", citations = [] } = reply;
+
 	return (
 		<div className="w-full text-gray-500 text-sm">
 			<div className="flex items-center gap-2">
