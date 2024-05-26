@@ -12,6 +12,7 @@ export default function ChatBox({
 }) {
 	const [questions, setQuestions] = useState([]);
 	const [askQuestion, setAskQuestion] = useState("");
+	const [loadingIndex, setLoadingIndex] = useState(null); // Track loading for specific question
 	const containerRef = useRef(null);
 	const [count, setCount] = useState(0);
 	const [loggedIn, setloggedIn] = useState(false);
@@ -34,7 +35,7 @@ export default function ChatBox({
 				body: JSON.stringify({ query: question }),
 			}
 		);
-	};
+		};
 	const fetchCitations = async (question) => {
 		if ([question]?.citations) {
 			return [question].citations;
@@ -63,6 +64,7 @@ export default function ChatBox({
 				...prevQuestions,
 				{ question: val, reply: null },
 			]);
+			setLoadingIndex(newIndex); // Set loading index for the new question
 
 			try {
 				const primaryResponsePromise = fetchPrimaryResponse(val);
@@ -94,6 +96,8 @@ export default function ChatBox({
 				);
 			} catch (error) {
 				console.error("Error fetching data:", error);
+			} finally {
+				setLoadingIndex(null); // Reset loading index
 			}
 		}
 	};
@@ -114,7 +118,7 @@ export default function ChatBox({
 		setQuestions([]);
 	}, [newChat]);
 
-	const SendIcon = askQuestion?.length ? RiSendPlane2Fill : RiSendPlane2Line;
+	const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
 	return (
 		<div className="w-full flex flex-col h-[100vh]">
@@ -124,7 +128,12 @@ export default function ChatBox({
 					className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-auto p-2 md:p-6 w-[98%] md:w-[80%] "
 				>
 					{questions.map((ques, index) => (
-						<Reply key={index} question={ques.question} reply={ques.reply} />
+						<Reply
+							key={index}
+							question={ques.question}
+							reply={ques.reply}
+							loading={loadingIndex === index}
+						/>
 					))}
 				</div>
 			) : (
