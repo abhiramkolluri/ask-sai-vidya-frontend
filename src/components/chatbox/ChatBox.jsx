@@ -137,26 +137,39 @@ export default function ChatBox({
 	useEffect(() => {
 		if (containerRef.current)
 			containerRef.current.scrollTop = containerRef.current.scrollHeight;
-	}, [questions]);
+	}, [messages]);
 
 	useEffect(() => {
-		setQuestions([]);
+		if (newChat) {
+			setMessages([]);
+		}
 	}, [newChat]);
+
+	useEffect(() => {
+		if (selectedThreadId) {
+			const selectedThread = threads.find(
+				(thread) => thread.id === selectedThreadId
+			);
+			if (selectedThread) {
+				setMessages(selectedThread.messages);
+			}
+		}
+	}, [selectedThreadId]);
 
 	const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
 	return (
 		<div className="w-full flex flex-col h-[100vh]">
-			{questions.length > 0 ? (
+			{messages.length > 0 ? (
 				<div
 					ref={containerRef}
 					className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-auto p-2 md:p-6 w-[98%] md:w-[80%] "
 				>
-					{questions.map((ques, index) => (
+					{messages.map((msg, index) => (
 						<Reply
 							key={index}
-							question={ques.question}
-							reply={ques.reply}
+							question={msg.question}
+							reply={msg.reply}
 							loading={loadingIndex === index}
 						/>
 					))}
