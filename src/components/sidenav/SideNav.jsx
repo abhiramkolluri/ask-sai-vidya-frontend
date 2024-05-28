@@ -23,6 +23,7 @@ export default function SideNav({
 
 			return acc;
 		}, {});
+
 		// Sort threads within each section by timestamp in descending order
 		for (const key in groupedThreads) {
 			groupedThreads[key].sort(
@@ -48,18 +49,18 @@ export default function SideNav({
 	}, [threads]);
 
 	return (
-		<div className=" w-full flex flex-col gap-2 p-4 text-sm h-[100vh] z-50">
+		<div className="w-full flex flex-col gap-2 p-4 text-sm h-[100vh] z-50">
 			<div>
 				<Logo />
 			</div>
 			<div className="border-b border-orange-400 flex gap-2 justify-center items-center ">
-				<div className=" ml-2 text-orange-400">
+				<div className="ml-2 text-orange-400">
 					<IoMdSearch size={20} />
 				</div>
 				<input
 					type="text"
 					placeholder="Search"
-					className="w-full p-2 outline-none -ml-2 "
+					className="w-full p-2 outline-none -ml-2"
 				/>
 			</div>
 			<div className="mt-4 flex flex-col gap-2 flex-grow overflow-y-scroll no-scrollbar">
@@ -72,11 +73,10 @@ export default function SideNav({
 					/>
 				))}
 			</div>
-
 			<div>
 				<div
 					onClick={() => startNewChatCallback()}
-					className=" bg-orange-400 text-white flex items-center w-full py-4 px-2 rounded cursor-pointer"
+					className="bg-orange-400 text-white flex items-center w-full py-4 px-2 rounded cursor-pointer"
 				>
 					<LuPencilLine size={20} />
 					<p className="ml-2 text-base">New Question</p>
