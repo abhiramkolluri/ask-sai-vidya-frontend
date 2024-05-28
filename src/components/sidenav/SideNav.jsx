@@ -63,33 +63,16 @@ export default function SideNav({
 				/>
 			</div>
 			<div className="mt-4 flex flex-col gap-2 flex-grow overflow-y-scroll no-scrollbar">
-				{sectionData.map((section, index) => {
-					return (
-						<div>
-							{customyear == section[0].split(" ")[1] ? (
-								<></>
-							) : (
-								<>
-									<div className=" flex items-center gap-4">
-										<div className="flex-grow border border-gray-200 h-[0px] "></div>
-										<div className="text-gray-500 font-bold">
-											{section[0].split(" ")[1]}
-										</div>
-									</div>
-									<div className="hidden">
-										{(customyear = section[0].split(" ")[1])}
-									</div>
-								</>
-							)}
-							<ChatSection
-								key={index}
-								month={section[0].split(" ")[0]}
-								chats={section[1]}
-							/>
-						</div>
-					);
-				})}
+				{Object.keys(sectionData).map((key) => (
+					<ChatSection
+						key={key}
+						monthYear={key}
+						threads={sectionData[key]}
+						onChatSelect={onChatSelect}
+					/>
+				))}
 			</div>
+
 			<div>
 				<div
 					onClick={() => startNewChatCallback()}
