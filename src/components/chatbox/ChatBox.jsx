@@ -9,12 +9,15 @@ export default function ChatBox({
 	newChat,
 	loggedin = false,
 	modalCallback = () => {},
+	selectedThreadId = null,
+	addThread = () => {},
+	threads = [],
 }) {
-	const [questions, setQuestions] = useState([]);
+	const [messages, setMessages] = useState([]);
 	const [askQuestion, setAskQuestion] = useState("");
 	const [loadingIndex, setLoadingIndex] = useState(null); // Track loading for specific question
+	const [loggedIn, setloggedIn] = useState(false);
 	const containerRef = useRef(null);
-	const [count, setCount] = useState(0);
 	const inputRef = useRef(null);
 
 	const fetchPrimaryResponse = async (question) => {
@@ -70,11 +73,9 @@ export default function ChatBox({
 			setAskQuestion("");
 			inputRef.current.value = "";
 
-			const newIndex = questions.length;
-			setQuestions((prevQuestions) => [
-				...prevQuestions,
-				{ question: val, reply: null },
-			]);
+			const newIndex = messages.length;
+			const updatedMessages = [...messages, { question: val, reply: null }];
+			setMessages(updatedMessages);
 			setLoadingIndex(newIndex); // Set loading index for the new question
 
 			try {
@@ -92,19 +93,32 @@ export default function ChatBox({
 				]);
 
 				// Update state once with both responses
-				setQuestions((prevQuestions) =>
-					prevQuestions.map((q, index) =>
-						index === newIndex
-							? {
-									...q,
-									reply: {
-										primaryResponse: primaryResponse.response,
-										citations,
-									},
-							  }
-							: q
-					)
+				const finalMessages = updatedMessages.map((q, index) =>
+					index === newIndex
+						? {
+								...q,
+								reply: {
+									primaryResponse: primaryResponse.response,
+									citations,
+								},
+						  }
+						: q
 				);
+				setMessages(finalMessages);
+
+				// Update the current thread with new messages
+				const existingThread = threads.find(
+					(thread) => thread.id === selectedThreadId
+				);
+				const newThread = {
+					id: selectedThreadId || new Date().toISOString(),
+					title:
+						existingThread && existingThread.title ? existingThread.title : val,
+					timestamp: existingThread ? existingThread.timestamp : new Date(),
+					messages: finalMessages,
+				};
+
+				addThread(newThread);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 			} finally {
