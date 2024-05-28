@@ -23,7 +23,28 @@ export default function SideNav({
 
 			return acc;
 		}, {});
+		// Sort threads within each section by timestamp in descending order
+		for (const key in groupedThreads) {
+			groupedThreads[key].sort(
+				(a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+			);
+		}
 
+		// Sort sections by timestamp in descending order
+		const sortedSectionData = Object.keys(groupedThreads)
+			.sort((a, b) => {
+				const [aMonth, aYear] = a.split("-");
+				const [bMonth, bYear] = b.split("-");
+				const aDate = new Date(aYear, aMonth - 1);
+				const bDate = new Date(bYear, bMonth - 1);
+				return bDate - aDate;
+			})
+			.reduce((acc, key) => {
+				acc[key] = groupedThreads[key];
+				return acc;
+			}, {});
+
+		setSectionData(sortedSectionData);
 	}, [threads]);
 
 	return (
