@@ -10,6 +10,7 @@ export default function SideNav({
 	onChatSelect = () => {},
 }) {
 	const [sectionData, setSectionData] = useState({});
+	const [searchQuery, setSearchQuery] = useState("");
 
 	useEffect(() => {
 		const groupedThreads = threads.reduce((acc, thread) => {
@@ -48,6 +49,13 @@ export default function SideNav({
 		setSectionData(sortedSectionData);
 	}, [threads]);
 
+	const filteredThreads = (threads) => {
+		if (!searchQuery) return threads;
+		return threads.filter((thread) =>
+			thread.title.toLowerCase().includes(searchQuery.toLowerCase())
+		);
+	};
+
 	return (
 		<div className="w-full flex flex-col gap-2 p-4 text-sm h-[100vh] z-50">
 			<div>
@@ -61,6 +69,8 @@ export default function SideNav({
 					type="text"
 					placeholder="Search"
 					className="w-full p-2 outline-none -ml-2"
+					value={searchQuery}
+					onChange={(e) => setSearchQuery(e.target.value)}
 				/>
 			</div>
 			<div className="mt-4 flex flex-col gap-2 flex-grow overflow-y-scroll no-scrollbar">
@@ -68,7 +78,7 @@ export default function SideNav({
 					<ChatSection
 						key={key}
 						monthYear={key}
-						threads={sectionData[key]}
+						threads={filteredThreads(sectionData[key])}
 						onChatSelect={onChatSelect}
 					/>
 				))}
