@@ -83,6 +83,7 @@ export default function Reply({
 									<div key={index} className="text-gray-700">
 										<h3 className="font-bold">{item.title}</h3>
 										<p className="italic">{item.collection}</p>
+										<p className="italic">{item.date}</p>
 										<p className="border-l-2 border-dotted p-2 ml-3 border-orange-400 text-base">
 											{item.content.length > 200
 												? item.content.slice(0, 200) + "..."
