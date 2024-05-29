@@ -16,7 +16,6 @@ export default function ChatBox({
 	const [messages, setMessages] = useState([]);
 	const [askQuestion, setAskQuestion] = useState("");
 	const [loadingIndex, setLoadingIndex] = useState(null); // Track loading for specific question
-	const [loggedIn, setloggedIn] = useState(false);
 	const containerRef = useRef(null);
 	const inputRef = useRef(null);
 
@@ -46,7 +45,6 @@ export default function ChatBox({
 			primaryResponse: data.response,
 			fetchCitations,
 		};
-		console.log("Primary response:", data); // Debugging log
 		return { response: data.response, fetchCitations };
 	};
 
@@ -63,12 +61,11 @@ export default function ChatBox({
 		});
 		const data_citations = await response.json();
 		cache[question] = { ...cache[question], citations: data_citations };
-		console.log("Citations response:", data_citations); // Debugging log
 		return data_citations; // Ensure this matches your actual API response structure
 	};
 
-	const handleSend = async () => {
-		const val = inputRef.current.value.trim();
+	const handleSend = async (question = null) => {
+		const val = question || inputRef.current.value.trim();
 		if (val.length > 0) {
 			setAskQuestion("");
 			inputRef.current.value = "";
@@ -156,6 +153,10 @@ export default function ChatBox({
 		}
 	}, [selectedThreadId]);
 
+	const handleSampleQuestionClick = async (question) => {
+		await handleSend(question);
+	};
+
 	const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
 	return (
@@ -182,7 +183,7 @@ export default function ChatBox({
 							wisdom!
 						</p>
 						<div>
-							<SampleQuestions />
+							<SampleQuestions onQuestionClick={handleSampleQuestionClick} />
 						</div>
 					</div>
 				</div>
