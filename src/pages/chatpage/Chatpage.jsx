@@ -44,37 +44,45 @@ const Chatpage = () => {
 			}
 		});
 	};
+
+	useEffect(() => {
+		if (threads.length === 0) {
+			handleNewChat();
+		}
+	}, [threads]);
+
 	return (
-    <div className="w-full h-[100vh] flex overflow-hidden ">
-      <div className="w-[300px] bg-white shadow-lg  flex-col overflow-hidden hidden md:block md:flex flex-shrink-0">
-        {/* this will hold the side nav section */}
-        <SideNav startNewChatCallback={handleNewChat} />
+		<div className="w-full h-[100vh] flex overflow-hidden">
+			<div className="w-[300px] bg-white shadow-lg flex-col overflow-hidden hidden md:block md:flex flex-shrink-0">
+				<SideNav
+					startNewChatCallback={handleNewChat}
+					onChatSelect={handleChatSelect}
+					threads={threads}
+				/>
 			</div>
 			<div className="absolute top-0 left-0 right-0">
 				<Navbar />
 			</div>
 			<div className="flex flex-col flex-grow mt-16">
-        {/* this will hold the chat section */}
-        <ChatBox newChat={newChat} modalCallback={() => handleShowModal()} />
+				<ChatBox
+					newChat={newChat}
+					modalCallback={handleShowModal}
+					selectedThreadId={selectedThreadId}
+					addThread={addThread}
+					threads={threads}
+				/>
 			</div>
-      {showModal ? (
-        <>
+			{showModal && (
 				<div
 					className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50"
-            onClick={handleShowModal}>
-            {showlogin ? (
-              <>
-                <Login callback={() => setshowlogin(false)} />
-              </>
+					onClick={handleShowModal}
+				>
+					{showLogin ? (
+						<Login callback={() => setShowLogin(false)} />
 					) : (
-              <>
-                <Signup callback={() => setshowlogin(true)} />
-              </>
+						<Signup callback={() => setShowLogin(true)} />
 					)}
 				</div>
-        </>
-      ) : (
-        <></>
 			)}
 		</div>
 	);
