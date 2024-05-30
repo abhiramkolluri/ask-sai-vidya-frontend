@@ -157,6 +157,22 @@ export default function ChatBox({
 		await handleSend(question);
 	};
 
+	const handleLinkClick = (question) => {
+		const url = `${window.location.origin}/thread/${selectedThreadId}`;
+		navigator.clipboard.writeText(url);
+		alert("Link copied to clipboard!");
+	};
+
+	const handleReloadClick = (question) => {
+		// Handle reload logic here
+		alert(`Reloading chat for question: ${question}`);
+	};
+
+	const handleCopyClick = (text) => {
+		navigator.clipboard.writeText(text);
+		alert("Response text copied to clipboard!");
+	};
+
 	const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
 	return (
@@ -172,6 +188,9 @@ export default function ChatBox({
 							question={msg.question}
 							reply={msg.reply}
 							loading={loadingIndex === index}
+							onLinkClick={handleLinkClick}
+							onReloadClick={handleReloadClick}
+							onCopyClick={handleCopyClick}
 						/>
 					))}
 				</div>
