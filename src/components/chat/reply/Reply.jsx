@@ -9,6 +9,9 @@ export default function Reply({
 	question = "What the user asked?",
 	reply,
 	loading,
+	onLinkClick,
+	onReloadClick,
+	onCopyClick,
 }) {
 	console.log("Reply component received reply:", reply);
 
@@ -66,9 +69,21 @@ export default function Reply({
 							</div>
 						</div>
 						<div className="border-l border-orange-400 flex-shrink-0 py-2 px-2 flex flex-col gap-4 text-orange-400">
-							<IoLinkOutline size={20} className="cursor-pointer" />
-							<IoReload size={18} className="cursor-pointer" />
-							<IoCopyOutline size={18} className="cursor-pointer" />
+							<IoLinkOutline
+								size={20}
+								className="cursor-pointer"
+								onClick={() => onLinkClick(question)}
+							/>
+							<IoReload
+								size={18}
+								className="cursor-pointer"
+								onClick={() => onReloadClick(question)}
+							/>
+							<IoCopyOutline
+								size={18}
+								className="cursor-pointer"
+								onClick={() => onCopyClick(primaryResponse)}
+							/>
 						</div>
 					</div>
 				</div>
