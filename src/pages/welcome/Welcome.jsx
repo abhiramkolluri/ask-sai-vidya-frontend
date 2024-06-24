@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import leaves from "../../images/leaves.png";
+import sai from "../../images/sai.png";
 import line from "../../images/line.png";
 import Login from "../../components/login/Login";
 import Signup from "../../components/signup/Signup";
@@ -15,26 +16,31 @@ export default function Welcome() {
   return (
     <div className=" bg-[#fffbf8]  w-full h-[100vh] text-gray-800">
       <div className="absolute top-0 left-0">
-        <img src={leaves} alt="" />
+        <img src={leaves} alt="" className=" h-[400px]" />
       </div>
       <div className=" flex  h-full ">
-        <div className="hidden md:flex flex-col items-center justify-center  flex-grow">
-          <div className="w-[600px] p-4 flex flex-col gap-4">
-            <h1 className=" text-3xl font-bold text-orange-400">
-              Welcome to Ask Sai Vidya!
-            </h1>
-            <p className=" leading-relaxed  tracking-wide">
-              Embark on a spiritual journey with Sathya Sai Baba to find deeper
-              understanding. Seek answers to your questions and engage directly
-              for inner peace.
-              <br />
-              <br />
-              <Link to="/signin">
-                <button className=" gap-1 shadow px-4 py-2 bg-orange-400 text-white flex items-center rounded ">
-                  <IoMdLogIn size={18} /> Sign In
-                </button>
-              </Link>
-            </p>
+        <div className="hidden md:flex flex-col items-center justify-end  flex-grow">
+          <div className="w-[700px]  flex  gap-12 justify-center items-center relative -top-20 ">
+            <div className="w-[250px]">
+              <img src={sai} alt="" />
+            </div>
+            <div className="flex flex-col w-[400px] gap-8 leading-6 tracking-wider">
+              <h1 className=" text-3xl font-bold text-orange-400">
+                Welcome to Ask Sai Vidya!
+              </h1>
+              <p className=" leading-relaxed  tracking-wide">
+                Embark on a spiritual journey with Sathya Sai Baba to find
+                deeper understanding. Seek answers to your questions and engage
+                directly for inner peace.
+                <br />
+                <br />
+                <Link to="/signin">
+                  <button className=" gap-1 shadow px-4 py-2 bg-orange-400 text-white flex items-center rounded ">
+                    <IoMdLogIn size={18} /> Sign In
+                  </button>
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
         <div className="w-[600px] h-full bg-white flex justify-center items-center px-10 relative">

@@ -71,7 +71,8 @@ export default function ChatBox({
         <>
           <div
             ref={containerRef}
-            className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-auto p-2 md:p-6 w-[98%] md:w-[80%] ">
+            className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-auto p-2 md:p-6 w-[98%] md:w-[80%] "
+          >
             {question.map((ques, index) => {
               return (
                 <>

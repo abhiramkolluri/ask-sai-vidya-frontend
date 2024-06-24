@@ -1,10 +1,16 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { BsPersonVideo } from "react-icons/bs";
 import { IoIosLink } from "react-icons/io";
 import { RiDoubleQuotesL } from "react-icons/ri";
-import { IoCopyOutline, IoReload } from "react-icons/io5";
+import {
+  IoCopyOutline,
+  IoReload,
+  IoThumbsDown,
+  IoThumbsDownOutline,
+} from "react-icons/io5";
 import { GoArrowUpRight } from "react-icons/go";
 import { FaSpinner } from "react-icons/fa";
+import Feedback from "../../feedback/Feedback";
 
 export default function Reply({
   question = "What the user asked?",
@@ -34,6 +40,7 @@ export default function Reply({
   ],
 }) {
   const [fetchReply, setfetchReply] = React.useState(false);
+  const [showFeedbackModal, setshowFeedbackModal] = useState(false);
 
   const fetchingReply = () => {
     // setquestion((x) => [...x, askQuestion]);
@@ -89,7 +96,8 @@ export default function Reply({
                           {item.text ? item.text : ""}{" "}
                           <a
                             className=" text-base text-orange-400"
-                            href="http://somewebsite.com">
+                            href="http://somewebsite.com"
+                          >
                             [{index}]
                           </a>{" "}
                         </p>
@@ -101,6 +109,9 @@ export default function Reply({
                   <IoIosLink size={20} className="cursor-pointer" />
                   <IoReload size={18} className="cursor-pointer" />
                   <IoCopyOutline size={18} className="cursor-pointer" />
+                  <div onClick={() => setshowFeedbackModal(true)}>
+                    <IoThumbsDownOutline size={18} className="cursor-pointer" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -113,7 +124,8 @@ export default function Reply({
                         <h2 className=" flex gap-2 my-2 text-gray-600 font-semibold text-base">
                           <a
                             className=" text-base text-orange-400"
-                            href="http://somewebsite.com">
+                            href="http://somewebsite.com"
+                          >
                             [{index}]
                           </a>
                           {item.heading ? item.heading : ""}
@@ -126,7 +138,8 @@ export default function Reply({
                             : ""}{" "}
                           <a
                             className="  text-orange-400 flex  items-center gap-1"
-                            href="http://somewebsite.com">
+                            href="http://somewebsite.com"
+                          >
                             see more <GoArrowUpRight size={20} />
                           </a>
                         </p>
@@ -139,6 +152,24 @@ export default function Reply({
             </div>
           </div>
         </>
+      )}
+      {showFeedbackModal ? (
+        <>
+          <div className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50">
+            <Feedback
+              closeModalCallback={() => setshowFeedbackModal(false)}
+              options={[
+                "Not helpful",
+                "Inaccurate",
+                "Out of date",
+                "Problematic",
+                "Misquoted the orignal source",
+              ]}
+            />
+          </div>
+        </>
+      ) : (
+        <></>
       )}
     </div>
   );
