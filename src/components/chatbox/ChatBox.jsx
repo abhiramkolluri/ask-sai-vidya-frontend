@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
-// import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 const cache = {};
 
