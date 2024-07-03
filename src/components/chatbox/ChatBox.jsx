@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
+import { useNavigate, useParams } from "react-router-dom";
 
 const cache = {};
 
@@ -18,6 +19,8 @@ export default function ChatBox({
 	const [loadingIndex, setLoadingIndex] = useState(null); // Track loading for specific question
 	const containerRef = useRef(null);
 	const inputRef = useRef(null);
+	const navigate = useNavigate();
+	const { threadId } = useParams();
 
 	const fetchPrimaryResponse = async (question) => {
 		if (cache[question]?.primaryResponse) {
@@ -53,12 +56,13 @@ export default function ChatBox({
 			return cache[question].citations;
 		}
 		const response = await fetch("http://localhost:5000/search", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ query: question }),
-		});
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ query: question }),
+			}
+		);
 		const data_citations = await response.json();
 		cache[question] = { ...cache[question], citations: data_citations };
 		return data_citations; // Ensure this matches your actual API response structure
@@ -116,6 +120,7 @@ export default function ChatBox({
 				};
 
 				addThread(newThread);
+				navigate(`/thread/${newThread.id}`);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 			} finally {
@@ -139,6 +144,7 @@ export default function ChatBox({
 	useEffect(() => {
 		if (newChat) {
 			setMessages([]);
+			navigate("/");
 		}
 	}, [newChat]);
 
@@ -149,6 +155,7 @@ export default function ChatBox({
 			);
 			if (selectedThread) {
 				setMessages(selectedThread.messages);
+				navigate(`/thread/${selectedThreadId}`);
 			}
 		}
 	}, [selectedThreadId]);
