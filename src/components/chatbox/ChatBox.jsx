@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
-import { useNavigate, useParams } from "react-router-dom";
+// import { useNavigate, useParams } from "react-router-dom";
 
 const cache = {};
 
@@ -120,7 +120,7 @@ export default function ChatBox({
 				};
 
 				addThread(newThread);
-				navigate(`/thread/${newThread.id}`);
+				// navigate(`/thread/${newThread.id}`);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 			} finally {
@@ -144,7 +144,7 @@ export default function ChatBox({
 	useEffect(() => {
 		if (newChat) {
 			setMessages([]);
-			navigate("/");
+			// navigate("/");
 		}
 	}, [newChat]);
 
@@ -155,7 +155,7 @@ export default function ChatBox({
 			);
 			if (selectedThread) {
 				setMessages(selectedThread.messages);
-				navigate(`/thread/${selectedThreadId}`);
+				// navigate(`/thread/${selectedThreadId}`);
 			}
 		}
 	}, [selectedThreadId]);
