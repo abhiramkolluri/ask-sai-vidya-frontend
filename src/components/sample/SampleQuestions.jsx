@@ -2,10 +2,10 @@ import React from "react";
 
 export default function SampleQuestions({ onQuestionClick = () => {} }) {
 	const sampleQuestions = [
-		"When did Sai Baba say the best time to wake up?",
-		"When is self-realization?",
-		"What is the best way to meditate?",
-		"When is the good time to wake up?",
+		"How do you find life’s purpose?",
+		"In this ever changing world, how do I encourage my child to follow Sai Baba's values?",
+		"What does Sai Baba say about stopping bad habits and learning new habits?",
+		"How do I sing Bhajans, do service, learn prayers, meditate, and do yoga?",
 	];
 
 	return (

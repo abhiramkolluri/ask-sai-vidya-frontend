@@ -1,9 +1,15 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BsPersonVideo } from "react-icons/bs";
 import { RiDoubleQuotesL } from "react-icons/ri";
-import { IoLinkOutline, IoReload, IoCopyOutline } from "react-icons/io5";
+import {
+  IoCopyOutline,
+  IoReload,
+  IoThumbsDown,
+  IoThumbsDownOutline,
+} from "react-icons/io5";
 import { GoArrowUpRight } from "react-icons/go";
 import { FaSpinner } from "react-icons/fa";
+import Feedback from "../../feedback/Feedback";
 
 export default function Reply({
 	question = "What the user asked?",
@@ -14,6 +20,8 @@ export default function Reply({
 	onCopyClick,
 }) {
 	console.log("Reply component received reply:", reply);
+  const [fetchReply, setfetchReply] = React.useState(false);
+  const [showFeedbackModal, setshowFeedbackModal] = useState(false);
 
 	if (loading) {
 		return (
@@ -84,6 +92,11 @@ export default function Reply({
 								className="cursor-pointer"
 								onClick={() => onCopyClick(primaryResponse)}
 							/>
+							<IoThumbsDownOutline
+								size={18}
+								className="cursor-pointer"
+								onClick={() => setshowFeedbackModal(true)}
+							/>
 						</div>
 					</div>
 				</div>
@@ -105,7 +118,7 @@ export default function Reply({
 												: item.content}{" "}
 											<a
 												className="text-orange-400 flex items-center gap-1"
-												href="http://somewebsite.com"
+												href={item.link}
 											>
 												see more <GoArrowUpRight size={20} />
 											</a>
@@ -120,6 +133,24 @@ export default function Reply({
 					</div>
 				</div>
 			</div>
+      {showFeedbackModal ? (
+        <>
+          <div className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50">
+            <Feedback
+              closeModalCallback={() => setshowFeedbackModal(false)}
+              options={[
+                "Not helpful",
+                "Inaccurate",
+                "Out of date",
+                "Problematic",
+                "Misquoted the orignal source",
+              ]}
+            />
+          </div>
+        </>
+      ) : (
+        <></>
+      )}
 		</div>
 	);
 }

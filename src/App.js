@@ -6,6 +6,7 @@ import Signin from "./pages/signin/Signin";
 import Welcome from "./pages/welcome/Welcome";
 import Reset from "./pages/password/reset/Reset";
 import NewPassword from "./pages/password/reset/NewPassword";
+import Blog from "./pages/blog/Blog";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/signin" element={<Signin showLogin={true} />} />
         <Route path="/signup" element={<Signin showLogin={false} />} />
         <Route path="/welcome" element={<Welcome />} />
+        <Route path="/blog" element={<Blog />} />
         <Route path="/password/reset" element={<Reset />} />
         <Route path="/password/newpassword" element={<NewPassword />} />
       </Routes>
