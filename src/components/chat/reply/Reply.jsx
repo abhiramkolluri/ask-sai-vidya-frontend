@@ -4,7 +4,7 @@ import { RiDoubleQuotesL } from "react-icons/ri";
 import {
   IoCopyOutline,
   IoReload,
-  IoThumbsDown,
+  IoLinkOutline,
   IoThumbsDownOutline,
 } from "react-icons/io5";
 import { GoArrowUpRight } from "react-icons/go";
