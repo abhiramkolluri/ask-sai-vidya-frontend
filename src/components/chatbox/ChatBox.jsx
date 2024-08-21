@@ -1,136 +1,241 @@
 import React, { useState, useEffect, useRef } from "react";
 import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
-
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
-import { BsPersonVideo } from "react-icons/bs";
+import { useNavigate, useParams } from "react-router-dom";
+
+const cache = {};
 
 export default function ChatBox({
-  newChat,
-  loggedin = false,
-  modalCallback = () => {},
+	newChat,
+	loggedin = false,
+	modalCallback = () => {},
+	selectedThreadId = null,
+	addThread = () => {},
+	threads = [],
 }) {
-  const [question, setquestion] = useState([]);
-  const [askQuestion, setaskQuestion] = useState("");
-  const containerRef = useRef(null);
-  const [count, setcount] = useState(0);
-  const [loggedIn, setloggedIn] = useState(false);
-  const inputRef = useRef(null);
+	const [messages, setMessages] = useState([]);
+	const [askQuestion, setAskQuestion] = useState("");
+	const [loadingIndex, setLoadingIndex] = useState(null); // Track loading for specific question
+	const containerRef = useRef(null);
+	const inputRef = useRef(null);
+	const navigate = useNavigate();
+	const { threadId } = useParams();
 
-  const chat = [
-    {
-      question: "this is the question",
-      reply: {
-        answer: "this is the answer",
-        date: "12/12/2021",
-      },
-    },
-  ];
-  console.log(count);
-  useEffect(() => {
-    console.log(count);
-    if (count > 3) {
-      console.log("exectung call back");
-      modalCallback();
-    }
-  }, [count]);
+	const fetchPrimaryResponse = async (question) => {
+		if (cache[question]?.primaryResponse) {
+			return {
+				response: cache[question].primaryResponse,
+				fetchCitations: cache[question].fetchCitations,
+			};
+		}
+		const response = await fetch(
+			"http://localhost:5000/api/primarysource/query",
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ query: question }),
+			}
+		);
+		const data = await response.json();
+		const fetchCitations =
+			data.response !==
+			"It seems like there might be a misunderstanding with the question you provided. I'm here to offer spiritual guidance based on the teachings of Sathya Sai Baba. If you have any questions related to spirituality, personal growth, or Sai Baba's teachings, feel free to ask!";
+		cache[question] = {
+			...cache[question],
+			primaryResponse: data.response,
+			fetchCitations,
+		};
+		return { response: data.response, fetchCitations };
+	};
 
-  const handleKeyPress = async (event) => {
-    // Check if the pressed key is the "Enter" key
+	const fetchCitations = async (question) => {
+		if (cache[question]?.citations) {
+			return cache[question].citations;
+		}
+		const response = await fetch("http://localhost:5000/search", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ query: question }),
+			}
+		);
+		const data_citations = await response.json();
+		cache[question] = { ...cache[question], citations: data_citations };
+		return data_citations; // Ensure this matches your actual API response structure
+	};
 
-    const val = inputRef.current.value;
-    setaskQuestion(val.trim());
+	const handleSend = async (question = null) => {
+		const val = question || inputRef.current.value.trim();
+		if (val.length > 0) {
+			setAskQuestion("");
+			inputRef.current.value = "";
 
-    if (event.key === "Enter") {
-      event.preventDefault();
+			const newIndex = messages.length;
+			const updatedMessages = [...messages, { question: val, reply: null }];
+			setMessages(updatedMessages);
+			setLoadingIndex(newIndex); // Set loading index for the new question
 
-      if (val?.trim()?.length < 1) return;
+			try {
+				const primaryResponsePromise = fetchPrimaryResponse(val);
+				const citationsPromise = primaryResponsePromise.then((result) => {
+					if (result.fetchCitations) {
+						return fetchCitations(val);
+					}
+					return [];
+				});
 
-      setcount((x) => x + 1);
+				const [primaryResponse, citations] = await Promise.all([
+					primaryResponsePromise,
+					citationsPromise,
+				]);
 
-      setquestion((x) => [...x, val.trim()]);
-      inputRef.current.value = "";
-    }
-  };
+				// Update state once with both responses
+				const finalMessages = updatedMessages.map((q, index) =>
+					index === newIndex
+						? {
+								...q,
+								reply: {
+									primaryResponse: primaryResponse.response,
+									citations,
+								},
+						  }
+						: q
+				);
+				setMessages(finalMessages);
 
-  useEffect(() => {
-    setquestion((x) => []);
-  }, [newChat]);
+				// Update the current thread with new messages
+				const existingThread = threads.find(
+					(thread) => thread.id === selectedThreadId
+				);
+				const newThread = {
+					id: selectedThreadId || new Date().toISOString(),
+					title:
+						existingThread && existingThread.title ? existingThread.title : val,
+					timestamp: existingThread ? existingThread.timestamp : new Date(),
+					messages: finalMessages,
+				};
 
-  useEffect(() => {
-    // Scroll to the end of the div
-    if (containerRef.current)
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
-  }, [question]);
+				addThread(newThread);
+				// navigate(`/thread/${newThread.id}`);
+			} catch (error) {
+				console.error("Error fetching data:", error);
+			} finally {
+				setLoadingIndex(null); // Reset loading index
+			}
+		}
+	};
 
-  const SendIcon = askQuestion?.length ? RiSendPlane2Fill : RiSendPlane2Line;
+	const handleKeyPress = async (event) => {
+		if (event.key === "Enter") {
+			event.preventDefault();
+			await handleSend();
+		}
+	};
 
-  return (
-    <div className="w-full flex flex-col h-[100vh]">
-      {question.length > 0 ? (
-        <>
-          <div
-            ref={containerRef}
-            className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-auto p-2 md:p-6 w-[98%] md:w-[80%] "
-          >
-            {question.map((ques, index) => {
-              return (
-                <>
-                  <Reply question={ques} key={index} />
-                </>
-              );
-            })}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="flex-grow overflow-y-scroll flex justify-center items-center">
-            <div className="flex flex-col  w-8/12  items-center justify-center gap-4">
-              <p className=" p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
-                Ask your question to&nbsp;
-                <b>Sai Vidya</b> and discover profound wisdom!
-              </p>
-              <div>
-                <SampleQuestions />
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+	useEffect(() => {
+		if (containerRef.current)
+			containerRef.current.scrollTop = containerRef.current.scrollHeight;
+	}, [messages]);
 
-      <div className="  p-4 md:p-8 ">
-        <div className="flex  justify-center  border border-gray-300 gap-2 rounded">
-          <textarea
-            ref={inputRef}
-            className="flex-grow  rounded p-4 resize-none outline-none text-lg"
-            id="textBox"
-            cols="10"
-            rows="4"
-            placeholder="Start your question"
-            // value={askQuestion}
-            // onChange={(e) => {
-            //   setaskQuestion(e.target.value);
-            //   // clearInput();
-            // }}
-            onKeyDown={(e) => handleKeyPress(e)}
-          />
-          <div className="text-gray-300 p-2">
-            <SendIcon
-              className="cursor-pointer hover:shadow-lg disabled:!shadow-bg"
-              onClick={() => {
-                setaskQuestion("");
-                inputRef.current.focus();
-                setcount((x) => x + 1);
-                askQuestion.length > 0 &&
-                  setquestion((x) => [...x, askQuestion]);
-              }}
-              size={24}
-              color="#FE9F44"
-              disabled={!askQuestion.length}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+	useEffect(() => {
+		if (newChat) {
+			setMessages([]);
+			// navigate("/");
+		}
+	}, [newChat]);
+
+	useEffect(() => {
+		if (selectedThreadId) {
+			const selectedThread = threads.find(
+				(thread) => thread.id === selectedThreadId
+			);
+			if (selectedThread) {
+				setMessages(selectedThread.messages);
+				// navigate(`/thread/${selectedThreadId}`);
+			}
+		}
+	}, [selectedThreadId]);
+
+	const handleSampleQuestionClick = async (question) => {
+		await handleSend(question);
+	};
+
+	const handleLinkClick = (question) => {
+		const url = `${window.location.origin}/thread/${selectedThreadId}`;
+		navigator.clipboard.writeText(url);
+		alert("Link copied to clipboard!");
+	};
+
+	const handleReloadClick = (question) => {
+		// Handle reload logic here
+		alert(`Reloading chat for question: ${question}`);
+	};
+
+	const handleCopyClick = (text) => {
+		navigator.clipboard.writeText(text);
+		alert("Response text copied to clipboard!");
+	};
+
+	const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
+
+	return (
+		<div className="w-full flex flex-col h-[100vh]">
+			{messages.length > 0 ? (
+				<div
+					ref={containerRef}
+					className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-auto p-2 md:p-6 w-[98%] md:w-[80%] "
+				>
+					{messages.map((msg, index) => (
+						<Reply
+							key={index}
+							question={msg.question}
+							reply={msg.reply}
+							loading={loadingIndex === index}
+							onLinkClick={handleLinkClick}
+							onReloadClick={handleReloadClick}
+							onCopyClick={handleCopyClick}
+						/>
+					))}
+				</div>
+			) : (
+				<div className="flex-grow overflow-y-scroll flex justify-center items-center">
+					<div className="flex flex-col w-8/12 items-center justify-center gap-4">
+						<p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
+							Ask your question to&nbsp;<b>Sai Vidya</b> and discover profound
+							wisdom!
+						</p>
+						<div>
+							<SampleQuestions onQuestionClick={handleSampleQuestionClick} />
+						</div>
+					</div>
+				</div>
+			)}
+
+			<div className="p-4 md:p-8">
+				<div className="flex justify-center border border-gray-300 gap-2 rounded">
+					<textarea
+						ref={inputRef}
+						className="flex-grow rounded p-4 resize-none outline-none text-lg"
+						id="textBox"
+						cols="10"
+						rows="4"
+						placeholder="Start your question"
+						onKeyDown={handleKeyPress}
+					/>
+					<div className="text-gray-300 p-2">
+						<SendIcon
+							className="cursor-pointer hover:shadow-lg"
+							onClick={handleSend}
+							size={24}
+							color="#FE9F44"
+						/>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
 }
