@@ -23,6 +23,14 @@ export default function Reply({
   const [fetchReply, setfetchReply] = React.useState(false);
   const [showFeedbackModal, setshowFeedbackModal] = useState(false);
 
+  const handleSeeMore = (event) => {
+	// Code to handle the click event goes here
+	event.preventDefault(); // Stop the default navigation
+
+  	// Open the link in a new tab with desired features (optional)
+  	window.open(event.target.href, '_blank', 'noopener,noreferrer');
+  };
+
 	if (loading) {
 		return (
 			<div className="w-full text-gray-500 text-sm">
@@ -118,7 +126,7 @@ export default function Reply({
 												: item.content}{" "}
 											<a
 												className="text-orange-400 flex items-center gap-1"
-												href={item.link}
+												href={item.link} onClick={handleSeeMore}
 											>
 												see more <GoArrowUpRight size={20} />
 											</a>
