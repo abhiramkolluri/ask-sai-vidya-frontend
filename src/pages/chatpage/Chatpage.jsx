@@ -86,7 +86,7 @@ const Chatpage = () => {
 					)}
 				</div>
 			)}
-      {showFeedbackModal ? (
+      {/* {showFeedbackModal ? (
         <>
           <div className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50">
             <Feedback
@@ -106,7 +106,7 @@ const Chatpage = () => {
         </>
       ) : (
         <></>
-      )}
+      )} */}
 		</div>
 	);
 };
