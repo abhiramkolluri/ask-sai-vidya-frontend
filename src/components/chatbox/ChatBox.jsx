@@ -30,7 +30,7 @@ export default function ChatBox({
 			};
 		}
 		const response = await fetch(
-			"https://4um5p0saxg.execute-api.us-east-1.amazonaws.com/dev/query",
+			"http://localhost:5000/query",
 			{
 				method: "POST",
 				headers: {
@@ -55,7 +55,7 @@ export default function ChatBox({
 		if (cache[question]?.citations) {
 			return cache[question].citations;
 		}
-		const response = await fetch("https://4um5p0saxg.execute-api.us-east-1.amazonaws.com/dev/search", {
+		const response = await fetch("http://localhost:5000/search", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
