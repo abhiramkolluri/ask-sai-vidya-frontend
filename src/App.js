@@ -31,7 +31,8 @@ function App() {
           <Route path="/password/newpassword" element={<NewPassword />} />
           <Route path="*" element={<ErrorPage />} />
         </Routes>
-        <ReactQueryDevtools initialIsOpen={false} />
+        {/* for debugging react-query */}
+        {/* <ReactQueryDevtools initialIsOpen={false} /> */}
       </QueryClientProvider>
     </div>
   );
