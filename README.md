@@ -14,6 +14,12 @@ If the `.env.local` file doesn't exists, create one and ensure that `REACT_APP_B
 REACT_APP_BASE_API_SERVER = http://localhost:8000
 ```
 
+or for using the prod, for example, point it to the Prod URL:
+
+```
+REACT_APP_BASE_API_SERVER = https://qrsmk74u20.execute-api.us-east-1.amazonaws.com/prod
+```
+
 ### `npm install`
 
 This installs the required repository to the application.
