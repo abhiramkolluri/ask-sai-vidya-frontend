@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap");
 /* Hide scrollbar for Chrome, Safari and Opera */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
@@ -13,11 +14,14 @@
   scrollbar-width: none; /* Firefox */
 }
 
-@font-face {
+/* @font-face {
   font-family: "amiri";
   src: url("./assets/Amiri-Regular.ttf") format("truetype");
-}
+} */
+
 body {
   /* background-color: #f3f4f6; */
-  font-family: "amiri", sans-serif;
+  /* font-family: "amiri", sans-serif; */
+  font-family: "EB Garamond", serif;
+  font-optical-sizing: auto;
 }
