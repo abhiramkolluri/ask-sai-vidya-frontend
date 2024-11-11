@@ -89,7 +89,8 @@ export default function Blog() {
           <div className="p-9 flex justify-between w-full">
             {/* nav section */}
             <Logo />
-            {loggedin ? (
+            {/* commenting login setting for now */}
+            {/* {loggedin ? (
               <>
                 {" "}
                 <div className="flex justify-center items-center gap-2 text-orange-400 ">
@@ -140,7 +141,7 @@ export default function Blog() {
                   </button>
                 </Link>
               </>
-            )}
+            )} */}
           </div>
           <h1 className=" text-[22px] text-center font-bold mb-10">
             {post?.title}
