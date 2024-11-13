@@ -9,48 +9,18 @@ import { IoMdAlert, IoMdCheckmark } from "react-icons/io";
 import { Button, Input, Typography } from "@material-tailwind/react";
 import { VscEye, VscEyeClosed } from "react-icons/vsc";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-const registerSchema = z
-  .object({
-    first_name: z.string().min(3, "First name must be at least 3 characters"),
-    last_name: z.string().min(3, "Last name must be at least 3 characters"),
-    email: z
-      .string()
-      .email("Please enter a valid email address")
-      .min(5, "Please enter a valid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .max(100),
-    confirmPassword: z
-      .string()
-      .min(8, "Password must be at least 8 characters"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-const FieldError = ({ errorField }) => {
-  if (!errorField || !errorField.message) return null;
-  return (
-    <Typography
-      variant="small"
-      color="red"
-      className="mt-[-1rem] font-semibold">
-      {errorField.message}
-    </Typography>
-  );
-};
+import {
+  FieldError,
+  FormFlashMessages,
+  registerSchema,
+} from "../../helpers/authHelpers";
 
 export default function Signup({ callback = () => {}, inModal = true }) {
   const [inputTypes, setInputTypes] = useState({
     password: "password",
     confirmPassword: "password",
   });
-  const [error, setError] = useState(null);
   const {
     register,
     registering,
@@ -92,57 +62,8 @@ export default function Signup({ callback = () => {}, inModal = true }) {
   };
 
   const handleSignup = (data) => {
-    setError(null);
-
-    console.log("Errors: ", errors);
-    if (!isValid) return;
-
-    // const formData = new FormData(formRef.current);
-    // const data = Object.fromEntries(formData);
-
-    // if (data.confirmPassword !== data.password) {
-    //   setError("Passwords do not match");
-    //   return;
-    // }
-
-    // if (
-    //   data.email === "" ||
-    //   data.password === "" ||
-    //   data.first_name === "" ||
-    //   data.last_name === ""
-    // ) {
-    //   setError("Please fill all the fields");
-    //   return;
-    // }
-
-    // if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) !== true) {
-    //   setError("Please enter a valid email address");
-    //   return;
-    // }
-
-    // if (data.email.length < 5) {
-    //   setError("Please enter a valid email address");
-    //   return;
-    // }
-
-    // if (data.first_name.length < 3) {
-    //   setError("First name must be at least 3 characters");
-    //   return;
-    // }
-
-    // if (data.last_name.length < 3) {
-    //   setError("Last name must be at least 3 characters");
-    //   return;
-    // }
-
-    // if (data.password.length < 8) {
-    //   setError("Password must be at least 8 characters");
-    //   return;
-    // }
-
-    console.log(data);
     try {
-      register({ email: data.email, password: data.password });
+      register(data);
     } catch (error) {
       console.log(error);
     }
@@ -174,35 +95,11 @@ export default function Signup({ callback = () => {}, inModal = true }) {
               <></>
             )}
 
-            {/* Error states */}
-            <div className="mb-2">
-              {(Object.values(errors).length || authError) && (
-                // create a div for flashing error
-                <div className="text-red-500 text-center font-lg font-bold border-red-500 border rounded p-2 flex justify-around align-center">
-                  <span className="text-red-500 flex w-8">
-                    <IoMdAlert size={24} />
-                  </span>
-                  <span className="flex-[4] text-left">
-                    {authError}
-                    {Object.values(errors).length ? (
-                      <span>Please address the form errors.</span>
-                    ) : null}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Success states */}
-            <div className="mb-2">
-              {authSuccess && (
-                <div className="text-green-500 text-center font-lg font-bold border-green-500 border rounded p-2 flex justify-around align-center">
-                  <span className="text-green-500 flex w-8">
-                    <IoMdCheckmark size={24} />
-                  </span>
-                  <span className="flex-[4] text-left">{authSuccess}</span>
-                </div>
-              )}
-            </div>
+            <FormFlashMessages
+              errors={errors}
+              authSuccess={authSuccess}
+              authError={authError}
+            />
 
             <Input
               label="First name"
@@ -263,15 +160,13 @@ export default function Signup({ callback = () => {}, inModal = true }) {
             {!inModal ? (
               <>
                 <Link to="/signin">
-                  <span className=" text-orange-400 cursor-pointer">
-                    Sign In
-                  </span>
+                  <span className=" text-primary cursor-pointer">Sign In</span>
                 </Link>
               </>
             ) : (
               <>
                 <span
-                  className=" text-orange-400 cursor-pointer"
+                  className=" text-primary cursor-pointer"
                   onClick={callback}>
                   Sign In
                 </span>
