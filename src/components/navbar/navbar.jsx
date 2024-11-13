@@ -1,18 +1,25 @@
 import React, { useState } from "react";
-import { BsChevronBarDown, BsChevronDown } from "react-icons/bs";
-import { FaRegUser, FaUserAlt } from "react-icons/fa";
+import { BsChevronDown } from "react-icons/bs";
+import { FaRegUser } from "react-icons/fa";
 import { IoMdLogIn, IoMdLogOut } from "react-icons/io";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
-export default function Navbar() {
+export default function Navbar({ variant }) {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const { user, logout } = useAuth();
+  const isBlogVariant = variant === "blog";
 
   return (
-    <div className=" w-full bg-white   px-12 text-[14px] flex items-center justify-end py-6 relative ">
-      <div className=" w-full h-[72px] bg-gradient-to-r from-primary to-orange-50 absolute -z-10"></div>
+    <div
+      className={`w-full ${
+        isBlogVariant ? "bg-transparent" : "bg-white"
+      }  px-12 text-[14px] flex items-center justify-end py-6 relative`}>
+      {isBlogVariant ? null : (
+        <div className=" w-full h-[72px] bg-gradient-to-r from-primary to-orange-50 absolute -z-10"></div>
+      )}
+
       {user ? (
         <>
           <div

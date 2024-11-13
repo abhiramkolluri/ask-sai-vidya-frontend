@@ -177,11 +177,11 @@ export default function ChatBox({
   const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
   return (
-    <div className="w-full flex flex-col h-[100vh]">
+    <div className="w-full flex flex-col h-[100vh] mt-16">
       {messages.length > 0 ? (
         <div
           ref={containerRef}
-          className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-auto p-2 md:p-6 w-[98%] md:w-[80%] ">
+          className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] ">
           {messages.map((msg, index) => (
             <Reply
               key={index}

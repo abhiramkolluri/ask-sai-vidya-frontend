@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import leaves from "../../../images/leaves.png";
 import MaterialInput from "../../../components/input/MaterialInput";
-import { Link } from "react-router-dom";
 
 export default function NewPassword() {
   const [email, setemail] = useState("useremail@gmail.com");
