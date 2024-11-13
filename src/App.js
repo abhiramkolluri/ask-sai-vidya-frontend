@@ -38,7 +38,7 @@ function App() {
 
               {/* auth routes: should redirect to the home if user already authenticated */}
               <Route element={<ProtectedRoute />}>
-                <Route index element={<Welcome />} />
+                <Route path="/welcome" element={<Welcome />} />
                 <Route path="/signin" element={<Signin showLogin={true} />} />
                 <Route path="/signup" element={<Signin showLogin={false} />} />
                 <Route path="/password/reset" element={<Reset />} />
@@ -46,9 +46,10 @@ function App() {
               </Route>
 
               {/* should be protected */}
-              <Route element={<PrivateRoute />}>
-                <Route path="/home" element={<Chatpage />} />
-              </Route>
+              {/* <Route element={<PrivateRoute />}> */}
+              {/* <Route path="/home" element={<Chatpage />} /> */}
+              <Route index route="/home" element={<Chatpage />} />
+              {/* </Route> */}
               <Route path="/blog/:slugId" element={<Blog />} />
               <Route path="*" element={<ErrorPage />} />
             </Routes>
@@ -71,7 +72,7 @@ const PrivateRoute = ({ children }) => {
 // ProtectedRoute component for auth routes
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-  return !user ? <Outlet /> : <Navigate to="/home" />;
+  return !user ? <Outlet /> : <Navigate to="/" />;
 };
 
 export default App;
