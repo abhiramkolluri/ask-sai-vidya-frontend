@@ -124,9 +124,8 @@ export default function Login({ callback = () => {}, inModal = true }) {
                 <Button
                   className="bg-primary"
                   type="submit"
-                  // loading={registering}
-                  // disabled={registering || authSuccess}
-                >
+                  loading={loggingIn}
+                  disabled={loggingIn || authSuccess}>
                   Sign In
                 </Button>
               </form>

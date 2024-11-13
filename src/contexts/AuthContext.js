@@ -1,6 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "react-query";
+import { jwtDecode } from "jwt-decode";
+
 import { apiRoute } from "../helpers/apiRoute";
 
 const AuthContext = createContext();
@@ -14,12 +16,28 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [error, setError] = useState();
   const [success, setSuccess] = useState(null);
-  // Get access token from local storage on mount
-  useEffect(() => {
+
+  const updateUserFromLocalStorage = () => {
     const storedToken = localStorage.getItem("access_token");
     if (storedToken) {
-      setUser({ token: storedToken }); // Assuming token is enough to identify user
+      try {
+        const decodedToken = jwtDecode(storedToken);
+        const userEmail = decodedToken.sub;
+
+        setUser({ token: storedToken, email: userEmail });
+      } catch (error) {
+        console.error("Error decoding token:", error);
+        localStorage.removeItem("access_token");
+        setUser(null);
+      }
+    } else {
+      setUser(null);
     }
+  };
+
+  // Get access token from local storage on mount
+  useEffect(() => {
+    updateUserFromLocalStorage();
   }, []);
 
   useEffect(() => {
@@ -48,13 +66,14 @@ export const AuthProvider = ({ children }) => {
     },
     {
       onSuccess: (data) => {
-        localStorage.setItem("access_token", data.access_token);
-        setUser({ token: data.access_token });
-        setTimeout(() => {
-          navigate("/"); // Redirect to chat page
-        }, 3500);
-
         setSuccess("Successfully logged in");
+
+        setTimeout(() => {
+          localStorage.setItem("access_token", data.access_token);
+          navigate("/"); // Redirect to chat page
+          updateUserFromLocalStorage();
+          setSuccess(null);
+        }, 2500);
       },
       onError: (error) => {
         setError(error.message);
@@ -101,7 +120,7 @@ export const AuthProvider = ({ children }) => {
         setTimeout(() => {
           navigate("/signin"); // Redirect to login page
           setSuccess(null);
-        }, 2500);
+        }, 3500);
       },
       onError: (error) => {
         setError(error.message);

@@ -65,9 +65,9 @@ const Chatpage = () => {
 
       <div className="flex flex-col flex-grow mt-2">
         {/* Commenting Navbar for now */}
-        {/* <div className="absolute top-0 left-0 right-0">
+        <div className="absolute top-0 left-0 right-0">
           <Navbar />
-        </div> */}
+        </div>
         <ChatBox
           newChat={newChat}
           modalCallback={handleShowModal}
