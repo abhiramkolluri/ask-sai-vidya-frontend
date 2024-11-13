@@ -9,7 +9,7 @@ import bgflower from "../../images/bgflower.png";
 import Logo from "../../components/logo/Logo";
 import { fetchBlogPost } from "../../helpers/apiRoute";
 import ErrorPage from "../../components/error/ErrorPage";
-import Navbar from "../../components/navbar/Navbar";
+import Navbar from "../../components/Navbar";
 
 export default function Blog() {
   const { slugId } = useParams();
