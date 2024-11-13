@@ -3,7 +3,7 @@ import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
 import Login from "../../components/login/Login";
 import Signup from "../../components/signup/Signup";
-import Navbar from "../../components/navbar/Navbar";
+import Navbar from "../../components/Navbar";
 // import Feedback from "../../components/feedback/Feedback";
 
 const Chatpage = () => {
