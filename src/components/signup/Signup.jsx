@@ -1,20 +1,19 @@
-import React, { useRef, useState } from "react";
-import Chat from "../../images/chat.jpg";
+import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
-import MaterialInput from "../input/MaterialInput";
 import { Link } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
-import { IoMdAlert, IoMdCheckmark } from "react-icons/io";
-import { Button, Input, Typography } from "@material-tailwind/react";
+import { Button, Input } from "@material-tailwind/react";
 import { VscEye, VscEyeClosed } from "react-icons/vsc";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+
 import {
   FieldError,
   FormFlashMessages,
   registerSchema,
 } from "../../helpers/authHelpers";
+import Chat from "../../images/chat.jpg";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function Signup({ callback = () => {}, inModal = true }) {
   const [inputTypes, setInputTypes] = useState({
@@ -31,7 +30,7 @@ export default function Signup({ callback = () => {}, inModal = true }) {
   const {
     register: formRegister,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors },
   } = useForm({
     mode: "onBlur",
     reValidateMode: "onChange",

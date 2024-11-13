@@ -67,7 +67,7 @@ export default function Reply({
       </div>
 
       <div className="md:p-1 mx-2">
-        <div className="border-l border-[#BC5B01] p-2 px-4 flex flex-col">
+        <div className="border-l border-primary p-2 px-4 flex flex-col">
           <div className="px-2 py-1 flex items-end">
             <div className=" ">
               <p className="text-lg font-normal text-[#252525]">
@@ -83,7 +83,7 @@ export default function Reply({
                   citations.map((item, index) => (
                     <div key={index} className="text-[#252525]">
                       <p className="">
-                        <span className="text-[#BC5B01]">
+                        <span className="text-primary">
                           [{index + 1}] {"\t\t"}
                         </span>
                         <span className="font-lg font-bold ">
@@ -96,7 +96,7 @@ export default function Reply({
                           ? item.content.slice(0, 200) + "..."
                           : item.content}{" "}
                         <br />
-                        <span className="text-[#BC5B01] underline">
+                        <span className="text-primary underline">
                           <Link
                             to={`/blog/${item._id}`}
                             state={{ citations }}
@@ -105,7 +105,7 @@ export default function Reply({
                             // target="_blank"
                           >
                             See more
-                            <GoArrowUpRight color="#BC5B01" size={20} />
+                            <GoArrowUpRight size={20} />
                           </Link>
                         </span>
                       </p>
@@ -118,7 +118,7 @@ export default function Reply({
               <div className="flex-grow w-20"></div>
             </div>
           </div>
-          <div className="flex-shrink-0 py-2 px-2 flex gap-4 text-[#BC5B01]">
+          <div className="flex-shrink-0 py-2 px-2 flex gap-4 text-primary">
             <IoCopyOutline
               size={20}
               className="cursor-pointer"

@@ -1,19 +1,11 @@
 import React from "react";
-import {
-  Routes,
-  Switch,
-  Route,
-  Link,
-  Router,
-  Outlet,
-  Navigate,
-} from "react-router-dom";
+import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "react-query";
-import { ReactQueryDevtools } from "react-query/devtools";
+// import { ReactQueryDevtools } from "react-query/devtools";
 
 import Chatpage from "./pages/chatpage/Chatpage";
 import "./App.css";
-import Login from "./components/login/Login";
+// import Login from "./components/login/Login";
 import Signin from "./pages/signin/Signin";
 import Welcome from "./pages/welcome/Welcome";
 import Reset from "./pages/password/reset/Reset";
@@ -64,10 +56,10 @@ function App() {
 }
 
 // PrivateRoute component for protected routes
-const PrivateRoute = ({ children }) => {
-  const { user } = useAuth();
-  return user ? <Outlet /> : <Navigate to="/signin" />;
-};
+// const PrivateRoute = ({ children }) => {
+//   const { user } = useAuth();
+//   return user ? <Outlet /> : <Navigate to="/signin" />;
+// };
 
 // ProtectedRoute component for auth routes
 const ProtectedRoute = ({ children }) => {
