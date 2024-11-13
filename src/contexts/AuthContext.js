@@ -22,6 +22,13 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  useEffect(() => {
+    const clearErrorTimeout = setTimeout(() => {
+      setError(false);
+    }, 5000);
+    return () => clearTimeout(clearErrorTimeout);
+  }, [error]);
+
   // React Query for login mutation
   const { mutate: login, isLoading: loggingIn } = useMutation(
     async (credentials) => {
@@ -45,9 +52,9 @@ export const AuthProvider = ({ children }) => {
         setUser({ token: data.access_token });
         setTimeout(() => {
           navigate("/"); // Redirect to chat page
-        }, 1500);
+        }, 3500);
 
-        setSuccess("User logged in successfully");
+        setSuccess("Successfully logged in");
       },
       onError: (error) => {
         setError(error.message);
@@ -60,12 +67,18 @@ export const AuthProvider = ({ children }) => {
   const { mutate: register, isLoading: registering } = useMutation(
     async (userData) => {
       setError(null);
-      setSuccess(false);
+      setSuccess(null);
+
+      const formData = new FormData();
+      formData.append("first_name", userData.first_name);
+      formData.append("last_name", userData.last_name);
+      formData.append("email", userData.email);
+      formData.append("password", userData.password);
 
       const response = await fetch(apiRoute("register"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData),
+        // headers: { "Content-Type": "application/json" },
+        body: formData,
       });
 
       if (!response.ok) {
@@ -84,14 +97,15 @@ export const AuthProvider = ({ children }) => {
     },
     {
       onSuccess: () => {
+        setSuccess("Successfully registered, redirecting you shortly.");
         setTimeout(() => {
           navigate("/signin"); // Redirect to login page
-        }, 1500);
-        setSuccess("User registered successfull, redirecting to login page.");
+          setSuccess(null);
+        }, 2500);
       },
       onError: (error) => {
         setError(error.message);
-        setSuccess(false);
+        setSuccess(null);
       },
     },
   );
