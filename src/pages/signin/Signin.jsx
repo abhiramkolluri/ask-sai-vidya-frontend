@@ -10,8 +10,10 @@ export default function Signin({ showLogin = false }) {
   }, [showLogin]);
   return (
     <div className=" bg-[#fffbf8]  w-full h-[100vh] text-gray-800">
-      <div className="absolute top-0 left-0">
-        <img src={leaves} alt="" />
+      <div
+        className="absolute top-0 left-0 h-full w-full bg-no-repeat"
+        style={{ backgroundImage: `url("${leaves}")` }}>
+        {/* <img src={leaves} alt="" /> */}
       </div>
       <div className=" flex  h-full ">
         <div className="hidden md:flex flex-col items-center justify-center  flex-grow">
@@ -28,7 +30,7 @@ export default function Signin({ showLogin = false }) {
         </div>
         <div className="w-[600px] h-full bg-white flex justify-center items-center px-10">
           <div>
-            <div className="w-full   flex ">
+            <div className="w-full cursor-pointer  flex ">
               <div
                 className={` w-full cursor-pointer transition-all ease-in flex justify-center items-center py-4 text-sm ${
                   login

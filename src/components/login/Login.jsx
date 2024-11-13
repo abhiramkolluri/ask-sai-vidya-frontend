@@ -5,6 +5,7 @@ import { FaApple } from "react-icons/fa";
 import MaterialInput from "../input/MaterialInput";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Button, Input } from "@material-tailwind/react";
 
 export default function Login({ callback = () => {}, inModal = true }) {
   const [forgetPassword, setforgetPassword] = useState(false);
@@ -33,15 +34,27 @@ export default function Login({ callback = () => {}, inModal = true }) {
                 <></>
               )}
 
-              <div>
-                {" "}
-                <MaterialInput text="Email address" />
-              </div>
-              <div>
-                {" "}
-                <MaterialInput text="Password" password />
-              </div>
-              <div className="text-orange-400 font-bold">
+              <Input
+                label="Email"
+                name="email"
+                // type={inputTypes.email}
+                // icon={<InputPasswordIcon type="password" />}
+                // {...formRegister("email")}
+                // error={!!errors.email}
+                // disabled={registering}
+              />
+              <Input
+                label="Password"
+                name="password"
+                // type={inputTypes.password}
+                // icon={<InputPasswordIcon type="password" />}
+                // {...formRegister("password")}
+                // error={!!errors.password}
+                // disabled={registering}
+              />
+              {/* <FieldError errorField={errors.password} /> */}
+
+              <div className="text-primary font-bold">
                 {!inModal ? (
                   <>
                     <Link to="/password/reset">
@@ -63,9 +76,14 @@ export default function Login({ callback = () => {}, inModal = true }) {
                   </>
                 )}
               </div>
-              <button className="w-full h-[40px] font-bold text-white bg-orange-400 shadow flex justify-center items-center rounded">
+              <Button
+                className="bg-primary"
+                type="submit"
+                // loading={registering}
+                // disabled={registering || authSuccess}
+              >
                 Sign In
-              </button>
+              </Button>
             </div>
 
             <h1 className="text-center font-thin">
@@ -73,7 +91,7 @@ export default function Login({ callback = () => {}, inModal = true }) {
               {!inModal ? (
                 <>
                   <Link to="/signup">
-                    <span className=" text-orange-400 cursor-pointer">
+                    <span className=" text-primary cursor-pointer">
                       Sign Up
                     </span>
                   </Link>
@@ -81,7 +99,7 @@ export default function Login({ callback = () => {}, inModal = true }) {
               ) : (
                 <>
                   <span
-                    className=" text-orange-400 cursor-pointer"
+                    className=" text-primary cursor-pointer"
                     onClick={callback}>
                     Sign Up
                   </span>
