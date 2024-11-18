@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
-import { useNavigate, useParams } from "react-router-dom";
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
 import { apiRoute } from "../../helpers/apiRoute";
@@ -9,8 +8,8 @@ const cache = {};
 
 export default function ChatBox({
   newChat,
-  loggedin = false,
-  modalCallback = () => {},
+  // loggedin = false,
+  // modalCallback = () => {},
   selectedThreadId = null,
   addThread = () => {},
   threads = [],
@@ -20,8 +19,6 @@ export default function ChatBox({
   const [loadingIndex, setLoadingIndex] = useState(null); // Track loading for specific question
   const containerRef = useRef(null);
   const inputRef = useRef(null);
-  const navigate = useNavigate();
-  const { threadId } = useParams();
 
   const fetchPrimaryResponse = async (question) => {
     if (cache[question]?.primaryResponse) {
@@ -180,11 +177,11 @@ export default function ChatBox({
   const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
   return (
-    <div className="w-full flex flex-col h-[100vh]">
+    <div className="w-full flex flex-col h-[100vh] mt-16">
       {messages.length > 0 ? (
         <div
           ref={containerRef}
-          className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-auto p-2 md:p-6 w-[98%] md:w-[80%] ">
+          className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] ">
           {messages.map((msg, index) => (
             <Reply
               key={index}
@@ -212,14 +209,14 @@ export default function ChatBox({
       )}
 
       <div className="p-4 md:p-8">
-        <div className="flex justify-center border border-gray-300 gap-2 rounded">
+        <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[70px] p-4">
           <textarea
             ref={inputRef}
-            className="flex-grow rounded p-4 resize-none outline-none text-lg"
+            className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px]"
             id="textBox"
             cols="10"
-            rows="4"
-            placeholder="Start your question"
+            rows="2"
+            placeholder="Ask a question"
             onKeyDown={handleKeyPress}
           />
           <div className="text-gray-300 p-2">
@@ -227,7 +224,7 @@ export default function ChatBox({
               className="cursor-pointer hover:shadow-lg"
               onClick={handleSend}
               size={24}
-              color="#FE9F44"
+              color="#BC5B01"
             />
           </div>
         </div>

@@ -1,13 +1,75 @@
-import React from "react";
-import Chat from "../../images/chat.jpg";
+import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
-import MaterialInput from "../input/MaterialInput";
 import { Link } from "react-router-dom";
+import { Button, Input } from "@material-tailwind/react";
+import { VscEye, VscEyeClosed } from "react-icons/vsc";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import {
+  FieldError,
+  FormFlashMessages,
+  registerSchema,
+} from "../../helpers/authHelpers";
+import Chat from "../../images/chat.jpg";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function Signup({ callback = () => {}, inModal = true }) {
+  const [inputTypes, setInputTypes] = useState({
+    password: "password",
+    confirmPassword: "password",
+  });
+  const {
+    register,
+    registering,
+    error: authError,
+    success: authSuccess,
+  } = useAuth();
+
+  const {
+    register: formRegister,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    mode: "onBlur",
+    reValidateMode: "onChange",
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+    resolver: zodResolver(registerSchema),
+  });
+
+  const toggleInputTypes = (type) => {
+    setInputTypes({
+      ...inputTypes,
+      [type]: inputTypes[type] === "password" ? "text" : "password",
+    });
+  };
+
+  const InputPasswordIcon = ({ type }) => {
+    const onClick = () => toggleInputTypes(type);
+    return inputTypes[type] === "password" ? (
+      <VscEye size={18} onClick={onClick} />
+    ) : (
+      <VscEyeClosed size={18} onClick={onClick} />
+    );
+  };
+
+  const handleSignup = (data) => {
+    try {
+      register(data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
-    <div className="w-[400px]  bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
+    <div className="w-[400px] bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
       {inModal ? (
         <div>
           <img src={Chat} height={"140px"} width={"400px"} alt="" />
@@ -16,9 +78,12 @@ export default function Signup({ callback = () => {}, inModal = true }) {
         <></>
       )}
 
-      <div className="p-8 ">
+      <div className="bg-white z-10 py-8 px-4">
         <div className=" flex flex-col gap-4">
-          <div className="flex flex-col gap-4 ">
+          <form
+            className="flex flex-col gap-4 "
+            // ref={formRef}
+            onSubmit={handleSubmit(handleSignup)}>
             {inModal ? (
               <>
                 <h1 className="font-bold text-center my-4">
@@ -28,40 +93,80 @@ export default function Signup({ callback = () => {}, inModal = true }) {
             ) : (
               <></>
             )}
-            <div>
-              {" "}
-              <MaterialInput text="Email address" />
-            </div>
-            <div>
-              {" "}
-              <MaterialInput text="Password" password />
-            </div>
-            <div>
-              {" "}
-              <MaterialInput text="Confirm password" password />
-            </div>
 
-            <button className="w-full h-[40px] font-bold text-white bg-orange-400 shadow flex justify-center items-center rounded">
-              Sign Up
-            </button>
-          </div>
+            <FormFlashMessages
+              errors={errors}
+              authSuccess={authSuccess}
+              authError={authError}
+            />
+
+            <Input
+              label="First name"
+              {...formRegister("first_name")}
+              error={!!errors.first_name}
+              disabled={registering}
+            />
+            <FieldError errorField={errors.first_name} />
+
+            <Input
+              label="Last name"
+              {...formRegister("last_name")}
+              error={!!errors.last_name}
+              disabled={registering}
+            />
+            <FieldError errorField={errors.last_name} />
+
+            <Input
+              label="Email"
+              name="email"
+              {...formRegister("email")}
+              error={!!errors.email}
+              disabled={registering}
+            />
+            <FieldError errorField={errors.email} />
+
+            <Input
+              label="Password"
+              name="password"
+              type={inputTypes.password}
+              icon={<InputPasswordIcon type="password" />}
+              {...formRegister("password")}
+              error={!!errors.password}
+              disabled={registering}
+            />
+            <FieldError errorField={errors.password} />
+            <Input
+              label="Confirm Password"
+              name="confirmPassword"
+              type={inputTypes.confirmPassword}
+              icon={<InputPasswordIcon type="confirmPassword" />}
+              {...formRegister("confirmPassword")}
+              error={!!errors.confirmPassword}
+              disabled={registering}
+            />
+            <FieldError errorField={errors.confirmPassword} />
+            <Button
+              className="bg-primary"
+              type="submit"
+              loading={registering}
+              disabled={registering || authSuccess}>
+              Sign up
+            </Button>
+          </form>
 
           <h1 className="text-center font-thin">
             Already have a account?{" "}
             {!inModal ? (
               <>
                 <Link to="/signin">
-                  <span className=" text-orange-400 cursor-pointer">
-                    Sign In
-                  </span>
+                  <span className=" text-primary cursor-pointer">Sign In</span>
                 </Link>
               </>
             ) : (
               <>
                 <span
-                  className=" text-orange-400 cursor-pointer"
-                  onClick={callback}
-                >
+                  className=" text-primary cursor-pointer"
+                  onClick={callback}>
                   Sign In
                 </span>
               </>

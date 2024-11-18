@@ -1,14 +1,52 @@
-import React, { useEffect } from "react";
-import Chat from "../../images/chat.jpg";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { Button, Input } from "@material-tailwind/react";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+
 import MaterialInput from "../input/MaterialInput";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import Chat from "../../images/chat.jpg";
+import { useAuth } from "../../contexts/AuthContext";
+import {
+  FieldError,
+  FormFlashMessages,
+  loginSchema,
+} from "../../helpers/authHelpers";
 
 export default function Login({ callback = () => {}, inModal = true }) {
   const [forgetPassword, setforgetPassword] = useState(false);
-  useEffect(() => {}, [forgetPassword]);
+
+  const {
+    login: loginUser,
+    loggingIn,
+    error: authError,
+    success: authSuccess,
+  } = useAuth();
+
+  const {
+    register: formLogin,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    mode: "onBlur",
+    reValidateMode: "onChange",
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    resolver: zodResolver(loginSchema),
+  });
+
+  const handleLogin = (data) => {
+    try {
+      loginUser({ email: data.email, password: data.password });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   if (!forgetPassword) {
     return (
       <div className="w-[400px]  bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
@@ -20,7 +58,7 @@ export default function Login({ callback = () => {}, inModal = true }) {
           <></>
         )}
 
-        <div className="p-8 ">
+        <div className="p-8 z-10">
           <div className=" flex flex-col gap-4">
             <div className="flex flex-col gap-4 ">
               {inModal ? (
@@ -33,39 +71,64 @@ export default function Login({ callback = () => {}, inModal = true }) {
                 <></>
               )}
 
-              <div>
-                {" "}
-                <MaterialInput text="Email address" />
-              </div>
-              <div>
-                {" "}
-                <MaterialInput text="Password" password />
-              </div>
-              <div className="text-orange-400 font-bold">
-                {!inModal ? (
-                  <>
-                    <Link to="/password/reset">
-                      {" "}
+              <FormFlashMessages
+                errors={errors}
+                authSuccess={authSuccess}
+                authError={authError}
+              />
+
+              <form
+                className="flex flex-col gap-4 "
+                onSubmit={handleSubmit(handleLogin)}>
+                <Input
+                  label="Email"
+                  name="email"
+                  {...formLogin("email")}
+                  error={!!errors.email}
+                  disabled={loggingIn}
+                />
+                <FieldError errorField={errors.email} />
+
+                <Input
+                  label="Password"
+                  name="password"
+                  type="password"
+                  {...formLogin("password")}
+                  error={!!errors.password}
+                  disabled={loggingIn}
+                />
+                <FieldError errorField={errors.password} />
+
+                <div className="text-primary font-bold">
+                  {!inModal ? (
+                    <>
+                      <Link to="/password/reset">
+                        {" "}
+                        <span
+                          className="cursor-pointer"
+                          onClick={() => setforgetPassword(() => true)}>
+                          Forgot password?
+                        </span>{" "}
+                      </Link>
+                    </>
+                  ) : (
+                    <>
                       <span
                         className="cursor-pointer"
                         onClick={() => setforgetPassword(() => true)}>
                         Forgot password?
-                      </span>{" "}
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <span
-                      className="cursor-pointer"
-                      onClick={() => setforgetPassword(() => true)}>
-                      Forgot password?
-                    </span>
-                  </>
-                )}
-              </div>
-              <button className="w-full h-[40px] font-bold text-white bg-orange-400 shadow flex justify-center items-center rounded">
-                Sign In
-              </button>
+                      </span>
+                    </>
+                  )}
+                </div>
+                <Button
+                  className="bg-primary"
+                  type="submit"
+                  loading={loggingIn}
+                  disabled={loggingIn || authSuccess}>
+                  Sign In
+                </Button>
+              </form>
             </div>
 
             <h1 className="text-center font-thin">
@@ -73,7 +136,7 @@ export default function Login({ callback = () => {}, inModal = true }) {
               {!inModal ? (
                 <>
                   <Link to="/signup">
-                    <span className=" text-orange-400 cursor-pointer">
+                    <span className=" text-primary cursor-pointer">
                       Sign Up
                     </span>
                   </Link>
@@ -81,7 +144,7 @@ export default function Login({ callback = () => {}, inModal = true }) {
               ) : (
                 <>
                   <span
-                    className=" text-orange-400 cursor-pointer"
+                    className=" text-primary cursor-pointer"
                     onClick={callback}>
                     Sign Up
                   </span>
