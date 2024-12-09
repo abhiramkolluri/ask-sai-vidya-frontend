@@ -45,7 +45,7 @@ export default function Signin({ showLogin = false }) {
                     : " border-b border-gray-200 text-gray-400"
                 }`}
                 onClick={() => navigate("/signin", { replace: true })}>
-                <Link to="/signin">Sign in</Link>
+                <Link to="/login">Sign in</Link>
               </div>
               <div
                 className={`w-full transition-all ease-in flex justify-center items-center text-lg font-bold ${
@@ -54,7 +54,7 @@ export default function Signin({ showLogin = false }) {
                     : " border-b border-gray-200 text-gray-400"
                 }`}
                 onClick={() => navigate("/signup", { replace: true })}>
-                <Link to="/signup" className="py-4">
+                <Link to="/register" className="py-4">
                   Sign up
                 </Link>
               </div>
