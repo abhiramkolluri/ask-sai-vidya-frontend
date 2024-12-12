@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "react-query";
-import jwtDecode from 'jwt-decode';
+import { jwtDecode } from "jwt-decode";
 
 import { apiRoute } from "../helpers/apiRoute";
 
