@@ -222,7 +222,7 @@ export default function ChatBox({
           <div className="text-gray-300 p-2">
             <SendIcon
               className="cursor-pointer hover:shadow-lg"
-              onClick={handleSend}
+              onClick={() => handleSend()}
               size={24}
               color="#BC5B01"
             />
