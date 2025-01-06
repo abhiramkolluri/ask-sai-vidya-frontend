@@ -9,7 +9,7 @@ export default function SampleQuestions({ onQuestionClick = () => {} }) {
 	];
 
 	return (
-		<div className="w-full flex flex-wrap gap-4 text-lg leading-6 cursor-pointer justify-center items-center">
+		<div className="w-full flex flex-wrap gap-4 text-gray-500 text-lg leading-6 cursor-pointer justify-center items-center">
 			{sampleQuestions.map((question, index) => (
 				<div
 					key={index}
