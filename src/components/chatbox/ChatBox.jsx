@@ -177,11 +177,11 @@ export default function ChatBox({
   const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
   return (
-    <div className="w-full flex flex-col h-[100vh]">
+    <div className="w-full flex flex-col h-[100vh] mt-16">
       {messages.length > 0 ? (
         <div
           ref={containerRef}
-          className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] mt-16">
+          className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] ">
           {messages.map((msg, index) => (
             <Reply
               key={index}
@@ -197,7 +197,7 @@ export default function ChatBox({
       ) : (
         <div className="flex-grow overflow-y-scroll flex justify-center items-center">
           <div className="flex flex-col w-8/12 items-center justify-center gap-4">
-            <p className="p-2 text-justify min-w-[350px] text-xl">
+            <p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
               Ask your question to&nbsp;<b>Sai Vidya</b> and discover profound
               wisdom!
             </p>
