@@ -178,11 +178,11 @@ export default function ChatBox({
 
   return (
     <div className="w-full flex flex-col h-[100vh] mt-16">
-      <div className="flex-grow flex flex-col relative">
+      <div className="flex-1 flex flex-col relative min-h-0">
         {messages.length > 0 ? (
           <div
             ref={containerRef}
-            className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] mb-24">
+            className="flex-1 overflow-y-auto flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] mb-16">
             {messages.map((msg, index) => (
               <Reply
                 key={index}
