@@ -178,54 +178,56 @@ export default function ChatBox({
 
   return (
     <div className="w-full flex flex-col h-[100vh] mt-16">
-      {messages.length > 0 ? (
-        <div
-          ref={containerRef}
-          className="flex-grow overflow-y-scroll flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] ">
-          {messages.map((msg, index) => (
-            <Reply
-              key={index}
-              question={msg.question}
-              reply={msg.reply}
-              loading={loadingIndex === index}
-              onLinkClick={handleLinkClick}
-              onReloadClick={handleReloadClick}
-              onCopyClick={handleCopyClick}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="flex-grow overflow-y-scroll flex justify-center items-center">
-          <div className="flex flex-col w-8/12 items-center justify-center gap-4">
-            <p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
-              Ask your question to&nbsp;<b>Sai Vidya</b> and discover profound
-              wisdom!
-            </p>
-            <div>
-              <SampleQuestions onQuestionClick={handleSampleQuestionClick} />
+      <div className="flex-1 flex flex-col relative min-h-0">
+        {messages.length > 0 ? (
+          <div
+            ref={containerRef}
+            className="flex-1 overflow-y-auto flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] mb-16">
+            {messages.map((msg, index) => (
+              <Reply
+                key={index}
+                question={msg.question}
+                reply={msg.reply}
+                loading={loadingIndex === index}
+                onLinkClick={handleLinkClick}
+                onReloadClick={handleReloadClick}
+                onCopyClick={handleCopyClick}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex-grow overflow-y-scroll flex justify-center items-center">
+            <div className="flex flex-col w-8/12 items-center justify-center gap-4">
+              <p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
+                Ask your question to&nbsp;<b>Sai Vidya</b> and discover profound
+                wisdom!
+              </p>
+              <div>
+                <SampleQuestions onQuestionClick={handleSampleQuestionClick} />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="p-4 md:p-8">
-        <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[70px] p-4">
-          <textarea
-            ref={inputRef}
-            className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px]"
-            id="textBox"
-            cols="10"
-            rows="2"
-            placeholder="Ask a question"
-            onKeyDown={handleKeyPress}
-          />
-          <div className="text-gray-300 p-2">
-            <SendIcon
-              className="cursor-pointer hover:shadow-lg"
-              onClick={() => handleSend()}
-              size={24}
-              color="#BC5B01"
+        <div className="sticky bottom-0 mx-4 md:mx-auto w-[98%] md:w-[90%] bg-white p-4">
+          <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[70px] p-4 bg-white">
+            <textarea
+              ref={inputRef}
+              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px]"
+              id="textBox"
+              cols="10"
+              rows="2"
+              placeholder="Ask a question"
+              onKeyDown={handleKeyPress}
             />
+            <div className="text-gray-300 p-2">
+              <SendIcon
+                className="cursor-pointer hover:shadow-lg"
+                onClick={() => handleSend()}
+                size={24}
+                color="#BC5B01"
+              />
+            </div>
           </div>
         </div>
       </div>
