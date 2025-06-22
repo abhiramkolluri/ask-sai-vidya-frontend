@@ -13,6 +13,8 @@ export default function ChatBox({
   selectedThreadId = null,
   addThread = () => {},
   threads = [],
+  user = null,
+  generateTitleFromQuestion = (question) => question || "New Chat",
 }) {
   const [messages, setMessages] = useState([]);
   const [askQuestion, setAskQuestion] = useState("");
@@ -62,6 +64,31 @@ export default function ChatBox({
     return data_citations; // Ensure this matches your actual API response structure
   };
 
+  // Save message to backend if user is logged in
+  const saveMessageToBackend = async (question, reply) => {
+    if (!user || !user.token || !selectedThreadId) return;
+
+    try {
+      const response = await fetch(apiRoute(`chats/${selectedThreadId}/messages`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${user.token}`
+        },
+        body: JSON.stringify({
+          question: question,
+          reply: reply
+        })
+      });
+
+      if (!response.ok) {
+        console.error("Failed to save message to backend:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error saving message to backend:", error);
+    }
+  };
+
   const handleSend = async (question = null) => {
     const val = question || inputRef.current.value.trim();
     if (val.length > 0) {
@@ -101,14 +128,31 @@ export default function ChatBox({
         );
         setMessages(finalMessages);
 
+        // Save message to backend if user is logged in
+        await saveMessageToBackend(val, {
+          primaryResponse: primaryResponse.response,
+          citations,
+        });
+
         // Update the current thread with new messages
         const existingThread = threads.find(
           (thread) => thread.id === selectedThreadId,
         );
+        
+        // Only update title if this is the first message or if thread has no title
+        const shouldUpdateTitle = !existingThread || 
+          !existingThread.title || 
+          existingThread.title === "New Chat" || 
+          existingThread.title === "";
+        
+        // Generate title asynchronously if needed
+        const threadTitle = shouldUpdateTitle 
+          ? await generateTitleFromQuestion(val) 
+          : (existingThread ? existingThread.title : "New Chat");
+        
         const newThread = {
           id: selectedThreadId || new Date().toISOString(),
-          title:
-            existingThread && existingThread.title ? existingThread.title : val,
+          title: threadTitle,
           timestamp: existingThread ? existingThread.timestamp : new Date(),
           messages: finalMessages,
         };
@@ -182,7 +226,7 @@ export default function ChatBox({
         {messages.length > 0 ? (
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] mb-16">
+            className="flex-1 overflow-y-auto flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-full max-w-4xl mx-auto mb-16">
             {messages.map((msg, index) => (
               <Reply
                 key={index}
@@ -197,7 +241,7 @@ export default function ChatBox({
           </div>
         ) : (
           <div className="flex-grow overflow-y-scroll flex justify-center items-center">
-            <div className="flex flex-col w-8/12 items-center justify-center gap-4">
+            <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4 px-4">
               <p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
                 Ask your question to&nbsp;<b>Sai Vidya</b> and discover profound
                 wisdom!
@@ -209,7 +253,7 @@ export default function ChatBox({
           </div>
         )}
 
-        <div className="sticky bottom-0 mx-4 md:mx-auto w-[98%] md:w-[90%] bg-white p-4">
+        <div className="sticky bottom-0 mx-4 md:mx-auto w-full max-w-4xl mx-auto bg-white p-4">
           <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[70px] p-4 bg-white">
             <textarea
               ref={inputRef}
