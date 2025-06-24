@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
 import Login from "../../components/login/Login";
@@ -9,7 +9,7 @@ import { apiRoute } from "../../helpers/apiRoute";
 // import Feedback from "../../components/feedback/Feedback";
 
 const Chatpage = () => {
-  const [newChat, setNewChat] = useState(Math.random());
+  const [newChat, setNewChat] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showFeedbackModal, setshowFeedbackModal] = useState(true);
@@ -17,7 +17,7 @@ const Chatpage = () => {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
-  const [initialChatCreated, setInitialChatCreated] = useState(false);
+  const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
 
   const handleShowModal = () => {
@@ -214,7 +214,8 @@ const Chatpage = () => {
     const newThread = await createNewChatThread();
     setSelectedThreadId(newThread.id);
     addThread(newThread);
-    setInitialChatCreated(true); // Set flag to prevent automatic creation
+    setNewChat(Math.random()); // Trigger new chat in ChatBox
+    initialChatCreatedRef.current = true; // Set flag to prevent automatic creation
   };
 
   const handleChatSelect = (threadId) => {
@@ -248,28 +249,37 @@ const Chatpage = () => {
   useEffect(() => {
     if (user && user.token) {
       loadUserChats();
-      setInitialChatCreated(false); // Reset flag when user logs in
+      initialChatCreatedRef.current = false; // Reset flag when user logs in
     } else {
       // Clear threads when user logs out
       setThreads([]);
       setSelectedThreadId(null);
-      setInitialChatCreated(false); // Reset flag when user logs out
+      initialChatCreatedRef.current = false; // Reset flag when user logs out
     }
   }, [user]);
 
   // Create initial chat if no threads exist and user is not logged in
   useEffect(() => {
-    if (threads.length === 0 && !user && !initialChatCreated) {
+    console.log('useEffect triggered:', { 
+      threadsLength: threads.length, 
+      user: !!user, 
+      initialChatCreated: initialChatCreatedRef.current 
+    });
+    
+    if (threads.length === 0 && !user && !initialChatCreatedRef.current) {
+      console.log('Creating initial chat...');
       // Create only one chat for unauthenticated users
       const createInitialChat = async () => {
-        setInitialChatCreated(true); // Set flag to prevent multiple creations
+        console.log('Setting initialChatCreatedRef to true');
+        initialChatCreatedRef.current = true; // Set flag to prevent multiple creations
         const newThread = await createNewChatThread();
+        console.log('Created new thread:', newThread.id);
         setSelectedThreadId(newThread.id);
         addThread(newThread);
       };
       createInitialChat();
     }
-  }, [threads.length, user, initialChatCreated]);
+  }, [threads.length, user]);
 
   return (
     <div className="w-full h-[100vh] flex overflow-hidden">
