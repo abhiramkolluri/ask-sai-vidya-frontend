@@ -12,6 +12,7 @@ import Reset from "./pages/password/reset/Reset";
 import NewPassword from "./pages/password/reset/NewPassword";
 import Blog from "./pages/blog/Blog";
 import ErrorPage from "./components/error/ErrorPage";
+import UserList from "./components/UserList/UserList";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "@material-tailwind/react";
 
@@ -41,6 +42,7 @@ function App() {
               {/* <Route element={<PrivateRoute />}> */}
               {/* <Route path="/home" element={<Chatpage />} /> */}
               <Route index route="/home" element={<Chatpage />} />
+              <Route path="/users" element={<UserList />} />
               {/* </Route> */}
               <Route path="/blog/:slugId" element={<Blog />} />
               <Route path="*" element={<ErrorPage />} />
