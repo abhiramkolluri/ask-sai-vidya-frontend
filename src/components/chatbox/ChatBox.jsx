@@ -208,9 +208,60 @@ export default function ChatBox({
     alert("Link copied to clipboard!");
   };
 
-  const handleReloadClick = (question) => {
-    // Handle reload logic here
-    alert(`Reloading chat for question: ${question}`);
+  const handleReloadClick = async (question) => {
+    // Create a new message entry with the same question
+    const newIndex = messages.length;
+    const updatedMessages = [...messages, { question: question, reply: null }];
+    setMessages(updatedMessages);
+    setLoadingIndex(newIndex); // Set loading index for the new question
+
+    try {
+      // Clear the cache for this question to force a fresh response
+      delete cache[question];
+      
+      const primaryResponsePromise = fetchPrimaryResponse(question);
+      const citationsPromise = primaryResponsePromise.then((result) => {
+        if (result.fetchCitations) {
+          return fetchCitations(question);
+        }
+        return [];
+      });
+
+      const [primaryResponse, citations] = await Promise.all([
+        primaryResponsePromise,
+        citationsPromise,
+      ]);
+
+      // Update state with the new response
+      const finalMessages = updatedMessages.map((q, index) =>
+        index === newIndex
+          ? {
+              ...q,
+              reply: {
+                primaryResponse: primaryResponse.response,
+                citations,
+              },
+            }
+          : q
+      );
+      setMessages(finalMessages);
+
+      // Update the thread
+      const existingThread = threads.find(
+        (thread) => thread.id === selectedThreadId
+      );
+      if (existingThread) {
+        const newThread = {
+          ...existingThread,
+          messages: finalMessages,
+        };
+        addThread(newThread);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoadingIndex(null); // Reset loading index
+    }
   };
 
   const handleCopyClick = (text) => {
