@@ -8,8 +8,6 @@ const cache = {};
 
 export default function ChatBox({
   newChat,
-  // loggedin = false,
-  // modalCallback = () => {},
   selectedThreadId = null,
   addThread = () => {},
   threads = [],
@@ -29,12 +27,27 @@ export default function ChatBox({
         fetchCitations: cache[question].fetchCitations,
       };
     }
+    
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    
+    // Add Authorization header if user is logged in
+    if (user && user.token) {
+      headers["Authorization"] = `Bearer ${user.token}`;
+    }
+    
+    const requestBody = { query: question };
+    
+    // Add user email to request body if available
+    if (user && user.email) {
+      requestBody.user_email = user.email;
+    }
+    
     const response = await fetch(apiRoute("query"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: question }),
+      headers: headers,
+      body: JSON.stringify(requestBody),
     });
     const data = await response.json();
     const fetchCitations =
@@ -69,7 +82,7 @@ export default function ChatBox({
     if (!user || !user.token || !selectedThreadId) return;
 
     try {
-      const response = await fetch(apiRoute(`chats/${selectedThreadId}/messages`), {
+      const response = await fetch(apiRoute(`chats/${user.email}/${selectedThreadId}/messages`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

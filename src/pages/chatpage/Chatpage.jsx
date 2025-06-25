@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
-import Login from "../../components/login/Login";
-import Signup from "../../components/signup/Signup";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiRoute } from "../../helpers/apiRoute";
@@ -10,19 +8,12 @@ import { apiRoute } from "../../helpers/apiRoute";
 
 const Chatpage = () => {
   const [newChat, setNewChat] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [showFeedbackModal, setshowFeedbackModal] = useState(true);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
-
-  const handleShowModal = () => {
-    setShowModal(true);
-  };
 
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible);
@@ -34,7 +25,7 @@ const Chatpage = () => {
     
     try {
       setLoading(true);
-      const response = await fetch(apiRoute("chats"), {
+      const response = await fetch(apiRoute(`chats/${user.email}`), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -74,13 +65,20 @@ const Chatpage = () => {
     }
 
     try {
-      const response = await fetch(apiRoute("chats"), {
+      const requestBody = { title: title };
+      
+      // Add user email to request body
+      if (user.email) {
+        requestBody.user_email = user.email;
+      }
+      
+      const response = await fetch(apiRoute(`chats/${user.email}`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${user.token}`
         },
-        body: JSON.stringify({ title: title })
+        body: JSON.stringify(requestBody)
       });
 
       if (response.ok) {
@@ -123,7 +121,8 @@ const Chatpage = () => {
         },
         body: JSON.stringify({
           title: thread.title,
-          messages: thread.messages
+          messages: thread.messages,
+          user_email: user.email
         })
       });
 
@@ -145,7 +144,10 @@ const Chatpage = () => {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${user.token}`
-        }
+        },
+        body: JSON.stringify({
+          user_email: user.email
+        })
       });
 
       if (!response.ok) {
@@ -328,7 +330,6 @@ const Chatpage = () => {
         {/* ChatBox */}
         <ChatBox
           newChat={newChat}
-          modalCallback={handleShowModal}
           selectedThreadId={selectedThreadId}
           addThread={addThread}
           threads={threads}
@@ -336,40 +337,6 @@ const Chatpage = () => {
           generateTitleFromQuestion={generateAITitleFromQuestion}
         />
       </div>
-      
-      {/* Modals */}
-      {showModal && (
-        <div
-          className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50"
-          onClick={handleShowModal}>
-          {showLogin ? (
-            <Login callback={() => setShowLogin(false)} />
-          ) : (
-            <Signup callback={() => setShowLogin(true)} />
-          )}
-        </div>
-      )}
-      {/* {showFeedbackModal ? (
-        <>
-          <div className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50">
-            <Feedback
-              closeModalCallback={() => setshowFeedbackModal(false)}
-              options={[
-                "Sai Center",
-                "Email",
-                "Facebook",
-                "Instagram",
-                "Twitter",
-                "WhatsApp",
-                "YouTube",
-              ]}
-              question="We will love to know how you learned about Ask Sai Vidya"
-            />
-          </div>
-        </>
-      ) : (
-        <></>
-      )} */}
     </div>
   );
 };

@@ -1,9 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMutation } from "react-query";
-import jwtDecode from "jwt-decode";
-
-import { apiRoute } from "../helpers/apiRoute";
+import { useAuth0 } from "@auth0/auth0-react";
 
 const AuthContext = createContext();
 
@@ -12,22 +8,41 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [error, setError] = useState();
   const [success, setSuccess] = useState(null);
+  
+  // Auth0 integration
+  const { 
+    user: auth0User, 
+    isAuthenticated: auth0IsAuthenticated, 
+    getAccessTokenSilently,
+    loginWithRedirect,
+    logout: auth0Logout
+  } = useAuth0();
 
-  const updateUserFromLocalStorage = () => {
-    const storedToken = localStorage.getItem("access_token");
-    if (storedToken) {
+  // Handle Auth0 authentication
+  const handleAuth0User = async () => {
+    if (auth0IsAuthenticated && auth0User) {
       try {
-        const decodedToken = jwtDecode(storedToken);
-        const userEmail = decodedToken.sub;
-
-        setUser({ token: storedToken, email: userEmail });
+        // Get Auth0 access token
+        const auth0Token = await getAccessTokenSilently();
+        
+        // TEMPORARY: Log the token for debugging
+        console.log('🔑 Auth0 Access Token:', auth0Token);
+        console.log('📧 Auth0 User Email:', auth0User.email);
+        
+        // Create a unified user object that works with our backend
+        const unifiedUser = {
+          token: auth0Token,
+          email: auth0User.email,
+          auth0User: auth0User, // Keep the full Auth0 user object for reference
+          isAuth0: true
+        };
+        
+        setUser(unifiedUser);
       } catch (error) {
-        console.error("Error decoding token:", error);
-        localStorage.removeItem("access_token");
+        console.error("Error getting Auth0 token:", error);
         setUser(null);
       }
     } else {
@@ -35,10 +50,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Get access token from local storage on mount
+  // Handle Auth0 user changes
   useEffect(() => {
-    updateUserFromLocalStorage();
-  }, []);
+    handleAuth0User();
+  }, [auth0IsAuthenticated, auth0User]);
 
   useEffect(() => {
     const clearErrorTimeout = setTimeout(() => {
@@ -47,103 +62,23 @@ export const AuthProvider = ({ children }) => {
     return () => clearTimeout(clearErrorTimeout);
   }, [error]);
 
-  // React Query for login mutation
-  const { mutate: login, isLoading: loggingIn } = useMutation(
-    async (credentials) => {
-      setError(null);
-      setSuccess(null);
-      const response = await fetch(apiRoute("login"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-      });
+  // Auth0 login function
+  const loginWithAuth0 = () => {
+    loginWithRedirect();
+  };
 
-      if (!response.ok) {
-        throw new Error("Invalid credentials");
-      }
-
-      return response.json();
-    },
-    {
-      onSuccess: (data) => {
-        setSuccess("Successfully logged in");
-
-        setTimeout(() => {
-          localStorage.setItem("access_token", data.access_token);
-          navigate("/"); // Redirect to chat page
-          updateUserFromLocalStorage();
-          setSuccess(null);
-        }, 2500);
-      },
-      onError: (error) => {
-        setError(error.message);
-        setSuccess(null);
-      },
-    },
-  );
-
-  // React Query for registration mutation
-  const { mutate: register, isLoading: registering } = useMutation(
-    async (userData) => {
-      setError(null);
-      setSuccess(null);
-
-      const formData = new FormData();
-      formData.append("first_name", userData.first_name);
-      formData.append("last_name", userData.last_name);
-      formData.append("email", userData.email);
-      formData.append("password", userData.password);
-
-      const response = await fetch(apiRoute("register"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData),
-      });
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          throw new Error("Email already exists"); // Specific error for 409
-        } else {
-          // Handle other status codes or throw a generic error
-          const errorData = await response.json(); // Assuming API returns JSON error
-          throw new Error(
-            errorData.message ||
-              "Registration failed due to some internal error, please retry!",
-          );
-        }
-      }
-      return response.json();
-    },
-    {
-      onSuccess: () => {
-        setSuccess("Successfully registered, redirecting you shortly.");
-        setTimeout(() => {
-          navigate("/signin"); // Redirect to login page
-          setSuccess(null);
-        }, 3500);
-      },
-      onError: (error) => {
-        setError(error.message);
-        setSuccess(null);
-      },
-    },
-  );
-
+  // Auth0 logout function
   const logout = () => {
-    localStorage.removeItem("access_token");
-    setUser(null);
-    navigate("/"); // Redirect to root
+    auth0Logout({ returnTo: window.location.origin });
   };
 
   const value = {
     user,
-    login,
-    loggingIn,
-    register,
-    registering,
     logout,
+    loginWithAuth0,
     error,
     success,
+    isAuth0User: true, // Always true since we only use Auth0
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
