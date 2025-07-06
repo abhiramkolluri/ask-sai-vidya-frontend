@@ -29,14 +29,20 @@ export default function ChatBox({
         fetchCitations: cache[question].fetchCitations,
       };
     }
-    const response = await fetch(apiRoute("query"), {
+    const url = apiRoute("query");
+    console.log("🔍 Frontend calling URL:", url);
+    console.log("🔍 Environment variable:", process.env.REACT_APP_BASE_API_SERVER);
+    
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ query: question }),
     });
+    console.log("🔍 Response status:", response.status);
     const data = await response.json();
+    console.log("🔍 Response data:", data);
     const fetchCitations =
       data.response !==
       "It seems like there might be a misunderstanding with the question you provided. I'm here to offer spiritual guidance based on the teachings of Sathya Sai Baba. If you have any questions related to spirituality, personal growth, or Sai Baba's teachings, feel free to ask!";
