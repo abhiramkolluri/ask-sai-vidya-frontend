@@ -8,8 +8,6 @@ const cache = {};
 
 export default function ChatBox({
   newChat,
-  // loggedin = false,
-  // modalCallback = () => {},
   selectedThreadId = null,
   addThread = () => {},
   threads = [],
@@ -29,16 +27,31 @@ export default function ChatBox({
         fetchCitations: cache[question].fetchCitations,
       };
     }
+    
     const url = apiRoute("query");
     console.log("🔍 Frontend calling URL:", url);
     console.log("🔍 Environment variable:", process.env.REACT_APP_BASE_API_SERVER);
     
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    
+    // Add Authorization header if user is logged in
+    if (user && user.token) {
+      headers["Authorization"] = `Bearer ${user.token}`;
+    }
+    
+    const requestBody = { query: question };
+    
+    // Add user email to request body if available
+    if (user && user.email) {
+      requestBody.user_email = user.email;
+    }
+    
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: question }),
+      headers: headers,
+      body: JSON.stringify(requestBody),
     });
     console.log("🔍 Response status:", response.status);
     const data = await response.json();
@@ -75,7 +88,7 @@ export default function ChatBox({
     if (!user || !user.token || !selectedThreadId) return;
 
     try {
-      const response = await fetch(apiRoute(`chats/${selectedThreadId}/messages`), {
+      const response = await fetch(apiRoute(`chats/${user.email}/${selectedThreadId}/messages`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
