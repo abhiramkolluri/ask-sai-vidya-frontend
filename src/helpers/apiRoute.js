@@ -25,7 +25,7 @@ export const fetchBlogPost = async (slug) => {
 export const submitFeedback = async (feedbackData) => {
   try {
     console.log('Sending feedback to backend:', feedbackData);
-    const response = await fetch('http://localhost:8000/api/feedback', {
+    const response = await fetch(apiRoute('api/feedback'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

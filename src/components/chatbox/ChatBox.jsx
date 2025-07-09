@@ -120,26 +120,16 @@ export default function ChatBox({
       setLoadingIndex(newIndex); // Set loading index for the new question
 
       try {
-        const primaryResponsePromise = fetchPrimaryResponse(val);
-        const citationsPromise = primaryResponsePromise.then((result) => {
-          if (result.fetchCitations) {
-            return fetchCitations(val);
-          }
-          return [];
-        });
+        // Only fetch citations from /search endpoint
+        const citations = await fetchCitations(val);
 
-        const [primaryResponse, citations] = await Promise.all([
-          primaryResponsePromise,
-          citationsPromise,
-        ]);
-
-        // Update state once with both responses
+        // Update state with only citations
         const finalMessages = updatedMessages.map((q, index) =>
           index === newIndex
             ? {
                 ...q,
                 reply: {
-                  primaryResponse: primaryResponse.response,
+                  primaryResponse: "", // Empty since we don't want to display /query response
                   citations,
                 },
               }
@@ -149,7 +139,7 @@ export default function ChatBox({
 
         // Save message to backend if user is logged in
         await saveMessageToBackend(val, {
-          primaryResponse: primaryResponse.response,
+          primaryResponse: "", // Empty since we don't want to display /query response
           citations,
         });
 
@@ -238,26 +228,16 @@ export default function ChatBox({
       // Clear the cache for this question to force a fresh response
       delete cache[question];
       
-      const primaryResponsePromise = fetchPrimaryResponse(question);
-      const citationsPromise = primaryResponsePromise.then((result) => {
-        if (result.fetchCitations) {
-          return fetchCitations(question);
-        }
-        return [];
-      });
+      // Only fetch citations from /search endpoint
+      const citations = await fetchCitations(question);
 
-      const [primaryResponse, citations] = await Promise.all([
-        primaryResponsePromise,
-        citationsPromise,
-      ]);
-
-      // Update state with the new response
+      // Update state with only citations
       const finalMessages = updatedMessages.map((q, index) =>
         index === newIndex
           ? {
               ...q,
               reply: {
-                primaryResponse: primaryResponse.response,
+                primaryResponse: "", // Empty since we don't want to display /query response
                 citations,
               },
             }
@@ -313,8 +293,7 @@ export default function ChatBox({
           <div className="flex-grow overflow-y-scroll flex justify-center items-center">
             <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4 px-4">
               <p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
-                Ask your question to&nbsp;<b>Sai Vidya</b> and discover profound
-                wisdom!
+                Ask a question to&nbsp;<b>Sai Vidya</b> and get discourses that you can explore.
               </p>
               <div>
                 <SampleQuestions onQuestionClick={handleSampleQuestionClick} />
