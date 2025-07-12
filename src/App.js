@@ -27,11 +27,14 @@ function App() {
         <ThemeProvider>
           <AuthProvider>
             <Routes>
-              {/* <Route path="/" element={<Chatpage />} /> */}
+              {/* Root path redirects to welcome page or home if authenticated */}
+              <Route path="/" element={<RootRedirect />} />
+
+              {/* Welcome page - accessible to everyone */}
+              <Route path="/welcome" element={<Welcome />} />
 
               {/* auth routes: should redirect to the home if user already authenticated */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/welcome" element={<Welcome />} />
                 <Route path="/signin" element={<Signin showLogin={true} />} />
                 <Route path="/signup" element={<Signin showLogin={false} />} />
                 <Route path="/password/reset" element={<Reset />} />
@@ -39,11 +42,10 @@ function App() {
               </Route>
 
               {/* should be protected */}
-              {/* <Route element={<PrivateRoute />}> */}
-              {/* <Route path="/home" element={<Chatpage />} /> */}
-              <Route index route="/home" element={<Chatpage />} />
-              <Route path="/users" element={<UserList />} />
-              {/* </Route> */}
+              <Route element={<PrivateRoute />}>
+                <Route path="/home" element={<Chatpage />} />
+                <Route path="/users" element={<UserList />} />
+              </Route>
               <Route path="/blog/:slugId" element={<Blog />} />
               <Route path="*" element={<ErrorPage />} />
             </Routes>
@@ -57,16 +59,22 @@ function App() {
   );
 }
 
+// RootRedirect component - redirects to home if authenticated, welcome if not
+const RootRedirect = () => {
+  const { user } = useAuth();
+  return user ? <Navigate to="/home" replace /> : <Navigate to="/welcome" replace />;
+};
+
 // PrivateRoute component for protected routes
-// const PrivateRoute = ({ children }) => {
-//   const { user } = useAuth();
-//   return user ? <Outlet /> : <Navigate to="/signin" />;
-// };
+const PrivateRoute = ({ children }) => {
+  const { user } = useAuth();
+  return user ? <Outlet /> : <Navigate to="/signin" />;
+};
 
 // ProtectedRoute component for auth routes
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-  return !user ? <Outlet /> : <Navigate to="/" />;
+  return !user ? <Outlet /> : <Navigate to="/home" />;
 };
 
 export default App;

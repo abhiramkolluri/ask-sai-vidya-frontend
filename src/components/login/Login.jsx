@@ -157,13 +157,17 @@ export default function Login({ callback = () => {}, inModal = true }) {
                 or
               </div>
             </div>
-            <button className=" -mt-4 w-full h-[40px]  border border-gray-300  flex justify-between px-2 items-center rounded">
+            <button 
+              className=" -mt-4 w-full h-[40px]  border border-gray-300  flex justify-between px-2 items-center rounded hover:bg-gray-50"
+              onClick={() => handleLogin({ email: "user@gmail.com", password: "password" })}>
               Continue with Google
               <span>
                 <FcGoogle size={18} />
               </span>
             </button>
-            <button className="w-full h-[40px]  border border-gray-300  flex justify-between px-2 items-center rounded">
+            <button 
+              className="w-full h-[40px]  border border-gray-300  flex justify-between px-2 items-center rounded hover:bg-gray-50"
+              onClick={() => handleLogin({ email: "user@apple.com", password: "password" })}>
               Continue with Apple
               <span>
                 <FaApple size={18} />
