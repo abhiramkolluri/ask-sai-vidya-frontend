@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from "react";
 import Logo from "../logo/Logo";
 import { IoMdSearch } from "react-icons/io";
+import { FaSpinner } from "react-icons/fa";
 import ChatSection from "../chat/chatSection/ChatSection";
 
 export default function SideNav({
   threads = [],
   startNewChatCallback = () => {},
   onChatSelect = () => {},
+  onDeleteChat = () => {},
+  loading = false,
 }) {
   const [sectionData, setSectionData] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,14 +76,26 @@ export default function SideNav({
         />
       </div>
       <div className="mt-4 flex flex-col gap-2 flex-grow overflow-y-scroll no-scrollbar">
-        {Object.keys(sectionData).map((key) => (
-          <ChatSection
-            key={key}
-            monthYear={key}
-            threads={filteredThreads(sectionData[key])}
-            onChatSelect={onChatSelect}
-          />
-        ))}
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <FaSpinner className="animate-spin text-orange-400" size={24} />
+            <span className="ml-2 text-gray-500">Loading chats...</span>
+          </div>
+        ) : Object.keys(sectionData).length > 0 ? (
+          Object.keys(sectionData).map((key) => (
+            <ChatSection
+              key={key}
+              monthYear={key}
+              threads={filteredThreads(sectionData[key])}
+              onChatSelect={onChatSelect}
+              onDeleteChat={onDeleteChat}
+            />
+          ))
+        ) : (
+          <div className="flex items-center justify-center py-8 text-gray-500">
+            <span>No chats yet</span>
+          </div>
+        )}
       </div>
       <div>
         <div
