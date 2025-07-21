@@ -67,6 +67,10 @@ export default function ChatBox({
 
   // Save message to backend if user is logged in
   const saveMessageToBackend = async (question, reply) => {
+    // TEMPORARILY DISABLED - Auth0 token not compatible with backend
+    console.log('Backend save disabled - Auth0 integration needed');
+    return;
+    
     if (!user || !user.token || !user.email || !selectedThreadId) return;
 
     try {

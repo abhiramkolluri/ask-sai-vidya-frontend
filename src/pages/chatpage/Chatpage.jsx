@@ -48,6 +48,10 @@ const Chatpage = () => {
 
   // Load user's chat threads from backend
   const loadUserChats = async () => {
+    // TEMPORARILY DISABLED - Auth0 token not compatible with backend
+    console.log('Load chats disabled - Auth0 integration needed');
+    return;
+    
     if (!isAuthenticated || !user?.email || !userToken) {
       console.log('Cannot load chats - missing auth data:', { isAuthenticated, userEmail: user?.email, hasToken: !!userToken });
       return;
@@ -162,6 +166,10 @@ const Chatpage = () => {
 
   // Save chat thread to backend
   const saveChatThread = async (thread) => {
+    // TEMPORARILY DISABLED - Auth0 token not compatible with backend
+    console.log('Save chat thread disabled - Auth0 integration needed');
+    return;
+    
     if (!isAuthenticated || !userToken) return; // Don't save if not logged in
 
     try {
