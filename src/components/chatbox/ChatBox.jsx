@@ -15,6 +15,7 @@ export default function ChatBox({
   threads = [],
   user = null,
   generateTitleFromQuestion = (question) => question || "New Chat",
+  loadThreadMessages = async () => [],
 }) {
   const [messages, setMessages] = useState([]);
   const [askQuestion, setAskQuestion] = useState("");
@@ -66,10 +67,10 @@ export default function ChatBox({
 
   // Save message to backend if user is logged in
   const saveMessageToBackend = async (question, reply) => {
-    if (!user || !user.token || !selectedThreadId) return;
+    if (!user || !user.token || !user.email || !selectedThreadId) return;
 
     try {
-      const response = await fetch(apiRoute(`chats/${selectedThreadId}/messages`), {
+      const response = await fetch(apiRoute(`chats/${user.email}/${selectedThreadId}/messages`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -187,16 +188,38 @@ export default function ChatBox({
   }, [newChat]);
 
   useEffect(() => {
-    if (selectedThreadId) {
-      const selectedThread = threads.find(
-        (thread) => thread.id === selectedThreadId,
-      );
-      if (selectedThread) {
-        setMessages(selectedThread.messages);
-        // navigate(`/thread/${selectedThreadId}`);
+    const loadMessages = async () => {
+      if (selectedThreadId) {
+        // First check if thread exists locally and has messages
+        const selectedThread = threads.find(
+          (thread) => thread.id === selectedThreadId,
+        );
+        
+        if (selectedThread && selectedThread.messages && selectedThread.messages.length > 0) {
+          // Use local messages if available
+          setMessages(selectedThread.messages);
+        } else if (user && user.token && user.email) {
+          // Load messages from backend if user is logged in
+          try {
+            const backendMessages = await loadThreadMessages(selectedThreadId);
+            setMessages(backendMessages);
+          } catch (error) {
+            console.error("Error loading messages from backend:", error);
+            // Fallback to local messages or empty array
+            setMessages(selectedThread?.messages || []);
+          }
+        } else {
+          // Not logged in, use local messages or empty array
+          setMessages(selectedThread?.messages || []);
+        }
+      } else {
+        // No thread selected, clear messages
+        setMessages([]);
       }
-    }
-  }, [selectedThreadId]);
+    };
+    
+    loadMessages();
+  }, [selectedThreadId, threads, user, loadThreadMessages]);
 
   const handleSampleQuestionClick = async (question) => {
     await handleSend(question);

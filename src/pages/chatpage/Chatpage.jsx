@@ -4,7 +4,7 @@ import ChatBox from "../../components/chatbox/ChatBox";
 import Login from "../../components/login/Login";
 import Signup from "../../components/signup/Signup";
 import Navbar from "../../components/Navbar";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth0 } from "@auth0/auth0-react";
 import { apiRoute } from "../../helpers/apiRoute";
 // import Feedback from "../../components/feedback/Feedback";
 
@@ -18,7 +18,25 @@ const Chatpage = () => {
   const [loading, setLoading] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const initialChatCreatedRef = useRef(false);
-  const { user } = useAuth();
+  const { user, isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const [userToken, setUserToken] = useState(null);
+
+  // Get access token when user is authenticated
+  useEffect(() => {
+    const getToken = async () => {
+      if (isAuthenticated) {
+        try {
+          const token = await getAccessTokenSilently();
+          setUserToken(token);
+        } catch (error) {
+          console.error("Error getting access token:", error);
+        }
+      } else {
+        setUserToken(null);
+      }
+    };
+    getToken();
+  }, [isAuthenticated, getAccessTokenSilently]);
 
   const handleShowModal = () => {
     setShowModal(true);
@@ -30,15 +48,19 @@ const Chatpage = () => {
 
   // Load user's chat threads from backend
   const loadUserChats = async () => {
-    if (!user || !user.token) return;
+    if (!isAuthenticated || !user?.email || !userToken) {
+      console.log('Cannot load chats - missing auth data:', { isAuthenticated, userEmail: user?.email, hasToken: !!userToken });
+      return;
+    }
     
     try {
       setLoading(true);
-      const response = await fetch(apiRoute("chats"), {
+      console.log('Fetching chats for user:', user.email);
+      const response = await fetch(apiRoute(`chats/${user.email}`), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${user.token}`
+          "Authorization": `Bearer ${userToken}`
         }
       });
 
@@ -60,9 +82,34 @@ const Chatpage = () => {
     }
   };
 
+  // Load messages for a specific thread from backend
+  const loadThreadMessages = async (threadId) => {
+    if (!isAuthenticated || !userToken || !threadId) return [];
+    
+    try {
+      const response = await fetch(apiRoute(`chats/${threadId}`), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${userToken}`
+        }
+      });
+
+      if (response.ok) {
+        const threadData = await response.json();
+        return threadData.messages || [];
+      } else {
+        console.error("Failed to load thread messages:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error loading thread messages:", error);
+    }
+    return [];
+  };
+
   // Create a new chat thread in backend
   const createNewChatThread = async (title = "New Chat") => {
-    if (!user || !user.token) {
+    if (!isAuthenticated || !userToken || !user?.email) {
       // If not logged in, create local thread only
       const newThreadId = new Date().toISOString();
       return {
@@ -74,13 +121,16 @@ const Chatpage = () => {
     }
 
     try {
-      const response = await fetch(apiRoute("chats"), {
+      const response = await fetch(apiRoute(`chats/${user.email}`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${user.token}`
+          "Authorization": `Bearer ${userToken}`
         },
-        body: JSON.stringify({ title: title })
+        body: JSON.stringify({ 
+          user_email: user.email,
+          title: title 
+        })
       });
 
       if (response.ok) {
@@ -112,14 +162,14 @@ const Chatpage = () => {
 
   // Save chat thread to backend
   const saveChatThread = async (thread) => {
-    if (!user || !user.token) return; // Don't save if not logged in
+    if (!isAuthenticated || !userToken) return; // Don't save if not logged in
 
     try {
       const response = await fetch(apiRoute(`chats/${thread.id}`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${user.token}`
+          "Authorization": `Bearer ${userToken}`
         },
         body: JSON.stringify({
           title: thread.title,
@@ -137,14 +187,14 @@ const Chatpage = () => {
 
   // Delete chat thread from backend
   const deleteChatThread = async (threadId) => {
-    if (!user || !user.token) return; // Don't delete if not logged in
+    if (!isAuthenticated || !userToken) return; // Don't delete if not logged in
 
     try {
       const response = await fetch(apiRoute(`chats/${threadId}`), {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${user.token}`
+          "Authorization": `Bearer ${userToken}`
         }
       });
 
@@ -170,7 +220,7 @@ const Chatpage = () => {
     }
 
     // Delete from backend if user is logged in
-    if (user && user.token) {
+    if (isAuthenticated && userToken) {
       const success = await deleteChatThread(threadId);
       if (!success) {
         // If backend deletion failed, reload threads to restore the deleted one
@@ -230,14 +280,14 @@ const Chatpage = () => {
           t.id === thread.id ? { ...t, ...thread } : t,
         );
         // Save to backend if user is logged in
-        if (user && user.token) {
+        if (isAuthenticated && userToken) {
           saveChatThread(thread);
         }
         return updatedThreads;
       } else {
         const newThreads = [thread, ...prevThreads];
         // Save to backend if user is logged in
-        if (user && user.token) {
+        if (isAuthenticated && userToken) {
           saveChatThread(thread);
         }
         return newThreads;
@@ -247,16 +297,19 @@ const Chatpage = () => {
 
   // Load user chats when user logs in
   useEffect(() => {
-    if (user && user.token) {
+    console.log('Auth state changed:', { isAuthenticated, userToken: !!userToken, userEmail: user?.email });
+    if (isAuthenticated && userToken && user?.email) {
+      console.log('Loading user chats for:', user.email);
       loadUserChats();
       initialChatCreatedRef.current = false; // Reset flag when user logs in
     } else {
+      console.log('Clearing threads - not authenticated or missing token/email');
       // Clear threads when user logs out
       setThreads([]);
       setSelectedThreadId(null);
       initialChatCreatedRef.current = false; // Reset flag when user logs out
     }
-  }, [user]);
+  }, [isAuthenticated, userToken, user?.email]);
 
   // Create initial chat if no threads exist and user is not logged in
   useEffect(() => {
@@ -266,7 +319,7 @@ const Chatpage = () => {
       initialChatCreated: initialChatCreatedRef.current 
     });
     
-    if (threads.length === 0 && !user && !initialChatCreatedRef.current) {
+    if (threads.length === 0 && !isAuthenticated && !initialChatCreatedRef.current) {
       console.log('Creating initial chat...');
       // Create only one chat for unauthenticated users
       const createInitialChat = async () => {
@@ -279,7 +332,7 @@ const Chatpage = () => {
       };
       createInitialChat();
     }
-  }, [threads.length, user]);
+  }, [threads.length, isAuthenticated]);
 
   return (
     <div className="w-full h-[100vh] flex overflow-hidden">
@@ -332,8 +385,9 @@ const Chatpage = () => {
           selectedThreadId={selectedThreadId}
           addThread={addThread}
           threads={threads}
-          user={user}
+          user={{ email: user?.email, token: userToken }}
           generateTitleFromQuestion={generateAITitleFromQuestion}
+          loadThreadMessages={loadThreadMessages}
         />
       </div>
       
