@@ -92,6 +92,7 @@ export default function ChatBox({
 
   const handleSend = async (question = null) => {
     const val = question || inputRef.current.value.trim();
+    console.log('handleSend called with:', { question: val, user: !!user, selectedThreadId });
     if (val.length > 0) {
       setAskQuestion("");
       inputRef.current.value = "";
@@ -127,13 +128,18 @@ export default function ChatBox({
               }
             : q,
         );
+        console.log('Setting messages with final messages:', finalMessages.length);
         setMessages(finalMessages);
 
-        // Save message to backend if user is logged in
-        await saveMessageToBackend(val, {
-          primaryResponse: primaryResponse.response,
-          citations,
-        });
+        // Save message to backend if user is logged in (don't await to avoid blocking UI)
+        try {
+          saveMessageToBackend(val, {
+            primaryResponse: primaryResponse.response,
+            citations,
+          });
+        } catch (error) {
+          console.error("Backend save failed, but continuing with UI:", error);
+        }
 
         // Update the current thread with new messages
         const existingThread = threads.find(
@@ -161,7 +167,7 @@ export default function ChatBox({
         addThread(newThread);
         // navigate(`/thread/${newThread.id}`);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching data in handleSend:", error);
       } finally {
         setLoadingIndex(null); // Reset loading index
       }
