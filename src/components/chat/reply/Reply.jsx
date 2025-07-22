@@ -159,10 +159,10 @@ export default function Reply({
 
       <div className="md:p-1 mx-2">
         <div className="border-l border-primary p-2 px-4 flex flex-col">
-          <div className="px-2 py-1 flex items-end">
-            <div className=" ">
+          <div className="px-2 py-1 flex items-end mb-2">
+            <div className="">
               <p className="text-lg font-normal text-[#252525]">
-                {primaryResponse}
+                Here are some discourses where you can start learning about the topic:
               </p>
             </div>
           </div>

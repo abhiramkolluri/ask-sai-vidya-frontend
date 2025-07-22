@@ -126,7 +126,7 @@ export default function ChatBox({
             ? {
                 ...q,
                 reply: {
-                  primaryResponse: primaryResponse.response,
+                  primaryResponse: "", // Empty since we don't want to display /query response
                   citations,
                 },
               }
@@ -138,7 +138,7 @@ export default function ChatBox({
         // Save message to backend if user is logged in (don't await to avoid blocking UI)
         try {
           saveMessageToBackend(val, {
-            primaryResponse: primaryResponse.response,
+            primaryResponse: "", // Empty since we don't want to display /query response
             citations,
           });
         } catch (error) {
@@ -271,7 +271,7 @@ export default function ChatBox({
           ? {
               ...q,
               reply: {
-                primaryResponse: primaryResponse.response,
+                primaryResponse: "", // Empty since we don't want to display /query response
                 citations,
               },
             }
