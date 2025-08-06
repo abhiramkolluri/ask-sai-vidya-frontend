@@ -1,46 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
-import Login from "../../components/login/Login";
-import Signup from "../../components/signup/Signup";
 import Navbar from "../../components/Navbar";
-import { useAuth0 } from "@auth0/auth0-react";
+import { useAuth } from "../../contexts/AuthContext";
 import { apiRoute } from "../../helpers/apiRoute";
 // import Feedback from "../../components/feedback/Feedback";
 
 const Chatpage = () => {
   const [newChat, setNewChat] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [showFeedbackModal, setshowFeedbackModal] = useState(true);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const initialChatCreatedRef = useRef(false);
-  const { user, isAuthenticated, getAccessTokenSilently } = useAuth0();
-  const [userToken, setUserToken] = useState(null);
-
-  // Get access token when user is authenticated
-  useEffect(() => {
-    const getToken = async () => {
-      if (isAuthenticated) {
-        try {
-          const token = await getAccessTokenSilently();
-          setUserToken(token);
-        } catch (error) {
-          console.error("Error getting access token:", error);
-        }
-      } else {
-        setUserToken(null);
-      }
-    };
-    getToken();
-  }, [isAuthenticated, getAccessTokenSilently]);
-
-  const handleShowModal = () => {
-    setShowModal(true);
-  };
+  const { user } = useAuth();
 
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible);
@@ -48,23 +21,15 @@ const Chatpage = () => {
 
   // Load user's chat threads from backend
   const loadUserChats = async () => {
-    // TEMPORARILY DISABLED - Auth0 token not compatible with backend
-    console.log('Load chats disabled - Auth0 integration needed');
-    return;
-    
-    if (!isAuthenticated || !user?.email || !userToken) {
-      console.log('Cannot load chats - missing auth data:', { isAuthenticated, userEmail: user?.email, hasToken: !!userToken });
-      return;
-    }
+    if (!user || !user.token) return;
     
     try {
       setLoading(true);
-      console.log('Fetching chats for user:', user.email);
       const response = await fetch(apiRoute(`chats/${user.email}`), {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${userToken}`
+          "Authorization": `Bearer ${user.token}`
         }
       });
 
@@ -86,34 +51,9 @@ const Chatpage = () => {
     }
   };
 
-  // Load messages for a specific thread from backend
-  const loadThreadMessages = async (threadId) => {
-    if (!isAuthenticated || !userToken || !threadId) return [];
-    
-    try {
-      const response = await fetch(apiRoute(`chats/${threadId}`), {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${userToken}`
-        }
-      });
-
-      if (response.ok) {
-        const threadData = await response.json();
-        return threadData.messages || [];
-      } else {
-        console.error("Failed to load thread messages:", response.statusText);
-      }
-    } catch (error) {
-      console.error("Error loading thread messages:", error);
-    }
-    return [];
-  };
-
   // Create a new chat thread in backend
   const createNewChatThread = async (title = "New Chat") => {
-    if (!isAuthenticated || !userToken || !user?.email) {
+    if (!user || !user.token) {
       // If not logged in, create local thread only
       const newThreadId = new Date().toISOString();
       return {
@@ -125,16 +65,20 @@ const Chatpage = () => {
     }
 
     try {
+      const requestBody = { title: title };
+      
+      // Add user email to request body
+      if (user.email) {
+        requestBody.user_email = user.email;
+      }
+      
       const response = await fetch(apiRoute(`chats/${user.email}`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${userToken}`
+          "Authorization": `Bearer ${user.token}`
         },
-        body: JSON.stringify({ 
-          user_email: user.email,
-          title: title 
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (response.ok) {
@@ -166,22 +110,19 @@ const Chatpage = () => {
 
   // Save chat thread to backend
   const saveChatThread = async (thread) => {
-    // TEMPORARILY DISABLED - Auth0 token not compatible with backend
-    console.log('Save chat thread disabled - Auth0 integration needed');
-    return;
-    
-    if (!isAuthenticated || !userToken) return; // Don't save if not logged in
+    if (!user || !user.token) return; // Don't save if not logged in
 
     try {
       const response = await fetch(apiRoute(`chats/${thread.id}`), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${userToken}`
+          "Authorization": `Bearer ${user.token}`
         },
         body: JSON.stringify({
           title: thread.title,
-          messages: thread.messages
+          messages: thread.messages,
+          user_email: user.email
         })
       });
 
@@ -195,15 +136,18 @@ const Chatpage = () => {
 
   // Delete chat thread from backend
   const deleteChatThread = async (threadId) => {
-    if (!isAuthenticated || !userToken) return; // Don't delete if not logged in
+    if (!user || !user.token) return; // Don't delete if not logged in
 
     try {
       const response = await fetch(apiRoute(`chats/${threadId}`), {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${userToken}`
-        }
+          "Authorization": `Bearer ${user.token}`
+        },
+        body: JSON.stringify({
+          user_email: user.email
+        })
       });
 
       if (!response.ok) {
@@ -228,7 +172,7 @@ const Chatpage = () => {
     }
 
     // Delete from backend if user is logged in
-    if (isAuthenticated && userToken) {
+    if (user && user.token) {
       const success = await deleteChatThread(threadId);
       if (!success) {
         // If backend deletion failed, reload threads to restore the deleted one
@@ -269,14 +213,41 @@ const Chatpage = () => {
   };
 
   const handleNewChat = async () => {
-    const newThread = await createNewChatThread();
-    setSelectedThreadId(newThread.id);
-    addThread(newThread);
-    setNewChat(Math.random()); // Trigger new chat in ChatBox
+    // Check if there's already an empty chat
+    const emptyChat = threads.find(thread => !thread.messages || thread.messages.length === 0);
+    
+    if (emptyChat) {
+      // If there's an empty chat, just select it
+      setSelectedThreadId(emptyChat.id);
+      setNewChat(Math.random()); // Trigger new chat in ChatBox
+    } else {
+      // If no empty chat exists, create a new one
+      const newThread = await createNewChatThread();
+      setSelectedThreadId(newThread.id);
+      addThread(newThread);
+      setNewChat(Math.random()); // Trigger new chat in ChatBox
+    }
     initialChatCreatedRef.current = true; // Set flag to prevent automatic creation
   };
 
-  const handleChatSelect = (threadId) => {
+  // Check if a chat is empty (no messages)
+  const isChatEmpty = (threadId) => {
+    const thread = threads.find(t => t.id === threadId);
+    return !thread || !thread.messages || thread.messages.length === 0;
+  };
+
+  // Delete empty chat
+  const deleteEmptyChat = async (threadId) => {
+    if (isChatEmpty(threadId)) {
+      await handleDeleteChat(threadId);
+    }
+  };
+
+  const handleChatSelect = async (threadId) => {
+    // If we're switching away from a chat and it's empty, delete it
+    if (selectedThreadId && selectedThreadId !== threadId) {
+      await deleteEmptyChat(selectedThreadId);
+    }
     setSelectedThreadId(threadId);
   };
 
@@ -288,14 +259,14 @@ const Chatpage = () => {
           t.id === thread.id ? { ...t, ...thread } : t,
         );
         // Save to backend if user is logged in
-        if (isAuthenticated && userToken) {
+        if (user && user.token) {
           saveChatThread(thread);
         }
         return updatedThreads;
       } else {
         const newThreads = [thread, ...prevThreads];
         // Save to backend if user is logged in
-        if (isAuthenticated && userToken) {
+        if (user && user.token) {
           saveChatThread(thread);
         }
         return newThreads;
@@ -303,21 +274,38 @@ const Chatpage = () => {
     });
   };
 
-  // Load user chats when user logs in
+  // Cleanup empty chats when leaving the page
   useEffect(() => {
-    console.log('Auth state changed:', { isAuthenticated, userToken: !!userToken, userEmail: user?.email });
-    if (isAuthenticated && userToken && user?.email) {
-      console.log('Loading user chats for:', user.email);
-      loadUserChats();
-      initialChatCreatedRef.current = false; // Reset flag when user logs in
+    const handleBeforeUnload = async () => {
+      if (selectedThreadId && isChatEmpty(selectedThreadId)) {
+        await deleteEmptyChat(selectedThreadId);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [selectedThreadId]);
+
+  // Load user chats and create a new chat when user logs in
+  useEffect(() => {
+    if (user && user.token) {
+      const initializeChats = async () => {
+        // First load existing chats
+        await loadUserChats();
+        // Always create a new chat on authentication
+        const newThread = await createNewChatThread();
+        setSelectedThreadId(newThread.id);
+        addThread(newThread);
+      };
+      initializeChats();
     } else {
-      console.log('Clearing threads - not authenticated or missing token/email');
       // Clear threads when user logs out
       setThreads([]);
       setSelectedThreadId(null);
-      initialChatCreatedRef.current = false; // Reset flag when user logs out
     }
-  }, [isAuthenticated, userToken, user?.email]);
+  }, [user]);
 
   // Create initial chat if no threads exist and user is not logged in
   useEffect(() => {
@@ -327,7 +315,7 @@ const Chatpage = () => {
       initialChatCreated: initialChatCreatedRef.current 
     });
     
-    if (threads.length === 0 && !isAuthenticated && !initialChatCreatedRef.current) {
+    if (threads.length === 0 && !user && !initialChatCreatedRef.current) {
       console.log('Creating initial chat...');
       // Create only one chat for unauthenticated users
       const createInitialChat = async () => {
@@ -340,7 +328,7 @@ const Chatpage = () => {
       };
       createInitialChat();
     }
-  }, [threads.length, isAuthenticated]);
+  }, [threads.length, user]);
 
   return (
     <div className="w-full h-[100vh] flex overflow-hidden">
@@ -389,49 +377,13 @@ const Chatpage = () => {
         {/* ChatBox */}
         <ChatBox
           newChat={newChat}
-          modalCallback={handleShowModal}
           selectedThreadId={selectedThreadId}
           addThread={addThread}
           threads={threads}
-          user={{ email: user?.email, token: userToken }}
+          user={user}
           generateTitleFromQuestion={generateAITitleFromQuestion}
-          loadThreadMessages={loadThreadMessages}
         />
       </div>
-      
-      {/* Modals */}
-      {showModal && (
-        <div
-          className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50"
-          onClick={handleShowModal}>
-          {showLogin ? (
-            <Login callback={() => setShowLogin(false)} />
-          ) : (
-            <Signup callback={() => setShowLogin(true)} />
-          )}
-        </div>
-      )}
-      {/* {showFeedbackModal ? (
-        <>
-          <div className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50">
-            <Feedback
-              closeModalCallback={() => setshowFeedbackModal(false)}
-              options={[
-                "Sai Center",
-                "Email",
-                "Facebook",
-                "Instagram",
-                "Twitter",
-                "WhatsApp",
-                "YouTube",
-              ]}
-              question="We will love to know how you learned about Ask Sai Vidya"
-            />
-          </div>
-        </>
-      ) : (
-        <></>
-      )} */}
     </div>
   );
 };
