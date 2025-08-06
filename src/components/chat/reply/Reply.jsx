@@ -9,8 +9,62 @@ import {
 import { GoArrowUpRight } from "react-icons/go";
 import { FaSpinner } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { apiRoute, submitFeedback } from "../../../helpers/apiRoute";
 
 import Feedback from "../../feedback/Feedback";
+
+async function askSaiBaba(question) {
+    try {
+        const url = apiRoute("query");
+        console.log("Query URL:", url);
+        console.log("Environment variable:", process.env.REACT_APP_BASE_API_SERVER);
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                query: question
+            })
+        });
+        
+        const data = await response.json();
+        if (response.ok) {
+            return data.response;
+        } else {
+            throw new Error(data.error || 'Unknown error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+}
+
+const fetchCitations = async (question) => {
+  try {
+    const url = apiRoute("search");
+    console.log("Search URL:", url);
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: question })
+    });
+    
+    const data = await response.json();
+    if (response.ok) {
+      return data;
+    } else {
+      throw new Error(data.error || 'Unknown error');
+    }
+  } catch (error) {
+    console.error('Error fetching citations:', error);
+    return []; // Return empty array if citations fetch fails
+  }
+};
 
 export default function Reply({
   question = "What the user asked?",
@@ -22,6 +76,20 @@ export default function Reply({
 }) {
   console.log("Reply component received reply:", reply);
   const [showFeedbackModal, setshowFeedbackModal] = useState(false);
+  const [feedbackType, setFeedbackType] = useState(null); // 'up' or 'down'
+  const [isReloading, setIsReloading] = useState(false);
+
+  const handleReload = async () => {
+    try {
+      setIsReloading(true);
+      onReloadClick(question);
+    } catch (error) {
+      console.error('Error reloading response:', error);
+      alert('Failed to reload response. Please try again.');
+    } finally {
+      setIsReloading(false);
+    }
+  };
 
   const handleSeeMore = (event) => {
     // Code to handle the click event goes here
@@ -29,6 +97,29 @@ export default function Reply({
 
     // Open the link in a new tab with desired features (optional)
     window.open(event.target.href, "_blank", "noopener,noreferrer");
+  };
+
+  const handleFeedbackClick = (type) => {
+    setFeedbackType(type);
+    setshowFeedbackModal(true);
+  };
+
+  const handleFeedback = async (type, reason, additionalComments = '') => {
+    try {
+      const feedbackData = {
+        question,
+        answer: reply.primaryResponse,
+        feedbackType: type,
+        reason,
+        additionalComments,
+        timestamp: new Date().toISOString(),
+        citations: reply.citations || []
+      };
+      console.log('Feedback data being sent:', feedbackData);
+      await submitFeedback(feedbackData);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+    }
   };
 
   if (loading) {
@@ -68,10 +159,10 @@ export default function Reply({
 
       <div className="md:p-1 mx-2">
         <div className="border-l border-primary p-2 px-4 flex flex-col">
-          <div className="px-2 py-1 flex items-end">
-            <div className=" ">
+          <div className="px-2 py-1 flex items-end mb-2">
+            <div className="">
               <p className="text-lg font-normal text-[#252525]">
-                {primaryResponse}
+                Here are some discourses where you can start learning about the topic:
               </p>
             </div>
           </div>
@@ -132,18 +223,24 @@ export default function Reply({
             <IoThumbsUpOutline
               size={20}
               className="cursor-pointer"
-              onClick={() => setshowFeedbackModal(true)}
+              onClick={() => handleFeedbackClick('up')}
             />
             <IoThumbsDownOutline
               size={20}
               className="cursor-pointer"
-              onClick={() => setshowFeedbackModal(true)}
+              onClick={() => handleFeedbackClick('down')}
             />
-            <IoReload
-              size={20}
-              className="cursor-pointer"
-              onClick={() => onReloadClick(question)}
-            />
+            {isReloading ? (
+              <div className="animate-spin">
+                <FaSpinner size={20} />
+              </div>
+            ) : (
+              <IoReload
+                size={20}
+                className="cursor-pointer"
+                onClick={handleReload}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -151,14 +248,33 @@ export default function Reply({
         <>
           <div className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50">
             <Feedback
-              closeModalCallback={() => setshowFeedbackModal(false)}
-              options={[
-                "Not helpful",
-                "Inaccurate",
-                "Out of date",
-                "Problematic",
-                "Misquoted the orignal source",
-              ]}
+              closeModalCallback={() => {
+                setshowFeedbackModal(false);
+                setFeedbackType(null);
+              }}
+              options={
+                feedbackType === 'up'
+                  ? [
+                      "Helpful",
+                      "Accurate Information",
+                      "Clear Explanation",
+                      "Good Sources",
+                      "Answered the question well",
+                    ]
+                  : [
+                      "Not helpful",
+                      "Inaccurate",
+                      "Out of date",
+                      "Problematic",
+                      "Misquoted the original source",
+                    ]
+              }
+              question={
+                feedbackType === 'up'
+                  ? "What did you like about this response?"
+                  : "What could be improved about this response?"
+              }
+              onSubmit={(reason, additionalComments) => handleFeedback(feedbackType, reason, additionalComments)}
             />
           </div>
         </>

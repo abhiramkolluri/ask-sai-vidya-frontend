@@ -21,3 +21,27 @@ export const fetchBlogPost = async (slug: string) => {
     throw new Error(e);
   }
 };
+
+export const submitFeedback = async (feedbackData) => {
+  try {
+    console.log('Sending feedback to backend:', feedbackData);
+    const response = await fetch(apiRoute('/api/feedback'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(feedbackData)
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('Feedback submission response:', result);
+      return result;
+    } else {
+      throw new Error('Failed to submit feedback');
+    }
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    throw error;
+  }
+};

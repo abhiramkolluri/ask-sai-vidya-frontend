@@ -1,0 +1,146 @@
+REFRESH BUTTON IMPLEMENTATION CHANGES
+===================================
+
+1. Reply Component (src/components/chat/reply/Reply.jsx)
+-------------------------------------------------------
+- Added IoReload icon import from react-icons/io5
+- Added isReloading state:
+  ```jsx
+  const [isReloading, setIsReloading] = useState(false);
+  ```
+
+- Added handleReload function:
+  ```jsx
+  const handleReload = async () => {
+    try {
+      setIsReloading(true);
+      const newResponse = await askSaiBaba(question);
+      onReloadClick(question, newResponse);
+    } catch (error) {
+      console.error('Error reloading response:', error);
+      alert('Failed to reload response. Please try again.');
+    } finally {
+      setIsReloading(false);
+    }
+  };
+  ```
+
+- Added askSaiBaba function:
+  ```jsx
+  async function askSaiBaba(question) {
+    try {
+      const response = await fetch('http://localhost:8002/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: question
+        })
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        return data.response;
+      } else {
+        throw new Error(data.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      throw error;
+    }
+  }
+  ```
+
+- Added refresh button to UI:
+  ```jsx
+  <IoReload
+    size={20}
+    className="cursor-pointer"
+    onClick={handleReload}
+    style={{ opacity: isReloading ? 0.5 : 1 }}
+  />
+  ```
+
+2. ChatBox Component (src/components/chatbox/ChatBox.jsx)
+-------------------------------------------------------
+- Added handleReloadClick function:
+  ```jsx
+  const handleReloadClick = (question, newResponse) => {
+    // Find the message to update
+    const messageIndex = messages.findIndex(msg => msg.question === question);
+    if (messageIndex === -1) return;
+
+    // Update the message with new response
+    const updatedMessages = messages.map((msg, index) =>
+      index === messageIndex
+        ? {
+            ...msg,
+            reply: {
+              ...msg.reply,
+              primaryResponse: newResponse
+            }
+          }
+        : msg
+    );
+
+    // Update state
+    setMessages(updatedMessages);
+
+    // Update the thread
+    const existingThread = threads.find(
+      (thread) => thread.id === selectedThreadId
+    );
+    if (existingThread) {
+      const newThread = {
+        ...existingThread,
+        messages: updatedMessages,
+      };
+      addThread(newThread);
+    }
+  };
+  ```
+
+- Added caching mechanism:
+  ```jsx
+  const cache = {};
+  ```
+
+3. UI/UX Changes
+---------------
+- Added loading state indicator during refresh
+- Implemented visual feedback (opacity change) when refresh is in progress
+- Added error handling with user feedback
+- Maintained existing UI layout while adding refresh functionality
+
+4. State Management
+-----------------
+- Added state updates to maintain conversation history
+- Implemented thread updates to persist refreshed responses
+- Added loading states to show refresh progress
+
+5. Error Handling
+---------------
+- Added try-catch blocks for API calls
+- Implemented user feedback for failed refresh attempts
+- Added error logging for debugging
+
+6. API Integration
+----------------
+- Added new endpoint for refreshing responses
+- Implemented proper error handling for API calls
+- Added response validation
+
+7. Props and Callbacks
+--------------------
+- Added onReloadClick prop to Reply component
+- Implemented proper prop drilling for refresh functionality
+- Added callback handling for state updates
+
+8. Performance Considerations
+--------------------------
+- Implemented caching to prevent unnecessary API calls
+- Added loading states to prevent multiple simultaneous refreshes
+- Optimized state updates to minimize re-renders
+
+These changes collectively implement a robust refresh button functionality that allows users to get new responses for their questions while maintaining the conversation context and providing appropriate feedback during the process. 

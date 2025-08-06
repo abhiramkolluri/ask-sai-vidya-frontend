@@ -2,10 +2,10 @@ import React from "react";
 
 export default function SampleQuestions({ onQuestionClick = () => {} }) {
 	const sampleQuestions = [
-		"How do you find life’s purpose?",
-		"In this ever changing world, how do I encourage my child to follow Sai Baba's values?",
-		"What does Sai Baba say about stopping bad habits and learning new habits?",
-		"How do I sing Bhajans, do service, learn prayers, meditate, and do yoga?",
+		"Help me find some discourses to learn more about the value of Truth",
+		"What does Swami say about stopping bad habits and learning good ones?",
+		"My goal is to be more mindful in my daily life. Find discourses that can inspire me.",
+		"I want to learn more about the importance of compassion through reading discourses.",
 	];
 
 	return (

@@ -49,8 +49,7 @@ export default function Welcome() {
               <div className="w-[380px] rounded  bg-white p-4 flex flex-col gap-4 shadow-md relative -left-12">
                 <h3 className="  flex items-center text-orange-400 gap-2">
                   {" "}
-                  <GiTreeBranch size={24} /> Answers are rich with Baba’s
-                  teachings
+                  <GiTreeBranch size={24} /> Do all of your research to create Sai Center material in one place
                 </h3>
                 <p className=" text-balance">
                   All of Sathya Sai Baba's primary resources are continuously
