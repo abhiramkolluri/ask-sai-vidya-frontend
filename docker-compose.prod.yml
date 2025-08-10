@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "80:80"
+    environment:
+      - REACT_APP_BASE_API_SERVER=${REACT_APP_BASE_API_SERVER:-https://dxhp0j33db.execute-api.us-east-1.amazonaws.com/dev}
+      - REACT_APP_AUTH0_DOMAIN=${REACT_APP_AUTH0_DOMAIN:-dev-oml3gexqytc7oo2l.us.auth0.com}
+      - REACT_APP_AUTH0_CLIENT_ID=${REACT_APP_AUTH0_CLIENT_ID:-6satcFsIaqEedHaMNO65bGZ61TdjcqlB}
+      - REACT_APP_AUTH0_REDIRECT_URI=${REACT_APP_AUTH0_REDIRECT_URI:-http://localhost}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - saividya-prod
+
+networks:
+  saividya-prod:
+    driver: bridge

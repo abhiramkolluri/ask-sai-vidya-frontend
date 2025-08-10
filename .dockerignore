@@ -1,5 +1,7 @@
 node_modules
-npm-debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .git
 .gitignore
 .env.local
@@ -11,3 +13,14 @@ coverage
 .nyc_output
 .DS_Store
 feedback_env
+server.log
+*.log
+README.md
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+.vscode
+.idea
+*.swp
+*.swo
+*~

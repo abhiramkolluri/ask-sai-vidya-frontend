@@ -1,8 +1,7 @@
 version: '3.8'
 
 services:
-  # Development service
-  frontend-dev:
+  frontend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -20,24 +19,8 @@ services:
     stdin_open: true
     tty: true
     networks:
-      - saividya-network
-
-  # Production service
-  frontend-prod:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
-    ports:
-      - "80:80"
-    environment:
-      - REACT_APP_BASE_API_SERVER=${REACT_APP_BASE_API_SERVER:-https://dxhp0j33db.execute-api.us-east-1.amazonaws.com/dev}
-      - REACT_APP_AUTH0_DOMAIN=${REACT_APP_AUTH0_DOMAIN:-dev-oml3gexqytc7oo2l.us.auth0.com}
-      - REACT_APP_AUTH0_CLIENT_ID=${REACT_APP_AUTH0_CLIENT_ID:-6satcFsIaqEedHaMNO65bGZ61TdjcqlB}
-      - REACT_APP_AUTH0_REDIRECT_URI=${REACT_APP_AUTH0_REDIRECT_URI:-http://localhost}
-    restart: unless-stopped
-    networks:
-      - saividya-network
+      - saividya-dev
 
 networks:
-  saividya-network:
+  saividya-dev:
     driver: bridge
