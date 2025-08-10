@@ -1,7 +1,7 @@
 export const apiRoute = (path) =>
   `${process.env.REACT_APP_BASE_API_SERVER}/${path}`;
 
-export const fetchBlogPost = async (slug: string) => {
+export const fetchBlogPost = async (slug) => {
   // return fetch(apiRoute(`blog/${slug}`))
   //   .then((res) => res.json())
   //   .catch((err) => {
@@ -25,7 +25,7 @@ export const fetchBlogPost = async (slug: string) => {
 export const submitFeedback = async (feedbackData) => {
   try {
     console.log('Sending feedback to backend:', feedbackData);
-    const response = await fetch(apiRoute('/api/feedback'), {
+    const response = await fetch(apiRoute('api/feedback'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

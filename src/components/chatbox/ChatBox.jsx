@@ -8,8 +8,6 @@ const cache = {};
 
 export default function ChatBox({
   newChat,
-  // loggedin = false,
-  // modalCallback = () => {},
   selectedThreadId = null,
   addThread = () => {},
   threads = [],
@@ -30,14 +28,35 @@ export default function ChatBox({
         fetchCitations: cache[question].fetchCitations,
       };
     }
-    const response = await fetch(apiRoute("query"), {
+    
+    const url = apiRoute("query");
+    console.log("🔍 Frontend calling URL:", url);
+    console.log("🔍 Environment variable:", process.env.REACT_APP_BASE_API_SERVER);
+    
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    
+    // Add Authorization header if user is logged in
+    if (user && user.token) {
+      headers["Authorization"] = `Bearer ${user.token}`;
+    }
+    
+    const requestBody = { query: question };
+    
+    // Add user email to request body if available
+    if (user && user.email) {
+      requestBody.user_email = user.email;
+    }
+    
+    const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: question }),
+      headers: headers,
+      body: JSON.stringify(requestBody),
     });
+    console.log("🔍 Response status:", response.status);
     const data = await response.json();
+    console.log("🔍 Response data:", data);
     const fetchCitations =
       data.response !==
       "It seems like there might be a misunderstanding with the question you provided. I'm here to offer spiritual guidance based on the teachings of Sathya Sai Baba. If you have any questions related to spirituality, personal growth, or Sai Baba's teachings, feel free to ask!";
@@ -107,20 +126,10 @@ export default function ChatBox({
       setLoadingIndex(newIndex); // Set loading index for the new question
 
       try {
-        const primaryResponsePromise = fetchPrimaryResponse(val);
-        const citationsPromise = primaryResponsePromise.then((result) => {
-          if (result.fetchCitations) {
-            return fetchCitations(val);
-          }
-          return [];
-        });
+        // Only fetch citations from /search endpoint
+        const citations = await fetchCitations(val);
 
-        const [primaryResponse, citations] = await Promise.all([
-          primaryResponsePromise,
-          citationsPromise,
-        ]);
-
-        // Update state once with both responses
+        // Update state with only citations
         const finalMessages = updatedMessages.map((q, index) =>
           index === newIndex
             ? {
@@ -252,20 +261,10 @@ export default function ChatBox({
       // Clear the cache for this question to force a fresh response
       delete cache[question];
       
-      const primaryResponsePromise = fetchPrimaryResponse(question);
-      const citationsPromise = primaryResponsePromise.then((result) => {
-        if (result.fetchCitations) {
-          return fetchCitations(question);
-        }
-        return [];
-      });
+      // Only fetch citations from /search endpoint
+      const citations = await fetchCitations(question);
 
-      const [primaryResponse, citations] = await Promise.all([
-        primaryResponsePromise,
-        citationsPromise,
-      ]);
-
-      // Update state with the new response
+      // Update state with only citations
       const finalMessages = updatedMessages.map((q, index) =>
         index === newIndex
           ? {
@@ -327,8 +326,7 @@ export default function ChatBox({
           <div className="flex-grow overflow-y-scroll flex justify-center items-center">
             <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4 px-4">
               <p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
-                Ask your question to&nbsp;<b>Sai Vidya</b> and discover profound
-                wisdom!
+                Ask a question to&nbsp;<b>Sai Vidya</b> and get discourses that you can explore.
               </p>
               <div>
                 <SampleQuestions onQuestionClick={handleSampleQuestionClick} />

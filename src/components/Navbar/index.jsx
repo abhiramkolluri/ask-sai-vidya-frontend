@@ -1,21 +1,23 @@
 import React, { useState } from "react";
 import { BsChevronDown } from "react-icons/bs";
 import { FaRegUser } from "react-icons/fa";
-import { useAuth0 } from "@auth0/auth0-react";
+import { useAuth } from "../../contexts/AuthContext";
 import LoginButton from "../auth/LoginButton";
 import LogoutButton from "../auth/LogoutButton";
 
 export default function Navbar({ variant }) {
   const [showDropdown, setShowDropdown] = useState(false);
-  const { user, isAuthenticated } = useAuth0();
+  const { user, isAuth0User } = useAuth();
   const isBlogVariant = variant === "blog";
 
   // Get display name (name, nickname, or email)
   const getDisplayName = () => {
-    if (user?.name) return user.name;
-    if (user?.nickname) return user.nickname;
+    if (isAuth0User && user?.auth0User?.name) return user.auth0User.name;
+    if (isAuth0User && user?.auth0User?.nickname) return user.auth0User.nickname;
     return user?.email || "User";
   };
+
+  const isAuthenticated = !!user;
 
   return (
     <div
@@ -30,9 +32,9 @@ export default function Navbar({ variant }) {
         <div
           className="flex justify-center items-center gap-2 text-primary cursor-pointer "
           onClick={() => setShowDropdown((x) => !x)}>
-          {user.picture ? (
+          {isAuth0User && user?.auth0User?.picture ? (
             <img 
-              src={user.picture} 
+              src={user.auth0User.picture} 
               alt="Profile" 
               className="w-6 h-6 rounded-full"
             />
