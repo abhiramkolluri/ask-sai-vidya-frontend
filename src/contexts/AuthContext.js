@@ -69,7 +69,11 @@ export const AuthProvider = ({ children }) => {
 
   // Auth0 logout function
   const logout = () => {
-    auth0Logout({ returnTo: window.location.origin });
+    auth0Logout({ 
+      logoutParams: { 
+        returnTo: window.location.origin 
+      } 
+    });
   };
 
   const value = {

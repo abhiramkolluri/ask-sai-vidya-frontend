@@ -4,7 +4,7 @@
 const https = require('https');
 
 async function getManagementToken() {
-  const domain = 'dev-oml3gexqytc7oo2l.us.auth0.com'; // Your Auth0 domain
+  const domain = 'login.asksaividya.com'; // Your Auth0 domain
   const clientId = '6satcFsIaqEedHaMNO65bGZ61TdjcqlB'; // Your client ID
   const clientSecret = 'YOUR_CLIENT_SECRET'; // You need to get this from Auth0 dashboard
   

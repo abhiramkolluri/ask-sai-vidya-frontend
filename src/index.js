@@ -11,10 +11,10 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <Auth0Provider
-      domain={process.env.REACT_APP_AUTH0_DOMAIN || "dev-oml3gexqytc7oo2l.us.auth0.com"}
+      domain={process.env.REACT_APP_AUTH0_DOMAIN || "login.asksaividya.com"}
       clientId={process.env.REACT_APP_AUTH0_CLIENT_ID || "6satcFsIaqEedHaMNO65bGZ61TdjcqlB"}
       authorizationParams={{
-        redirect_uri: process.env.REACT_APP_AUTH0_REDIRECT_URI || "http://localhost:3000"
+        redirect_uri: process.env.REACT_APP_AUTH0_REDIRECT_URI || window.location.origin
       }}
     >
       <BrowserRouter>

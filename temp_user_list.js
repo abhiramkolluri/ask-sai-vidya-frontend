@@ -5,7 +5,7 @@
 async function getAllUsers() {
   try {
     // Get the Auth0 domain from environment or hardcode for testing
-    const domain = process.env.REACT_APP_AUTH0_DOMAIN || "dev-oml3gexqytc7oo2l.us.auth0.com";
+    const domain = process.env.REACT_APP_AUTH0_DOMAIN || "login.asksaividya.com";
     
     // Get Management API token from environment variable
     const managementToken = process.env.REACT_APP_AUTH0_MANAGEMENT_TOKEN || "YOUR_MANAGEMENT_API_TOKEN";
