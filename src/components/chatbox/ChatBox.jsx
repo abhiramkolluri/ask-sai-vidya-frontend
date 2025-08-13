@@ -120,16 +120,26 @@ export default function ChatBox({
       setLoadingIndex(newIndex); // Set loading index for the new question
 
       try {
-        // Only fetch citations from /search endpoint
-        const citations = await fetchCitations(val);
+        const primaryResponsePromise = fetchPrimaryResponse(val);
+        const citationsPromise = primaryResponsePromise.then((result) => {
+          if (result.fetchCitations) {
+            return fetchCitations(val);
+          }
+          return [];
+        });
 
-        // Update state with only citations
+        const [primaryResponse, citations] = await Promise.all([
+          primaryResponsePromise,
+          citationsPromise,
+        ]);
+
+        // Update state once with both responses
         const finalMessages = updatedMessages.map((q, index) =>
           index === newIndex
             ? {
                 ...q,
                 reply: {
-                  primaryResponse: "", // Empty since we don't want to display /query response
+                  primaryResponse: primaryResponse.response,
                   citations,
                 },
               }
@@ -139,7 +149,7 @@ export default function ChatBox({
 
         // Save message to backend if user is logged in
         await saveMessageToBackend(val, {
-          primaryResponse: "", // Empty since we don't want to display /query response
+          primaryResponse: primaryResponse.response,
           citations,
         });
 
@@ -228,16 +238,26 @@ export default function ChatBox({
       // Clear the cache for this question to force a fresh response
       delete cache[question];
       
-      // Only fetch citations from /search endpoint
-      const citations = await fetchCitations(question);
+      const primaryResponsePromise = fetchPrimaryResponse(question);
+      const citationsPromise = primaryResponsePromise.then((result) => {
+        if (result.fetchCitations) {
+          return fetchCitations(question);
+        }
+        return [];
+      });
 
-      // Update state with only citations
+      const [primaryResponse, citations] = await Promise.all([
+        primaryResponsePromise,
+        citationsPromise,
+      ]);
+
+      // Update state with the new response
       const finalMessages = updatedMessages.map((q, index) =>
         index === newIndex
           ? {
               ...q,
               reply: {
-                primaryResponse: "", // Empty since we don't want to display /query response
+                primaryResponse: primaryResponse.response,
                 citations,
               },
             }

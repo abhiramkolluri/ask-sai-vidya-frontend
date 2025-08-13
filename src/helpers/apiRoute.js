@@ -1,5 +1,10 @@
-export const apiRoute = (path) =>
-  `${process.env.REACT_APP_BASE_API_SERVER}/${path}`;
+export const apiRoute = (path) => {
+  const baseUrl = process.env.REACT_APP_BASE_API_SERVER || "https://dxhp0j33db.execute-api.us-east-1.amazonaws.com/dev";
+  console.log("🔍 apiRoute - baseUrl:", baseUrl);
+  console.log("🔍 apiRoute - path:", path);
+  console.log("🔍 apiRoute - full URL:", `${baseUrl}/${path}`);
+  return `${baseUrl}/${path}`;
+};
 
 export const fetchBlogPost = async (slug) => {
   // return fetch(apiRoute(`blog/${slug}`))
