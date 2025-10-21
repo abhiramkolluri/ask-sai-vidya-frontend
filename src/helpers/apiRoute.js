@@ -32,7 +32,7 @@ export const submitFeedback = async (feedbackData) => {
       },
       body: JSON.stringify(feedbackData)
     });
-    
+
     if (response.ok) {
       const result = await response.json();
       console.log('Feedback submission response:', result);

@@ -10,10 +10,16 @@ export default function Navbar({ variant }) {
   const { user, isAuth0User } = useAuth();
   const isBlogVariant = variant === "blog";
 
-  // Get display name (name, nickname, or email)
+  // Get display name (name, nickname, or first_name last_name)
   const getDisplayName = () => {
     if (isAuth0User && user?.auth0User?.name) return user.auth0User.name;
     if (isAuth0User && user?.auth0User?.nickname) return user.auth0User.nickname;
+
+    // For custom auth users, show first_name and last_name
+    if (!isAuth0User && user?.first_name && user?.last_name) {
+      return `${user.first_name} ${user.last_name}`;
+    }
+
     return user?.email || "User";
   };
 
@@ -21,9 +27,8 @@ export default function Navbar({ variant }) {
 
   return (
     <div
-      className={`w-full ${
-        isBlogVariant ? "bg-transparent" : "bg-white"
-      }  px-12 text-[14px] flex items-center justify-end py-6 relative`}>
+      className={`w-full ${isBlogVariant ? "bg-transparent" : "bg-white"
+        }  px-12 text-[14px] flex items-center justify-end py-6 relative`}>
       {isBlogVariant ? null : (
         <div className=" w-full h-[72px] bg-gradient-to-r from-primary to-orange-50 absolute -z-10"></div>
       )}
@@ -33,9 +38,9 @@ export default function Navbar({ variant }) {
           className="flex justify-center items-center gap-2 text-primary cursor-pointer "
           onClick={() => setShowDropdown((x) => !x)}>
           {isAuth0User && user?.auth0User?.picture ? (
-            <img 
-              src={user.auth0User.picture} 
-              alt="Profile" 
+            <img
+              src={user.auth0User.picture}
+              alt="Profile"
               className="w-6 h-6 rounded-full"
             />
           ) : (
@@ -44,7 +49,7 @@ export default function Navbar({ variant }) {
           <span className="font-bold">{getDisplayName()}</span>
           <span
             className="px-4 cursor-pointer"
-            // onClick={() => setShowDropdown((x) => !x)}
+          // onClick={() => setShowDropdown((x) => !x)}
           >
             <BsChevronDown size={18} />
             {showDropdown ? (
