@@ -22,7 +22,7 @@ const Chatpage = () => {
   // Load user's chat threads from backend
   const loadUserChats = async () => {
     if (!user || !user.token) return;
-    
+
     try {
       setLoading(true);
       const response = await fetch(apiRoute(`chats/${user.email}`), {
@@ -36,7 +36,7 @@ const Chatpage = () => {
       if (response.ok) {
         const chatThreads = await response.json();
         setThreads(chatThreads);
-        
+
         // If user has existing chats, select the most recent one
         if (chatThreads.length > 0) {
           setSelectedThreadId(chatThreads[0].id);
@@ -66,12 +66,12 @@ const Chatpage = () => {
 
     try {
       const requestBody = { title: title };
-      
+
       // Add user email to request body
       if (user.email) {
         requestBody.user_email = user.email;
       }
-      
+
       const response = await fetch(apiRoute(`chats/${user.email}`), {
         method: "POST",
         headers: {
@@ -165,7 +165,7 @@ const Chatpage = () => {
   const handleDeleteChat = async (threadId) => {
     // Remove from local state immediately for better UX
     setThreads((prevThreads) => prevThreads.filter((thread) => thread.id !== threadId));
-    
+
     // If this was the selected thread, clear selection
     if (selectedThreadId === threadId) {
       setSelectedThreadId(null);
@@ -184,7 +184,7 @@ const Chatpage = () => {
   // Generate AI summary for chat title from the first question
   const generateAITitleFromQuestion = async (question) => {
     if (!question) return "New Chat";
-    
+
     try {
       const response = await fetch(apiRoute("summarize-question"), {
         method: "POST",
@@ -215,7 +215,7 @@ const Chatpage = () => {
   const handleNewChat = async () => {
     // Check if there's already an empty chat
     const emptyChat = threads.find(thread => !thread.messages || thread.messages.length === 0);
-    
+
     if (emptyChat) {
       // If there's an empty chat, just select it
       setSelectedThreadId(emptyChat.id);
@@ -292,12 +292,10 @@ const Chatpage = () => {
   useEffect(() => {
     if (user && user.token) {
       const initializeChats = async () => {
-        // First load existing chats
+        // Load existing chats
         await loadUserChats();
-        // Always create a new chat on authentication
-        const newThread = await createNewChatThread();
-        setSelectedThreadId(newThread.id);
-        addThread(newThread);
+        // Don't automatically create a new chat - user's existing chats will be loaded
+        // User can manually create a new chat if needed using the "New Chat" button
       };
       initializeChats();
     } else {
@@ -309,12 +307,12 @@ const Chatpage = () => {
 
   // Create initial chat if no threads exist and user is not logged in
   useEffect(() => {
-    console.log('useEffect triggered:', { 
-      threadsLength: threads.length, 
-      user: !!user, 
-      initialChatCreated: initialChatCreatedRef.current 
+    console.log('useEffect triggered:', {
+      threadsLength: threads.length,
+      user: !!user,
+      initialChatCreated: initialChatCreatedRef.current
     });
-    
+
     if (threads.length === 0 && !user && !initialChatCreatedRef.current) {
       console.log('Creating initial chat...');
       // Create only one chat for unauthenticated users
@@ -333,9 +331,8 @@ const Chatpage = () => {
   return (
     <div className="w-full h-[100vh] flex overflow-hidden">
       {/* Sidebar */}
-      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${
-        sidebarVisible ? 'w-[300px]' : 'w-0'
-      } hidden md:flex`}>
+      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px]' : 'w-0'
+        } hidden md:flex`}>
         <SideNav
           startNewChatCallback={handleNewChat}
           onChatSelect={handleChatSelect}
@@ -346,9 +343,8 @@ const Chatpage = () => {
       </div>
 
       {/* Main Content */}
-      <div className={`flex flex-col flex-grow mt-2 relative transition-all duration-300 ${
-        sidebarVisible ? 'ml-0' : 'ml-0'
-      }`}>
+      <div className={`flex flex-col flex-grow mt-2 relative transition-all duration-300 ${sidebarVisible ? 'ml-0' : 'ml-0'
+        }`}>
         {/* Hamburger Button */}
         <button
           onClick={toggleSidebar}
@@ -373,7 +369,7 @@ const Chatpage = () => {
         <div className="absolute top-0 left-0 right-0">
           <Navbar />
         </div>
-        
+
         {/* ChatBox */}
         <ChatBox
           newChat={newChat}
