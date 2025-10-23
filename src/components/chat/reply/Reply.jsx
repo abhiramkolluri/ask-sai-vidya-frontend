@@ -14,38 +14,38 @@ import { apiRoute, submitFeedback } from "../../../helpers/apiRoute";
 import Feedback from "../../feedback/Feedback";
 
 async function askSaiBaba(question) {
-    try {
-        const url = apiRoute("query");
-        console.log("Query URL:", url);
-        console.log("Environment variable:", process.env.REACT_APP_BASE_API_SERVER);
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                query: question
-            })
-        });
-        
-        const data = await response.json();
-        if (response.ok) {
-            return data.response;
-        } else {
-            throw new Error(data.error || 'Unknown error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        throw error;
+  try {
+    const url = apiRoute("query");
+    console.log("Query URL:", url);
+    console.log("Environment variable:", process.env.REACT_APP_BASE_API_SERVER);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: question
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      return data.response;
+    } else {
+      throw new Error(data.error || 'Unknown error');
     }
+  } catch (error) {
+    console.error('Error:', error);
+    throw error;
+  }
 }
 
 const fetchCitations = async (question) => {
   try {
     const url = apiRoute("search");
     console.log("Search URL:", url);
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -53,7 +53,7 @@ const fetchCitations = async (question) => {
       },
       body: JSON.stringify({ query: question })
     });
-    
+
     const data = await response.json();
     if (response.ok) {
       return data;
@@ -74,6 +74,8 @@ export default function Reply({
   onReloadClick,
   onCopyClick,
 }) {
+  console.log("hi guys shreyas here too")
+
   console.log("Reply component received reply:", reply);
   const [showFeedbackModal, setshowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState(null); // 'up' or 'down'
@@ -166,7 +168,7 @@ export default function Reply({
               </p>
             </div>
           </div>
-          
+
           <div className="m-2 flex flex-col bg-[#FEF4EB] rounded ">
             <div className="mx-1 flex">
               <div className="p-6">
@@ -193,7 +195,7 @@ export default function Reply({
                             state={{ citations }}
                             className="flex"
                             onClick={handleSeeMore}
-                            // target="_blank"
+                          // target="_blank"
                           >
                             See more
                             <GoArrowUpRight size={20} />
@@ -255,19 +257,19 @@ export default function Reply({
               options={
                 feedbackType === 'up'
                   ? [
-                      "Helpful",
-                      "Accurate Information",
-                      "Clear Explanation",
-                      "Good Sources",
-                      "Answered the question well",
-                    ]
+                    "Helpful",
+                    "Accurate Information",
+                    "Clear Explanation",
+                    "Good Sources",
+                    "Answered the question well",
+                  ]
                   : [
-                      "Not helpful",
-                      "Inaccurate",
-                      "Out of date",
-                      "Problematic",
-                      "Misquoted the original source",
-                    ]
+                    "Not helpful",
+                    "Inaccurate",
+                    "Out of date",
+                    "Problematic",
+                    "Misquoted the original source",
+                  ]
               }
               question={
                 feedbackType === 'up'

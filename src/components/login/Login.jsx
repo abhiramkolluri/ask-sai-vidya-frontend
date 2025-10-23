@@ -15,7 +15,7 @@ import {
   loginSchema,
 } from "../../helpers/authHelpers";
 
-export default function Login({ callback = () => {}, inModal = true }) {
+export default function Login({ callback = () => { }, inModal = true }) {
   const [forgetPassword, setforgetPassword] = useState(false);
 
   const {
@@ -24,6 +24,15 @@ export default function Login({ callback = () => {}, inModal = true }) {
     error: authError,
     success: authSuccess,
   } = useAuth();
+
+  // Close modal on successful login
+  React.useEffect(() => {
+    if (authSuccess && inModal) {
+      setTimeout(() => {
+        callback();
+      }, 1500); // Give user time to see success message
+    }
+  }, [authSuccess, inModal, callback]);
 
   const {
     register: formLogin,

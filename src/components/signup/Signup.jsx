@@ -15,7 +15,7 @@ import {
 import Chat from "../../images/chat.jpg";
 import { useAuth } from "../../contexts/AuthContext";
 
-export default function Signup({ callback = () => {}, inModal = true }) {
+export default function Signup({ callback = () => { }, inModal = true }) {
   const [inputTypes, setInputTypes] = useState({
     password: "password",
     confirmPassword: "password",
@@ -25,7 +25,17 @@ export default function Signup({ callback = () => {}, inModal = true }) {
     registering,
     error: authError,
     success: authSuccess,
+    user,
   } = useAuth();
+
+  // Close modal when user gets logged in after registration
+  React.useEffect(() => {
+    if (user && inModal) {
+      setTimeout(() => {
+        callback();
+      }, 2000); // Give user time to see success message
+    }
+  }, [user, inModal, callback]);
 
   const {
     register: formRegister,

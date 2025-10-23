@@ -9,7 +9,7 @@ const cache = {};
 export default function ChatBox({
   newChat,
   selectedThreadId = null,
-  addThread = () => {},
+  addThread = () => { },
   threads = [],
   user = null,
   generateTitleFromQuestion = (question) => question || "New Chat",
@@ -28,27 +28,27 @@ export default function ChatBox({
         fetchCitations: cache[question].fetchCitations,
       };
     }
-    
+
     const url = apiRoute("query");
     console.log("🔍 Frontend calling URL:", url);
     console.log("🔍 Environment variable:", process.env.REACT_APP_BASE_API_SERVER);
-    
+
     const headers = {
       "Content-Type": "application/json",
     };
-    
+
     // Add Authorization header if user is logged in
     if (user && user.token) {
       headers["Authorization"] = `Bearer ${user.token}`;
     }
-    
+
     const requestBody = { query: question };
-    
+
     // Add user email to request body if available
     if (user && user.email) {
       requestBody.user_email = user.email;
     }
-    
+
     const response = await fetch(url, {
       method: "POST",
       headers: headers,
@@ -72,24 +72,39 @@ export default function ChatBox({
     if (cache[question]?.citations) {
       return cache[question].citations;
     }
-    const response = await fetch(apiRoute("search"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: question }),
-    });
-    const data_citations = await response.json();
-    cache[question] = { ...cache[question], citations: data_citations };
-    return data_citations; // Ensure this matches your actual API response structure
+
+    try {
+      console.log("🔍 Making request to:", apiRoute("search"));
+      const response = await fetch(apiRoute("search"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: question }),
+      });
+
+      console.log("🔍 Response status:", response.status);
+      console.log("🔍 Response ok:", response.ok);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data_citations = await response.json();
+      console.log("🔍 Response data:", data_citations);
+
+      cache[question] = { ...cache[question], citations: data_citations };
+      return data_citations;
+    } catch (error) {
+      console.error("❌ Fetch error:", error);
+      return []; // Return empty array instead of letting it fail
+    }
   };
 
   // Save message to backend if user is logged in
   const saveMessageToBackend = async (question, reply) => {
-    // TEMPORARILY DISABLED - Auth0 token not compatible with backend
-    console.log('Backend save disabled - Auth0 integration needed');
-    return;
-    
+    if (!user || !user.token || !user.email || !selectedThreadId) return;
+
     if (!user || !user.token || !user.email || !selectedThreadId) return;
 
     try {
@@ -119,6 +134,8 @@ export default function ChatBox({
     if (val.length > 0) {
       setAskQuestion("");
       inputRef.current.value = "";
+      console.log(setAskQuestion)
+      console.log("hi guys shreyas here")
 
       const newIndex = messages.length;
       const updatedMessages = [...messages, { question: val, reply: null }];
@@ -133,12 +150,12 @@ export default function ChatBox({
         const finalMessages = updatedMessages.map((q, index) =>
           index === newIndex
             ? {
-                ...q,
-                reply: {
-                  primaryResponse: "", // Empty since we don't want to display /query response
-                  citations,
-                },
-              }
+              ...q,
+              reply: {
+                primaryResponse: "", // Empty since we don't want to display /query response
+                citations,
+              },
+            }
             : q,
         );
         console.log('Setting messages with final messages:', finalMessages.length);
@@ -158,18 +175,18 @@ export default function ChatBox({
         const existingThread = threads.find(
           (thread) => thread.id === selectedThreadId,
         );
-        
+
         // Only update title if this is the first message or if thread has no title
-        const shouldUpdateTitle = !existingThread || 
-          !existingThread.title || 
-          existingThread.title === "New Chat" || 
+        const shouldUpdateTitle = !existingThread ||
+          !existingThread.title ||
+          existingThread.title === "New Chat" ||
           existingThread.title === "";
-        
+
         // Generate title asynchronously if needed
-        const threadTitle = shouldUpdateTitle 
-          ? await generateTitleFromQuestion(val) 
+        const threadTitle = shouldUpdateTitle
+          ? await generateTitleFromQuestion(val)
           : (existingThread ? existingThread.title : "New Chat");
-        
+
         const newThread = {
           id: selectedThreadId || new Date().toISOString(),
           title: threadTitle,
@@ -213,7 +230,7 @@ export default function ChatBox({
         const selectedThread = threads.find(
           (thread) => thread.id === selectedThreadId,
         );
-        
+
         if (selectedThread && selectedThread.messages && selectedThread.messages.length > 0) {
           // Use local messages if available
           setMessages(selectedThread.messages);
@@ -236,9 +253,9 @@ export default function ChatBox({
         setMessages([]);
       }
     };
-    
+
     loadMessages();
-  }, [selectedThreadId, threads, user, loadThreadMessages]);
+  }, [selectedThreadId, threads, user]);
 
   const handleSampleQuestionClick = async (question) => {
     await handleSend(question);
@@ -260,7 +277,7 @@ export default function ChatBox({
     try {
       // Clear the cache for this question to force a fresh response
       delete cache[question];
-      
+
       // Only fetch citations from /search endpoint
       const citations = await fetchCitations(question);
 
@@ -268,12 +285,12 @@ export default function ChatBox({
       const finalMessages = updatedMessages.map((q, index) =>
         index === newIndex
           ? {
-              ...q,
-              reply: {
-                primaryResponse: "", // Empty since we don't want to display /query response
-                citations,
-              },
-            }
+            ...q,
+            reply: {
+              primaryResponse: "", // Empty since we don't want to display /query response
+              citations,
+            },
+          }
           : q
       );
       setMessages(finalMessages);
