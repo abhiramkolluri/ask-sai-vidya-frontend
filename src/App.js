@@ -21,14 +21,10 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <div className="App">
-      {/* <Chatpage /> */}
-
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
             <Routes>
-              {/* <Route path="/" element={<Chatpage />} /> */}
-
               {/* auth routes: should redirect to the home if user already authenticated */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/welcome" element={<Welcome />} />
@@ -39,19 +35,14 @@ function App() {
               </Route>
 
               {/* should be protected */}
-              {/* <Route element={<PrivateRoute />}> */}
-              {/* <Route path="/home" element={<Chatpage />} /> */}
-              <Route index route="/home" element={<Chatpage />} />
+              <Route index element={<Chatpage />} />
+              <Route path="/home" element={<Chatpage />} />
               <Route path="/users" element={<UserList />} />
-              {/* </Route> */}
               <Route path="/blog/:slugId" element={<Blog />} />
               <Route path="*" element={<ErrorPage />} />
             </Routes>
           </AuthProvider>
         </ThemeProvider>
-
-        {/* for debugging react-query */}
-        {/* <ReactQueryDevtools initialIsOpen={false} /> */}
       </QueryClientProvider>
     </div>
   );

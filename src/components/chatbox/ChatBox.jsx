@@ -102,9 +102,10 @@ export default function ChatBox({
   };
 
   // Save message to backend if user is logged in
+  // NOTE: This function is currently not used because messages are saved
+  // via the addThread() function which calls saveChatThread() in the parent component.
+  // Keeping this function for potential future use.
   const saveMessageToBackend = async (question, reply) => {
-    if (!user || !user.token || !user.email || !selectedThreadId) return;
-
     if (!user || !user.token || !user.email || !selectedThreadId) return;
 
     try {
@@ -161,17 +162,9 @@ export default function ChatBox({
         console.log('Setting messages with final messages:', finalMessages.length);
         setMessages(finalMessages);
 
-        // Save message to backend if user is logged in (don't await to avoid blocking UI)
-        try {
-          saveMessageToBackend(val, {
-            primaryResponse: "", // Empty since we don't want to display /query response
-            citations,
-          });
-        } catch (error) {
-          console.error("Backend save failed, but continuing with UI:", error);
-        }
-
         // Update the current thread with new messages
+        // Note: We don't call saveMessageToBackend here because addThread will
+        // save the entire thread (including this new message) to the backend via PUT
         const existingThread = threads.find(
           (thread) => thread.id === selectedThreadId,
         );
