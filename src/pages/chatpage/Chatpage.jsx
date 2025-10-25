@@ -15,6 +15,10 @@ const Chatpage = () => {
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
 
+  // Saved discourses state
+  const [savedDiscourses, setSavedDiscourses] = useState([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
+
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible);
   };
@@ -48,6 +52,103 @@ const Chatpage = () => {
       console.error("Error loading chats:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Load user's saved discourses from backend
+  const loadSavedDiscourses = async () => {
+    if (!user || !user.token) return;
+
+    try {
+      setLoadingSaved(true);
+      const response = await fetch(apiRoute(`saved-discourses/${user.email}`), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${user.token}`
+        }
+      });
+
+      if (response.ok) {
+        const savedDiscoursesData = await response.json();
+        setSavedDiscourses(savedDiscoursesData);
+      } else {
+        console.error("Failed to load saved discourses:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error loading saved discourses:", error);
+    } finally {
+      setLoadingSaved(false);
+    }
+  };
+
+  // Save a discourse
+  const handleSaveDiscourse = async (discourseData, questionContext) => {
+    if (!user || !user.token) {
+      alert('Please log in to save discourses');
+      return;
+    }
+
+    try {
+      const response = await fetch(apiRoute(`saved-discourses/${user.email}`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${user.token}`
+        },
+        body: JSON.stringify({
+          discourse: discourseData,
+          question_context: questionContext,
+          tags: [],
+          notes: ""
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.already_exists) {
+          // Already saved, just reload the list
+          await loadSavedDiscourses();
+        } else {
+          // Successfully saved, reload the list
+          await loadSavedDiscourses();
+        }
+      } else {
+        console.error("Failed to save discourse:", response.statusText);
+        alert('Failed to save discourse. Please try again.');
+      }
+    } catch (error) {
+      console.error("Error saving discourse:", error);
+      alert('Error saving discourse. Please try again.');
+    }
+  };
+
+  // Unsave a discourse
+  const handleUnsaveDiscourse = async (discourseId) => {
+    if (!user || !user.token) return;
+
+    try {
+      const response = await fetch(apiRoute(`saved-discourses/${discourseId}`), {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${user.token}`
+        },
+        body: JSON.stringify({
+          user_email: user.email
+        })
+      });
+
+      if (response.ok) {
+        // Successfully deleted, reload the list
+        await loadSavedDiscourses();
+      } else {
+        console.error("Failed to delete saved discourse:", response.statusText);
+        alert('Failed to remove discourse. Please try again.');
+      }
+    } catch (error) {
+      console.error("Error deleting saved discourse:", error);
+      alert('Error removing discourse. Please try again.');
     }
   };
 
@@ -288,20 +389,22 @@ const Chatpage = () => {
     };
   }, [selectedThreadId]);
 
-  // Load user chats and create a new chat when user logs in
+  // Load user chats and saved discourses when user logs in
   useEffect(() => {
     if (user && user.token) {
       const initializeChats = async () => {
-        // Load existing chats
+        // Load existing chats and saved discourses
         await loadUserChats();
+        await loadSavedDiscourses();
         // Don't automatically create a new chat - user's existing chats will be loaded
         // User can manually create a new chat if needed using the "New Chat" button
       };
       initializeChats();
     } else {
-      // Clear threads when user logs out
+      // Clear threads and saved discourses when user logs out
       setThreads([]);
       setSelectedThreadId(null);
+      setSavedDiscourses([]);
     }
   }, [user]);
 
@@ -329,9 +432,9 @@ const Chatpage = () => {
   }, [threads.length, user]);
 
   return (
-    <div className="w-full h-[100vh] flex overflow-hidden">
+    <div className="w-full h-[100vh] flex overflow-hidden bg-white dark:bg-gray-900">
       {/* Sidebar */}
-      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px]' : 'w-0'
+      <div className={`bg-white dark:bg-gray-800 shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px]' : 'w-0'
         } hidden md:flex`}>
         <SideNav
           startNewChatCallback={handleNewChat}
@@ -339,6 +442,9 @@ const Chatpage = () => {
           onDeleteChat={handleDeleteChat}
           threads={threads}
           loading={loading}
+          savedDiscourses={savedDiscourses}
+          loadingSaved={loadingSaved}
+          onDeleteSavedDiscourse={handleUnsaveDiscourse}
         />
       </div>
 
@@ -348,10 +454,10 @@ const Chatpage = () => {
         {/* Hamburger Button */}
         <button
           onClick={toggleSidebar}
-          className="absolute top-4 left-4 z-40 p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+          className="absolute top-4 left-4 z-40 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
           <svg
-            className="w-6 h-6 text-gray-600"
+            className="w-6 h-6 text-gray-600 dark:text-gray-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -378,6 +484,9 @@ const Chatpage = () => {
           threads={threads}
           user={user}
           generateTitleFromQuestion={generateAITitleFromQuestion}
+          savedDiscourses={savedDiscourses}
+          onSaveDiscourse={handleSaveDiscourse}
+          onUnsaveDiscourse={handleUnsaveDiscourse}
         />
       </div>
     </div>

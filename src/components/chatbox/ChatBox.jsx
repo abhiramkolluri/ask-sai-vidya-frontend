@@ -14,6 +14,9 @@ export default function ChatBox({
   user = null,
   generateTitleFromQuestion = (question) => question || "New Chat",
   loadThreadMessages = async () => [],
+  savedDiscourses = [],
+  onSaveDiscourse = async () => { },
+  onUnsaveDiscourse = async () => { },
 }) {
   const [messages, setMessages] = useState([]);
   const [askQuestion, setAskQuestion] = useState("");
@@ -314,7 +317,7 @@ export default function ChatBox({
   const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
   return (
-    <div className="w-full flex flex-col h-[100vh] mt-16">
+    <div className="w-full flex flex-col h-[100vh] mt-16 bg-white dark:bg-gray-900">
       <div className="flex-1 flex flex-col relative min-h-0">
         {messages.length > 0 ? (
           <div
@@ -329,14 +332,18 @@ export default function ChatBox({
                 onLinkClick={handleLinkClick}
                 onReloadClick={handleReloadClick}
                 onCopyClick={handleCopyClick}
+                onSaveDiscourse={onSaveDiscourse}
+                onUnsaveDiscourse={onUnsaveDiscourse}
+                savedDiscourses={savedDiscourses}
+                user={user}
               />
             ))}
           </div>
         ) : (
           <div className="flex-grow overflow-y-scroll flex justify-center items-center">
             <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4 px-4">
-              <p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
-                Ask a question to&nbsp;<b>Sai Vidya</b> and get discourses that you can explore.
+              <p className="p-2 text-gray-500 dark:text-gray-400 font-light text-justify min-w-[350px] text-xl">
+                Ask a question to&nbsp;<b className="dark:text-gray-200">Sai Vidya</b> and get discourses that you can explore.
               </p>
               <div>
                 <SampleQuestions onQuestionClick={handleSampleQuestionClick} />
@@ -345,18 +352,18 @@ export default function ChatBox({
           </div>
         )}
 
-        <div className="sticky bottom-0 mx-4 md:mx-auto w-full max-w-4xl mx-auto bg-white p-4">
-          <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[70px] p-4 bg-white">
+        <div className="sticky bottom-0 mx-4 md:mx-auto w-full max-w-4xl mx-auto bg-white dark:bg-gray-900 p-4">
+          <div className="flex justify-center items-center border border-[#C2C2C2] dark:border-gray-700 gap-2 rounded h-[70px] p-4 bg-white dark:bg-gray-800">
             <textarea
               ref={inputRef}
-              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px]"
+              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px] bg-transparent dark:text-gray-200 dark:placeholder-gray-400"
               id="textBox"
               cols="10"
               rows="2"
               placeholder="Ask a question"
               onKeyDown={handleKeyPress}
             />
-            <div className="text-gray-300 p-2">
+            <div className="text-gray-300 dark:text-gray-600 p-2">
               <SendIcon
                 className="cursor-pointer hover:shadow-lg"
                 onClick={() => handleSend()}

@@ -14,7 +14,8 @@ import Blog from "./pages/blog/Blog";
 import ErrorPage from "./components/error/ErrorPage";
 import UserList from "./components/UserList/UserList";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { ThemeProvider } from "@material-tailwind/react";
+import { ThemeProvider as MTThemeProvider } from "@material-tailwind/react";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 const queryClient = new QueryClient();
 
@@ -22,27 +23,29 @@ function App() {
   return (
     <div className="App">
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <AuthProvider>
-            <Routes>
-              {/* auth routes: should redirect to the home if user already authenticated */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/welcome" element={<Welcome />} />
-                <Route path="/signin" element={<Signin showLogin={true} />} />
-                <Route path="/signup" element={<Signin showLogin={false} />} />
-                <Route path="/password/reset" element={<Reset />} />
-                <Route path="/password/newpassword" element={<NewPassword />} />
-              </Route>
+        <MTThemeProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <Routes>
+                {/* auth routes: should redirect to the home if user already authenticated */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/welcome" element={<Welcome />} />
+                  <Route path="/signin" element={<Signin showLogin={true} />} />
+                  <Route path="/signup" element={<Signin showLogin={false} />} />
+                  <Route path="/password/reset" element={<Reset />} />
+                  <Route path="/password/newpassword" element={<NewPassword />} />
+                </Route>
 
-              {/* should be protected */}
-              <Route index element={<Chatpage />} />
-              <Route path="/home" element={<Chatpage />} />
-              <Route path="/users" element={<UserList />} />
-              <Route path="/blog/:slugId" element={<Blog />} />
-              <Route path="*" element={<ErrorPage />} />
-            </Routes>
-          </AuthProvider>
-        </ThemeProvider>
+                {/* should be protected */}
+                <Route index element={<Chatpage />} />
+                <Route path="/home" element={<Chatpage />} />
+                <Route path="/users" element={<UserList />} />
+                <Route path="/blog/:slugId" element={<Blog />} />
+                <Route path="*" element={<ErrorPage />} />
+              </Routes>
+            </AuthProvider>
+          </ThemeProvider>
+        </MTThemeProvider>
       </QueryClientProvider>
     </div>
   );

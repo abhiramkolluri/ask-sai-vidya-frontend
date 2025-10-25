@@ -65,7 +65,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
 
   if (!forgetPassword) {
     return (
-      <div className="w-[400px]  bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
+      <div className="w-[400px]  bg-white dark:bg-gray-800 rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600 dark:text-gray-300">
         {inModal ? (
           <div>
             <img src={Chat} height={"140px"} width={"400px"} alt="" />
@@ -115,7 +115,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
                 />
                 <FieldError errorField={errors.password} />
 
-                <div className="text-primary font-bold">
+                <div className="text-primary dark:text-orange-400 font-bold">
                   {!inModal ? (
                     <>
                       <Link to="/password/reset">
@@ -138,7 +138,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
                   )}
                 </div>
                 <Button
-                  className="bg-primary"
+                  className="bg-primary dark:bg-orange-600"
                   type="submit"
                   loading={loggingIn}
                   disabled={loggingIn || authSuccess}>
@@ -152,7 +152,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
               {!inModal ? (
                 <>
                   <Link to="/signup">
-                    <span className=" text-primary cursor-pointer">
+                    <span className=" text-primary dark:text-orange-400 cursor-pointer">
                       Sign Up
                     </span>
                   </Link>
@@ -160,7 +160,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
               ) : (
                 <>
                   <span
-                    className=" text-primary cursor-pointer"
+                    className=" text-primary dark:text-orange-400 cursor-pointer"
                     onClick={callback}>
                     Sign Up
                   </span>
@@ -168,14 +168,14 @@ export default function Login({ callback = () => { }, inModal = true }) {
               )}{" "}
             </h1>
 
-            <div className="border-t mt-2 border-gray-300 flex justify-center items-center">
-              <div className="bg-white relative -top-[20px] p-2 text-gray-300">
+            <div className="border-t mt-2 border-gray-300 dark:border-gray-700 flex justify-center items-center">
+              <div className="bg-white dark:bg-gray-800 relative -top-[20px] p-2 text-gray-300 dark:text-gray-500">
                 or
               </div>
             </div>
 
             <button
-              className="-mt-4 w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded hover:bg-gray-50"
+              className="-mt-4 w-full h-[40px] border border-gray-300 dark:border-gray-700 flex justify-between px-2 items-center rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
               onClick={handleGoogleLogin}
               type="button"
             >
@@ -185,7 +185,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
               </span>
             </button>
 
-            <button className="w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded opacity-50 cursor-not-allowed" disabled>
+            <button className="w-full h-[40px] border border-gray-300 dark:border-gray-700 flex justify-between px-2 items-center rounded opacity-50 cursor-not-allowed dark:text-gray-500" disabled>
               Continue with Apple
               <span>
                 <FaApple size={18} />
@@ -197,7 +197,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
     );
   } else {
     return (
-      <div className="w-[400px]  bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
+      <div className="w-[400px]  bg-white dark:bg-gray-800 rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600 dark:text-gray-300">
         {inModal ? (
           <>
             <div>
@@ -219,7 +219,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
                 <MaterialInput text="Email address" />
               </div>
 
-              <button className="w-full h-[40px] font-bold text-white bg-orange-400 shadow flex justify-center items-center rounded">
+              <button className="w-full h-[40px] font-bold text-white bg-orange-400 dark:bg-orange-600 shadow flex justify-center items-center rounded hover:bg-orange-500 dark:hover:bg-orange-700 transition-colors">
                 Send link
               </button>
             </div>
@@ -227,7 +227,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
             <h1 className="text-center font-thin">
               Remember your password?{" "}
               <span
-                className=" text-orange-400 cursor-pointer"
+                className=" text-orange-400 dark:text-orange-500 cursor-pointer"
                 onClick={() => setforgetPassword(false)}>
                 Sign In
               </span>{" "}
