@@ -76,16 +76,16 @@ export default function Signin({ showLogin = false }) {
             <div className="w-full flex ">
               <div
                 className={` w-full transition-all ease-in flex justify-center items-center py-4 text-lg font-bold ${isLoginPage
-                    ? "border-b border-primary dark:border-orange-400"
-                    : " border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500"
+                  ? "border-b border-primary dark:border-orange-400"
+                  : " border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500"
                   }`}
                 onClick={() => navigate("/signin", { replace: true })}>
                 <Link to="/signin">Sign in</Link>
               </div>
               <div
                 className={`w-full transition-all ease-in flex justify-center items-center text-lg font-bold ${!isLoginPage
-                    ? "border-b border-primary dark:border-orange-400"
-                    : " border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500"
+                  ? "border-b border-primary dark:border-orange-400"
+                  : " border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500"
                   }`}
                 onClick={() => navigate("/signup", { replace: true })}>
                 <Link to="/signup" className="py-4">

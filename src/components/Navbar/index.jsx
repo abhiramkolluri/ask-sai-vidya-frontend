@@ -46,49 +46,49 @@ export default function Navbar({ variant }) {
         </button>
 
         {isAuthenticated && user ? (
-        <div
-          className="flex justify-center items-center gap-2 text-primary dark:text-orange-400 cursor-pointer "
-          onClick={() => setShowDropdown((x) => !x)}>
-          {isAuth0User && user?.auth0User?.picture ? (
-            <img
-              src={user.auth0User.picture}
-              alt="Profile"
-              className="w-6 h-6 rounded-full"
-            />
-          ) : (
-            <FaRegUser size={18} />
-          )}
-          <span className="font-bold">{getDisplayName()}</span>
-          <span
-            className="px-4 cursor-pointer"
-          // onClick={() => setShowDropdown((x) => !x)}
-          >
-            <BsChevronDown size={18} />
-            {showDropdown ? (
-              <>
-                <div
-                  class="absolute max-w-xs mx-auto  rounded bg-white dark:bg-gray-800 z-50 right-12 w-[200px] mt-4"
-                  style={{
-                    boxShadow: "0px 0px 16px 0px #0000001A",
-                  }}>
-                  <div className="flex w-full  relative justify-end ">
-                    <div class=" relative right-4 -top-2 w-0 h-0 border-l-transparent border-r-transparent  border-white dark:border-gray-800 border-l-8 border-r-8 border-b-8"></div>
-                  </div>
-
-                  <div class="relative  px-3 py-3">
-                    <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
-                      <div className="font-semibold text-gray-800 dark:text-gray-200">{getDisplayName()}</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">{user.email}</div>
-                    </div>
-                    <LogoutButton />
-                  </div>
-                </div>
-              </>
+          <div
+            className="flex justify-center items-center gap-2 text-primary dark:text-orange-400 cursor-pointer "
+            onClick={() => setShowDropdown((x) => !x)}>
+            {isAuth0User && user?.auth0User?.picture ? (
+              <img
+                src={user.auth0User.picture}
+                alt="Profile"
+                className="w-6 h-6 rounded-full"
+              />
             ) : (
-              <></>
+              <FaRegUser size={18} />
             )}
-          </span>
-        </div>
+            <span className="font-bold">{getDisplayName()}</span>
+            <span
+              className="px-4 cursor-pointer"
+            // onClick={() => setShowDropdown((x) => !x)}
+            >
+              <BsChevronDown size={18} />
+              {showDropdown ? (
+                <>
+                  <div
+                    class="absolute max-w-xs mx-auto  rounded bg-white dark:bg-gray-800 z-50 right-12 w-[200px] mt-4"
+                    style={{
+                      boxShadow: "0px 0px 16px 0px #0000001A",
+                    }}>
+                    <div className="flex w-full  relative justify-end ">
+                      <div class=" relative right-4 -top-2 w-0 h-0 border-l-transparent border-r-transparent  border-white dark:border-gray-800 border-l-8 border-r-8 border-b-8"></div>
+                    </div>
+
+                    <div class="relative  px-3 py-3">
+                      <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                        <div className="font-semibold text-gray-800 dark:text-gray-200">{getDisplayName()}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">{user.email}</div>
+                      </div>
+                      <LogoutButton />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <></>
+              )}
+            </span>
+          </div>
         ) : (
           <LoginButton />
         )}
