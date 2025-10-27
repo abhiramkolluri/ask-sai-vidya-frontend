@@ -86,7 +86,7 @@ export default function Signup({ callback = () => { }, inModal = true }) {
   };
 
   return (
-    <div className="w-[400px] bg-white dark:bg-gray-800 rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600 dark:text-gray-300">
+    <div className="w-[400px] bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
       {inModal ? (
         <div>
           <img src={Chat} height={"140px"} width={"400px"} alt="" />
@@ -95,7 +95,7 @@ export default function Signup({ callback = () => { }, inModal = true }) {
         <></>
       )}
 
-      <div className="bg-white dark:bg-gray-800 z-10 py-8 px-4">
+      <div className="bg-white z-10 py-8 px-4">
         <div className=" flex flex-col gap-4">
           <form
             className="flex flex-col gap-4 "
@@ -163,7 +163,7 @@ export default function Signup({ callback = () => { }, inModal = true }) {
             />
             <FieldError errorField={errors.confirmPassword} />
             <Button
-              className="bg-primary dark:bg-orange-600"
+              className="bg-primary"
               type="submit"
               loading={registering}
               disabled={registering || authSuccess}>
@@ -176,13 +176,13 @@ export default function Signup({ callback = () => { }, inModal = true }) {
             {!inModal ? (
               <>
                 <Link to="/signin">
-                  <span className=" text-primary dark:text-orange-400 cursor-pointer">Sign In</span>
+                  <span className=" text-primary cursor-pointer">Sign In</span>
                 </Link>
               </>
             ) : (
               <>
                 <span
-                  className=" text-primary dark:text-orange-400 cursor-pointer"
+                  className=" text-primary cursor-pointer"
                   onClick={callback}>
                   Sign In
                 </span>
@@ -190,14 +190,14 @@ export default function Signup({ callback = () => { }, inModal = true }) {
             )}{" "}
           </h1>
 
-          <div className="border-t mt-2 border-gray-300 dark:border-gray-700 flex justify-center items-center">
-            <div className="bg-white dark:bg-gray-800 relative -top-[20px] p-2 text-gray-300 dark:text-gray-500">
+          <div className="border-t mt-2 border-gray-300 flex justify-center items-center">
+            <div className="bg-white relative -top-[20px] p-2 text-gray-300">
               or
             </div>
           </div>
 
           <button
-            className="-mt-4 w-full h-[40px] border border-gray-300 dark:border-gray-700 flex justify-between px-2 items-center rounded hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
+            className="-mt-4 w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded hover:bg-gray-50"
             onClick={handleGoogleSignup}
             type="button"
           >
@@ -207,7 +207,7 @@ export default function Signup({ callback = () => { }, inModal = true }) {
             </span>
           </button>
 
-          <button className="w-full h-[40px] border border-gray-300 dark:border-gray-700 flex justify-between px-2 items-center rounded opacity-50 cursor-not-allowed dark:text-gray-500" disabled>
+          <button className="w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded opacity-50 cursor-not-allowed" disabled>
             Continue with Apple
             <span>
               <FaApple size={18} />

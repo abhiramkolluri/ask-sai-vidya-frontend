@@ -52,40 +52,40 @@ export default function Signin({ showLogin = false }) {
   // }, [showLogin]);
 
   return (
-    <div className=" bg-[#fffbf8] dark:bg-gray-900  lg:w-full md:w-auto h-[100vh] text-gray-800 dark:text-gray-200">
+    <div className=" bg-[#fffbf8] lg:w-full md:w-auto h-[100vh] text-gray-800">
       <div
-        className="absolute top-0 left-0 h-full w-full bg-no-repeat opacity-100 dark:opacity-20"
+        className="absolute top-0 left-0 h-full w-full bg-no-repeat opacity-100"
         style={{ backgroundImage: `url("${leaves}")` }}>
         {/* <img src={leaves} alt="" /> */}
       </div>
       <div className=" flex  h-full ">
         <div className="hidden md:flex flex-col items-center justify-center  flex-grow">
           <div className="lg:w-[600px] p-4">
-            <h1 className=" text-3xl font-bold text-primary dark:text-orange-400">
+            <h1 className=" text-3xl font-bold text-primary">
               Welcome to Ask Sai Vidya!
             </h1>
-            <p className=" leading-relaxed mt-4 tracking-wide dark:text-gray-300">
+            <p className=" leading-relaxed mt-4 tracking-wide">
               Embark on a spiritual journey with Sathya Sai Baba to find deeper
               understanding. Seek answers to your questions and engage directly
               for inner peace.
             </p>
           </div>
         </div>
-        <div className="sm:w-[100%] lg:w-[600px] h-full bg-white dark:bg-gray-800 flex justify-center py-20 px-10 z-10">
+        <div className="sm:w-[100%] lg:w-[600px] h-full bg-white flex justify-center py-20 px-10 z-10">
           <div>
             <div className="w-full flex ">
               <div
                 className={` w-full transition-all ease-in flex justify-center items-center py-4 text-lg font-bold ${isLoginPage
-                  ? "border-b border-primary dark:border-orange-400"
-                  : " border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500"
+                  ? "border-b border-primary"
+                  : " border-b border-gray-200 text-gray-400"
                   }`}
                 onClick={() => navigate("/signin", { replace: true })}>
                 <Link to="/signin">Sign in</Link>
               </div>
               <div
                 className={`w-full transition-all ease-in flex justify-center items-center text-lg font-bold ${!isLoginPage
-                  ? "border-b border-primary dark:border-orange-400"
-                  : " border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500"
+                  ? "border-b border-primary"
+                  : " border-b border-gray-200 text-gray-400"
                   }`}
                 onClick={() => navigate("/signup", { replace: true })}>
                 <Link to="/signup" className="py-4">

@@ -432,9 +432,9 @@ const Chatpage = () => {
   }, [threads.length, user]);
 
   return (
-    <div className="w-full h-[100vh] flex overflow-hidden bg-white dark:bg-gray-900">
+    <div className="w-full h-[100vh] flex overflow-hidden bg-white">
       {/* Sidebar */}
-      <div className={`bg-white dark:bg-gray-800 shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px]' : 'w-0'
+      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px]' : 'w-0'
         } hidden md:flex`}>
         <SideNav
           startNewChatCallback={handleNewChat}
@@ -454,10 +454,10 @@ const Chatpage = () => {
         {/* Hamburger Button */}
         <button
           onClick={toggleSidebar}
-          className="absolute top-4 left-4 z-40 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="absolute top-4 left-4 z-40 p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
         >
           <svg
-            className="w-6 h-6 text-gray-600 dark:text-gray-300"
+            className="w-6 h-6 text-gray-600"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

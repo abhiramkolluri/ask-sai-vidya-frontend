@@ -166,10 +166,10 @@ export default function Reply({
 
   if (loading) {
     return (
-      <div className="w-full text-gray-500 dark:text-gray-400 text-sm">
+      <div className="w-full text-gray-500 text-sm">
         <div className="flex justify-end">
-          <div className="bg-[#f5f5f5] dark:bg-gray-700 px-6 py-4 md:w-3/4 rounded">
-            <span className="text-[#252525] dark:text-gray-200 text-lg">{question}</span>
+          <div className="bg-[#f5f5f5] px-6 py-4 md:w-3/4 rounded">
+            <span className="text-[#252525] text-lg">{question}</span>
           </div>
         </div>
         <div className="flex animate-spin items-center justify-center w-24 h-24 mx-auto mt-12 text-orange-400">
@@ -182,8 +182,8 @@ export default function Reply({
   if (!reply) {
     return (
       <div className="flex justify-end">
-        <div className="bg-[#f5f5f5] dark:bg-gray-700 px-6 py-4 md:w-3/4 rounded">
-          <span className="text-[#252525] dark:text-gray-200 text-lg">{question}</span>
+        <div className="bg-[#f5f5f5] px-6 py-4 md:w-3/4 rounded">
+          <span className="text-[#252525] text-lg">{question}</span>
         </div>
       </div>
     );
@@ -194,22 +194,22 @@ export default function Reply({
   return (
     <div className="w-full mx-2">
       <div className="flex justify-end">
-        <div className="bg-[#f5f5f5] dark:bg-gray-700 px-6 py-4 md:w-3/4 rounded">
-          <span className="text-[#252525] dark:text-gray-200 text-lg">{question}</span>
+        <div className="bg-[#f5f5f5] px-6 py-4 md:w-3/4 rounded">
+          <span className="text-[#252525] text-lg">{question}</span>
         </div>
       </div>
 
       <div className="md:p-1 mx-2">
-        <div className="border-l border-primary dark:border-orange-600 p-2 px-4 flex flex-col">
+        <div className="border-l border-primary p-2 px-4 flex flex-col">
           <div className="px-2 py-1 flex items-end mb-2">
             <div className="">
-              <p className="text-lg font-normal text-[#252525] dark:text-gray-200">
+              <p className="text-lg font-normal text-[#252525]">
                 Here are some discourses where you can start learning about the topic:
               </p>
             </div>
           </div>
 
-          <div className="m-2 flex flex-col bg-[#FEF4EB] dark:bg-gray-800 rounded ">
+          <div className="m-2 flex flex-col bg-[#FEF4EB] rounded ">
             <div className="mx-1 flex">
               <div className="p-6">
                 {citations.length > 0 ? (
@@ -218,37 +218,37 @@ export default function Reply({
                     const isSaved = isDiscourseSaved(discourseTitle);
 
                     return (
-                      <div key={index} className="text-[#252525] dark:text-gray-200 mb-6 relative">
+                      <div key={index} className="text-[#252525] mb-6 relative">
                         {/* Bookmark button */}
                         {user && user.token && (
                           <button
                             onClick={() => handleBookmarkClick(item)}
-                            className="absolute top-0 right-0 text-primary dark:text-orange-400 hover:scale-110 transition-transform"
+                            className="absolute top-0 right-0 text-primary hover:scale-110 transition-transform"
                             title={isSaved ? "Remove from saved" : "Save discourse"}
                           >
                             {isSaved ? (
-                              <BsBookmarkFill size={20} className="text-primary dark:text-orange-400" />
+                              <BsBookmarkFill size={20} className="text-primary" />
                             ) : (
-                              <BsBookmark size={20} className="text-primary dark:text-orange-400" />
+                              <BsBookmark size={20} className="text-primary" />
                             )}
                           </button>
                         )}
 
                         <p className="">
-                          <span className="text-primary dark:text-orange-400">
+                          <span className="text-primary">
                             [{index + 1}] {"\t\t"}
                           </span>
                           <span className="font-lg font-bold ">
                             {item.title} of "{item.collection}"
                           </span>
                         </p>
-                        <p className="italic dark:text-gray-300">{item.date}</p>
-                        <p className="p-2 ml-3 dark:text-gray-300">
+                        <p className="italic">{item.date}</p>
+                        <p className="p-2 ml-3">
                           {item.content.length > 200
                             ? item.content.slice(0, 200) + "..."
                             : item.content}{" "}
                           <br />
-                          <span className="text-primary dark:text-orange-400 underline">
+                          <span className="text-primary underline">
                             <Link
                               to={`/blog/${item._id}`}
                               state={{ citations }}
@@ -271,7 +271,7 @@ export default function Reply({
               <div className="flex-grow w-20"></div>
             </div>
           </div>
-          <div className="flex-shrink-0 py-2 px-2 flex gap-4 text-primary dark:text-orange-400">
+          <div className="flex-shrink-0 py-2 px-2 flex gap-4 text-primary">
             <IoCopyOutline
               size={20}
               className="cursor-pointer hover:opacity-70 transition-opacity"
