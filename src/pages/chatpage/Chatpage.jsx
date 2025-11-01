@@ -3,6 +3,7 @@ import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 import { apiRoute } from "../../helpers/apiRoute";
 // import Feedback from "../../components/feedback/Feedback";
 
@@ -15,12 +16,34 @@ const Chatpage = () => {
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
 
-  // Saved discourses state
-  const [savedDiscourses, setSavedDiscourses] = useState([]);
-  const [loadingSaved, setLoadingSaved] = useState(false);
+  // Use saved discourses from context
+  const {
+    savedDiscourses,
+    loadingSaved,
+    saveDiscourse,
+    unsaveDiscourse,
+    loadSavedDiscourses
+  } = useSavedDiscourses();
 
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible);
+  };
+
+  // Reload saved discourses when component mounts or comes into view
+  useEffect(() => {
+    if (user && user.token) {
+      loadSavedDiscourses();
+    }
+  }, [user, loadSavedDiscourses]);
+
+  // Save a discourse - now using context
+  const handleSaveDiscourse = async (discourseData, questionContext) => {
+    await saveDiscourse(discourseData, questionContext);
+  };
+
+  // Unsave a discourse - now using context  
+  const handleUnsaveDiscourse = async (discourseId) => {
+    await unsaveDiscourse(discourseId);
   };
 
   // Load user's chat threads from backend
@@ -55,102 +78,12 @@ const Chatpage = () => {
     }
   };
 
-  // Load user's saved discourses from backend
-  const loadSavedDiscourses = async () => {
-    if (!user || !user.token) return;
-
-    try {
-      setLoadingSaved(true);
-      const response = await fetch(apiRoute(`saved-discourses/${user.email}`), {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${user.token}`
-        }
-      });
-
-      if (response.ok) {
-        const savedDiscoursesData = await response.json();
-        setSavedDiscourses(savedDiscoursesData);
-      } else {
-        console.error("Failed to load saved discourses:", response.statusText);
-      }
-    } catch (error) {
-      console.error("Error loading saved discourses:", error);
-    } finally {
-      setLoadingSaved(false);
+  // Load user when component mounts
+  useEffect(() => {
+    if (user && user.token) {
+      loadUserChats();
     }
-  };
-
-  // Save a discourse
-  const handleSaveDiscourse = async (discourseData, questionContext) => {
-    if (!user || !user.token) {
-      alert('Please log in to save discourses');
-      return;
-    }
-
-    try {
-      const response = await fetch(apiRoute(`saved-discourses/${user.email}`), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${user.token}`
-        },
-        body: JSON.stringify({
-          discourse: discourseData,
-          question_context: questionContext,
-          tags: [],
-          notes: ""
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.already_exists) {
-          // Already saved, just reload the list
-          await loadSavedDiscourses();
-        } else {
-          // Successfully saved, reload the list
-          await loadSavedDiscourses();
-        }
-      } else {
-        console.error("Failed to save discourse:", response.statusText);
-        alert('Failed to save discourse. Please try again.');
-      }
-    } catch (error) {
-      console.error("Error saving discourse:", error);
-      alert('Error saving discourse. Please try again.');
-    }
-  };
-
-  // Unsave a discourse
-  const handleUnsaveDiscourse = async (discourseId) => {
-    if (!user || !user.token) return;
-
-    try {
-      const response = await fetch(apiRoute(`saved-discourses/${discourseId}`), {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${user.token}`
-        },
-        body: JSON.stringify({
-          user_email: user.email
-        })
-      });
-
-      if (response.ok) {
-        // Successfully deleted, reload the list
-        await loadSavedDiscourses();
-      } else {
-        console.error("Failed to delete saved discourse:", response.statusText);
-        alert('Failed to remove discourse. Please try again.');
-      }
-    } catch (error) {
-      console.error("Error deleting saved discourse:", error);
-      alert('Error removing discourse. Please try again.');
-    }
-  };
+  }, [user]);
 
   // Create a new chat thread in backend
   const createNewChatThread = async (title = "New Chat") => {
@@ -389,22 +322,18 @@ const Chatpage = () => {
     };
   }, [selectedThreadId]);
 
-  // Load user chats and saved discourses when user logs in
+  // Load user chats when user logs in
   useEffect(() => {
     if (user && user.token) {
       const initializeChats = async () => {
-        // Load existing chats and saved discourses
+        // Load existing chats (saved discourses are loaded by context)
         await loadUserChats();
-        await loadSavedDiscourses();
-        // Don't automatically create a new chat - user's existing chats will be loaded
-        // User can manually create a new chat if needed using the "New Chat" button
       };
       initializeChats();
     } else {
-      // Clear threads and saved discourses when user logs out
+      // Clear threads when user logs out (saved discourses are cleared by context)
       setThreads([]);
       setSelectedThreadId(null);
-      setSavedDiscourses([]);
     }
   }, [user]);
 

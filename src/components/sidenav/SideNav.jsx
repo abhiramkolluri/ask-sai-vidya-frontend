@@ -20,9 +20,10 @@ export default function SideNav({
 }) {
   const [sectionData, setSectionData] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [chatHistoryOpen, setChatHistoryOpen] = useState(true);
-  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(false);
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(false); // Changed to false (collapsed by default)
+  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(false); // Already false
   const [selectedDiscourse, setSelectedDiscourse] = useState(null);
+  const [discourseToDelete, setDiscourseToDelete] = useState(null); // For delete confirmation modal
 
   useEffect(() => {
     const groupedThreads = threads.reduce((acc, thread) => {
@@ -77,12 +78,21 @@ export default function SideNav({
   };
 
   const handleDeleteDiscourse = async (discourseId) => {
-    if (window.confirm('Are you sure you want to remove this from saved discourses?')) {
-      await onDeleteSavedDiscourse(discourseId);
-      if (selectedDiscourse && selectedDiscourse.id === discourseId) {
+    setDiscourseToDelete(discourseId);
+  };
+
+  const confirmDelete = async () => {
+    if (discourseToDelete) {
+      await onDeleteSavedDiscourse(discourseToDelete);
+      if (selectedDiscourse && selectedDiscourse.id === discourseToDelete) {
         setSelectedDiscourse(null);
       }
+      setDiscourseToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setDiscourseToDelete(null);
   };
 
   return (
@@ -175,8 +185,13 @@ export default function SideNav({
                           className="flex-1 min-w-0"
                           onClick={() => handleViewDiscourse(saved)}
                         >
-                          <p className="font-medium text-gray-800 text-sm truncate">
+                          <p className="font-medium text-gray-800 text-sm truncate flex items-center gap-2">
                             {saved.discourse.title}
+                            {saved.discourse.highlights && saved.discourse.highlights.length > 0 && (
+                              <span className="inline-flex items-center justify-center bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                                {saved.discourse.highlights.length} ✨
+                              </span>
+                            )}
                           </p>
                           <p className="text-xs text-gray-500 mt-1 truncate">
                             From: "{saved.question_context}"
@@ -236,29 +251,53 @@ export default function SideNav({
             </div>
 
             <div className="p-6">
-              <div className="mb-4 bg-orange-50 p-3 rounded">
-                <p className="text-sm text-gray-600">
-                  <strong>You discovered this while asking:</strong>
-                </p>
-                <p className="text-sm text-gray-800 italic mt-1">
-                  "{selectedDiscourse.question_context}"
-                </p>
-              </div>
+              {/* Show question context only if it's valid */}
+              {selectedDiscourse.question_context &&
+                selectedDiscourse.question_context.trim() !== "" &&
+                selectedDiscourse.question_context !== "No question provided" &&
+                selectedDiscourse.question_context !== "From blog page" &&
+                selectedDiscourse.question_context !== "Browsing discourses" && (
+                  <div className="mb-4 bg-orange-50 p-3 rounded">
+                    <p className="text-sm text-gray-600">
+                      <strong>You discovered this while asking:</strong>
+                    </p>
+                    <p className="text-sm text-gray-800 italic mt-1">
+                      "{selectedDiscourse.question_context}"
+                    </p>
+                  </div>
+                )}
 
-              <div className="prose max-w-none">
-                <p className="text-gray-700 whitespace-pre-wrap">
-                  {selectedDiscourse.discourse.content}
-                </p>
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-500">
-                  <strong>Source:</strong> {selectedDiscourse.discourse.source_citation}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Saved on {new Date(selectedDiscourse.saved_at).toLocaleString()}
-                </p>
-              </div>
+              {/* Show highlights if any */}
+              {selectedDiscourse.discourse.highlights && selectedDiscourse.discourse.highlights.length > 0 && (
+                <div className="mb-4 bg-yellow-50 p-4 rounded border border-yellow-200">
+                  <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                    <span className="text-yellow-600">✨</span>
+                    Your Highlights & Comments ({selectedDiscourse.discourse.highlights.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {selectedDiscourse.discourse.highlights.map((highlight, idx) => (
+                      <div key={highlight.id || idx} className="bg-white p-3 rounded border border-yellow-300">
+                        <div className="bg-yellow-200 px-2 py-1 rounded inline-block mb-2">
+                          <p className="text-sm text-gray-800">
+                            "{highlight.text}"
+                          </p>
+                        </div>
+                        {highlight.comment && (
+                          <div className="mt-2 pl-3 border-l-2 border-blue-400">
+                            <p className="text-xs text-gray-600 font-medium">Your comment:</p>
+                            <p className="text-sm text-blue-700 italic mt-1">
+                              💬 {highlight.comment}
+                            </p>
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-400 mt-2">
+                          {new Date(highlight.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* View Full Discourse Button */}
               {selectedDiscourse.discourse.source_url && (
@@ -290,6 +329,36 @@ export default function SideNav({
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {discourseToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 animate-fadeIn">
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-gray-900 mb-3">
+                Remove Saved Discourse?
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to remove this from saved discourses? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={cancelDelete}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-medium"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           </div>
         </div>
