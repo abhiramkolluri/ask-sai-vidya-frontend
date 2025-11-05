@@ -14,6 +14,9 @@ export default function ChatBox({
   user = null,
   generateTitleFromQuestion = (question) => question || "New Chat",
   loadThreadMessages = async () => [],
+  savedDiscourses = [],
+  onSaveDiscourse = async () => { },
+  onUnsaveDiscourse = async () => { },
 }) {
   const [messages, setMessages] = useState([]);
   const [askQuestion, setAskQuestion] = useState("");
@@ -102,9 +105,10 @@ export default function ChatBox({
   };
 
   // Save message to backend if user is logged in
+  // NOTE: This function is currently not used because messages are saved
+  // via the addThread() function which calls saveChatThread() in the parent component.
+  // Keeping this function for potential future use.
   const saveMessageToBackend = async (question, reply) => {
-    if (!user || !user.token || !user.email || !selectedThreadId) return;
-
     if (!user || !user.token || !user.email || !selectedThreadId) return;
 
     try {
@@ -161,17 +165,9 @@ export default function ChatBox({
         console.log('Setting messages with final messages:', finalMessages.length);
         setMessages(finalMessages);
 
-        // Save message to backend if user is logged in (don't await to avoid blocking UI)
-        try {
-          saveMessageToBackend(val, {
-            primaryResponse: "", // Empty since we don't want to display /query response
-            citations,
-          });
-        } catch (error) {
-          console.error("Backend save failed, but continuing with UI:", error);
-        }
-
         // Update the current thread with new messages
+        // Note: We don't call saveMessageToBackend here because addThread will
+        // save the entire thread (including this new message) to the backend via PUT
         const existingThread = threads.find(
           (thread) => thread.id === selectedThreadId,
         );
@@ -321,7 +317,7 @@ export default function ChatBox({
   const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
   return (
-    <div className="w-full flex flex-col h-[100vh] mt-16">
+    <div className="w-full flex flex-col h-[100vh] mt-16 bg-white">
       <div className="flex-1 flex flex-col relative min-h-0">
         {messages.length > 0 ? (
           <div
@@ -336,6 +332,10 @@ export default function ChatBox({
                 onLinkClick={handleLinkClick}
                 onReloadClick={handleReloadClick}
                 onCopyClick={handleCopyClick}
+                onSaveDiscourse={onSaveDiscourse}
+                onUnsaveDiscourse={onUnsaveDiscourse}
+                savedDiscourses={savedDiscourses}
+                user={user}
               />
             ))}
           </div>
@@ -356,7 +356,7 @@ export default function ChatBox({
           <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[70px] p-4 bg-white">
             <textarea
               ref={inputRef}
-              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px]"
+              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px] bg-transparent"
               id="textBox"
               cols="10"
               rows="2"

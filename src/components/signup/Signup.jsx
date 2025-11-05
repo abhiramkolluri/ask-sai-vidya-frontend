@@ -15,6 +15,8 @@ import {
 import Chat from "../../images/chat.jpg";
 import { useAuth } from "../../contexts/AuthContext";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
 export default function Signup({ callback = () => { }, inModal = true }) {
   const [inputTypes, setInputTypes] = useState({
     password: "password",
@@ -74,8 +76,13 @@ export default function Signup({ callback = () => { }, inModal = true }) {
     try {
       register(data);
     } catch (error) {
-      console.log(error);
+      // Handle error silently
     }
+  };
+
+  const handleGoogleSignup = () => {
+    // Redirect to backend Google OAuth endpoint (same as login)
+    window.location.href = `${API_BASE_URL}/auth/google/authorize`;
   };
 
   return (
@@ -188,13 +195,19 @@ export default function Signup({ callback = () => { }, inModal = true }) {
               or
             </div>
           </div>
-          <button className=" -mt-4 w-full h-[40px]  border border-gray-300  flex justify-between px-2 items-center rounded">
+
+          <button
+            className="-mt-4 w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded hover:bg-gray-50"
+            onClick={handleGoogleSignup}
+            type="button"
+          >
             Continue with Google
             <span>
               <FcGoogle size={18} />
             </span>
           </button>
-          <button className="w-full h-[40px]  border border-gray-300  flex justify-between px-2 items-center rounded">
+
+          <button className="w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded opacity-50 cursor-not-allowed" disabled>
             Continue with Apple
             <span>
               <FaApple size={18} />

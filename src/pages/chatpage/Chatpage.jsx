@@ -3,6 +3,7 @@ import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 import { apiRoute } from "../../helpers/apiRoute";
 // import Feedback from "../../components/feedback/Feedback";
 
@@ -15,14 +16,40 @@ const Chatpage = () => {
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
 
+  // Use saved discourses from context
+  const {
+    savedDiscourses,
+    loadingSaved,
+    saveDiscourse,
+    unsaveDiscourse,
+    loadSavedDiscourses
+  } = useSavedDiscourses();
+
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible);
+  };
+
+  // Reload saved discourses when component mounts or comes into view
+  useEffect(() => {
+    if (user && user.token) {
+      loadSavedDiscourses();
+    }
+  }, [user, loadSavedDiscourses]);
+
+  // Save a discourse - now using context
+  const handleSaveDiscourse = async (discourseData, questionContext) => {
+    await saveDiscourse(discourseData, questionContext);
+  };
+
+  // Unsave a discourse - now using context  
+  const handleUnsaveDiscourse = async (discourseId) => {
+    await unsaveDiscourse(discourseId);
   };
 
   // Load user's chat threads from backend
   const loadUserChats = async () => {
     if (!user || !user.token) return;
-    
+
     try {
       setLoading(true);
       const response = await fetch(apiRoute(`chats/${user.email}`), {
@@ -36,7 +63,7 @@ const Chatpage = () => {
       if (response.ok) {
         const chatThreads = await response.json();
         setThreads(chatThreads);
-        
+
         // If user has existing chats, select the most recent one
         if (chatThreads.length > 0) {
           setSelectedThreadId(chatThreads[0].id);
@@ -50,6 +77,13 @@ const Chatpage = () => {
       setLoading(false);
     }
   };
+
+  // Load user when component mounts
+  useEffect(() => {
+    if (user && user.token) {
+      loadUserChats();
+    }
+  }, [user]);
 
   // Create a new chat thread in backend
   const createNewChatThread = async (title = "New Chat") => {
@@ -66,12 +100,12 @@ const Chatpage = () => {
 
     try {
       const requestBody = { title: title };
-      
+
       // Add user email to request body
       if (user.email) {
         requestBody.user_email = user.email;
       }
-      
+
       const response = await fetch(apiRoute(`chats/${user.email}`), {
         method: "POST",
         headers: {
@@ -165,7 +199,7 @@ const Chatpage = () => {
   const handleDeleteChat = async (threadId) => {
     // Remove from local state immediately for better UX
     setThreads((prevThreads) => prevThreads.filter((thread) => thread.id !== threadId));
-    
+
     // If this was the selected thread, clear selection
     if (selectedThreadId === threadId) {
       setSelectedThreadId(null);
@@ -184,7 +218,7 @@ const Chatpage = () => {
   // Generate AI summary for chat title from the first question
   const generateAITitleFromQuestion = async (question) => {
     if (!question) return "New Chat";
-    
+
     try {
       const response = await fetch(apiRoute("summarize-question"), {
         method: "POST",
@@ -215,7 +249,7 @@ const Chatpage = () => {
   const handleNewChat = async () => {
     // Check if there's already an empty chat
     const emptyChat = threads.find(thread => !thread.messages || thread.messages.length === 0);
-    
+
     if (emptyChat) {
       // If there's an empty chat, just select it
       setSelectedThreadId(emptyChat.id);
@@ -288,20 +322,16 @@ const Chatpage = () => {
     };
   }, [selectedThreadId]);
 
-  // Load user chats and create a new chat when user logs in
+  // Load user chats when user logs in
   useEffect(() => {
     if (user && user.token) {
       const initializeChats = async () => {
-        // First load existing chats
+        // Load existing chats (saved discourses are loaded by context)
         await loadUserChats();
-        // Always create a new chat on authentication
-        const newThread = await createNewChatThread();
-        setSelectedThreadId(newThread.id);
-        addThread(newThread);
       };
       initializeChats();
     } else {
-      // Clear threads when user logs out
+      // Clear threads when user logs out (saved discourses are cleared by context)
       setThreads([]);
       setSelectedThreadId(null);
     }
@@ -309,12 +339,12 @@ const Chatpage = () => {
 
   // Create initial chat if no threads exist and user is not logged in
   useEffect(() => {
-    console.log('useEffect triggered:', { 
-      threadsLength: threads.length, 
-      user: !!user, 
-      initialChatCreated: initialChatCreatedRef.current 
+    console.log('useEffect triggered:', {
+      threadsLength: threads.length,
+      user: !!user,
+      initialChatCreated: initialChatCreatedRef.current
     });
-    
+
     if (threads.length === 0 && !user && !initialChatCreatedRef.current) {
       console.log('Creating initial chat...');
       // Create only one chat for unauthenticated users
@@ -331,24 +361,25 @@ const Chatpage = () => {
   }, [threads.length, user]);
 
   return (
-    <div className="w-full h-[100vh] flex overflow-hidden">
+    <div className="w-full h-[100vh] flex overflow-hidden bg-white">
       {/* Sidebar */}
-      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${
-        sidebarVisible ? 'w-[300px]' : 'w-0'
-      } hidden md:flex`}>
+      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px]' : 'w-0'
+        } hidden md:flex`}>
         <SideNav
           startNewChatCallback={handleNewChat}
           onChatSelect={handleChatSelect}
           onDeleteChat={handleDeleteChat}
           threads={threads}
           loading={loading}
+          savedDiscourses={savedDiscourses}
+          loadingSaved={loadingSaved}
+          onDeleteSavedDiscourse={handleUnsaveDiscourse}
         />
       </div>
 
       {/* Main Content */}
-      <div className={`flex flex-col flex-grow mt-2 relative transition-all duration-300 ${
-        sidebarVisible ? 'ml-0' : 'ml-0'
-      }`}>
+      <div className={`flex flex-col flex-grow mt-2 relative transition-all duration-300 ${sidebarVisible ? 'ml-0' : 'ml-0'
+        }`}>
         {/* Hamburger Button */}
         <button
           onClick={toggleSidebar}
@@ -373,7 +404,7 @@ const Chatpage = () => {
         <div className="absolute top-0 left-0 right-0">
           <Navbar />
         </div>
-        
+
         {/* ChatBox */}
         <ChatBox
           newChat={newChat}
@@ -382,6 +413,9 @@ const Chatpage = () => {
           threads={threads}
           user={user}
           generateTitleFromQuestion={generateAITitleFromQuestion}
+          savedDiscourses={savedDiscourses}
+          onSaveDiscourse={handleSaveDiscourse}
+          onUnsaveDiscourse={handleUnsaveDiscourse}
         />
       </div>
     </div>
