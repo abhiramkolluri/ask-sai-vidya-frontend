@@ -1,0 +1,9 @@
+{
+  "hosting": {
+    "amplifyhosting": {
+      "lastPushTimeStamp": "2025-11-11T23:23:00.000Z",
+      "service": "amplifyhosting",
+      "type": "manual"
+    }
+  }
+}
