@@ -7,6 +7,12 @@ frontend:
     build:
       commands:
         - npm run build
+  # Environment variables must be set in AWS Amplify Console
+  # Go to: App Settings > Environment variables
+  # Add: REACT_APP_BASE_API_SERVER with your staging API URL
+  # Example: https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com/staging
+  environment:
+    REACT_APP_BASE_API_SERVER: ${REACT_APP_BASE_API_SERVER}
   artifacts:
     baseDirectory: build
     files:

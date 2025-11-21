@@ -1,5 +1,13 @@
-export const apiRoute = (path) =>
-  `${process.env.REACT_APP_BASE_API_SERVER}/${path}`;
+export const apiRoute = (path) => {
+  const baseUrl = process.env.REACT_APP_BASE_API_SERVER;
+  if (!baseUrl) {
+    console.error('⚠️ REACT_APP_BASE_API_SERVER is not set! API calls will fail.');
+    console.error('Please set this environment variable in AWS Amplify Console or your .env file.');
+    // Return a placeholder that will obviously fail, but at least the app won't crash
+    return `undefined/${path}`;
+  }
+  return `${baseUrl}/${path}`;
+};
 
 export const fetchBlogPost = async (slug) => {
   // return fetch(apiRoute(`blog/${slug}`))
