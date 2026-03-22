@@ -21,9 +21,7 @@ export const fetchBlogPost = async (slug) => {
     const response = await fetch(apiRoute(`blog/${slug}`));
     if (response.ok) return response.json();
     else {
-      return {
-        error: response.statusText,
-      };
+      throw new Error(response.statusText);
     }
   } catch (e) {
     throw new Error(e);

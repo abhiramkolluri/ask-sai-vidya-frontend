@@ -354,7 +354,7 @@ export default function Blog() {
         <div className="flex flex-wrap justify-center  w-[96vw] max:w-[1400px] mx-auto md:gap-12 gap-4 leading-8">
           <div className=" flex flex-col md:w-[800px]  border border-gray-300 rounded shadow p-8 gap-8 relative -top-20 bg-white">
             <h2 className=" text-[20px] mt-4 text-center font-bold text-[#4D4D4D]">
-              {post?.occassion}
+              {post?.occasion}
             </h2>
             <div className="w-full flex justify-between">
               {post.collection && (
