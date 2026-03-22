@@ -1,14 +1,50 @@
-import React from "react";
+import React, { useEffect } from "react";
 import leaves from "../../images/leaves.png";
 import Login from "../../components/login/Login";
 import Signup from "../../components/signup/Signup";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function Signin({ showLogin = false }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { login: loginUser } = useAuth();
 
   const isLoginPage = location.pathname === "/signin";
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    const userEncoded = params.get('user');
+    const success = params.get('success');
+    const error = params.get('error');
+
+    if (success && token && userEncoded) {
+      try {
+        const user = JSON.parse(decodeURIComponent(userEncoded));
+
+        // Store token and user (same as regular login)
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        // Update auth context
+        loginUser({ email: user.email, token, isGoogleLogin: true });
+
+        // Redirect to home
+        navigate('/home', { replace: true });
+      } catch (err) {
+        alert('Failed to process login. Please try again.');
+      }
+    } else if (error) {
+      const errorMessages = {
+        'oauth_failed': 'Google login failed. Please try again.',
+        'no_code': 'Authorization code not received from Google.',
+        'no_email': 'Could not retrieve email from Google account.'
+      };
+      alert(errorMessages[error] || 'An error occurred during login.');
+    }
+  }, [location.search, loginUser, navigate]);
 
   // const [login, setlogin] = useState(showLogin ? true : false);
   // useEffect(() => {
@@ -16,9 +52,9 @@ export default function Signin({ showLogin = false }) {
   // }, [showLogin]);
 
   return (
-    <div className=" bg-[#fffbf8]  lg:w-full md:w-auto h-[100vh] text-gray-800">
+    <div className=" bg-[#fffbf8] lg:w-full md:w-auto h-[100vh] text-gray-800">
       <div
-        className="absolute top-0 left-0 h-full w-full bg-no-repeat"
+        className="absolute top-0 left-0 h-full w-full bg-no-repeat opacity-100"
         style={{ backgroundImage: `url("${leaves}")` }}>
         {/* <img src={leaves} alt="" /> */}
       </div>
@@ -39,20 +75,18 @@ export default function Signin({ showLogin = false }) {
           <div>
             <div className="w-full flex ">
               <div
-                className={` w-full transition-all ease-in flex justify-center items-center py-4 text-lg font-bold ${
-                  isLoginPage
-                    ? "border-b border-primary"
-                    : " border-b border-gray-200 text-gray-400"
-                }`}
+                className={` w-full transition-all ease-in flex justify-center items-center py-4 text-lg font-bold ${isLoginPage
+                  ? "border-b border-primary"
+                  : " border-b border-gray-200 text-gray-400"
+                  }`}
                 onClick={() => navigate("/signin", { replace: true })}>
                 <Link to="/signin">Sign in</Link>
               </div>
               <div
-                className={`w-full transition-all ease-in flex justify-center items-center text-lg font-bold ${
-                  !isLoginPage
-                    ? "border-b border-primary"
-                    : " border-b border-gray-200 text-gray-400"
-                }`}
+                className={`w-full transition-all ease-in flex justify-center items-center text-lg font-bold ${!isLoginPage
+                  ? "border-b border-primary"
+                  : " border-b border-gray-200 text-gray-400"
+                  }`}
                 onClick={() => navigate("/signup", { replace: true })}>
                 <Link to="/signup" className="py-4">
                   Sign up

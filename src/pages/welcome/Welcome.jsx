@@ -11,8 +11,8 @@ import { Link } from "react-router-dom";
 export default function Welcome() {
   const [login, setlogin] = useState(true);
   return (
-    <div className=" bg-[#fffbf8]  w-full h-[100vh] text-gray-800">
-      <div className="absolute top-0 left-0">
+    <div className=" bg-[#fffbf8] w-full h-[100vh] text-gray-800">
+      <div className="absolute top-0 left-0 opacity-100">
         <img src={leaves} alt="" className=" h-[400px]" />
       </div>
       <div className=" flex  h-full ">
@@ -32,7 +32,7 @@ export default function Welcome() {
                 <br />
                 <br />
                 <Link to="/signin">
-                  <button className=" gap-1 shadow px-4 py-2 bg-orange-400 text-white flex items-center rounded ">
+                  <button className=" gap-1 shadow px-4 py-2 bg-orange-400 text-white flex items-center rounded hover:bg-orange-500 transition-colors">
                     <IoMdLogIn size={18} /> Sign In
                   </button>
                 </Link>
@@ -42,15 +42,14 @@ export default function Welcome() {
         </div>
         <div className="w-[600px] h-full bg-white flex justify-center items-center px-10 relative">
           <div className=" absolute right-15">
-            <img src={line} alt="" className="h-[100vh] z-10" />
+            <img src={line} alt="" className="h-[100vh] z-10 opacity-100" />
           </div>
           <div className=" h-full flex justify-center items-center z-20 text-[14px]">
             <div className="w-full h-[65vh] max-h-[600px] flex flex-col justify-between ">
               <div className="w-[380px] rounded  bg-white p-4 flex flex-col gap-4 shadow-md relative -left-12">
                 <h3 className="  flex items-center text-orange-400 gap-2">
                   {" "}
-                  <GiTreeBranch size={24} /> Answers are rich with Baba’s
-                  teachings
+                  <GiTreeBranch size={24} /> Do all of your research to create Sai Center material in one place
                 </h3>
                 <p className=" text-balance">
                   All of Sathya Sai Baba's primary resources are continuously

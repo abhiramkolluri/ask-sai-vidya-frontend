@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(curl:*)",
+      "Bash(./start_backend.sh:*)",
+      "Bash(python3:*)",
+      "Bash(git fetch:*)"
+    ],
+    "deny": []
+  }
+}

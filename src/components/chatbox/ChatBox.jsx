@@ -8,11 +8,15 @@ const cache = {};
 
 export default function ChatBox({
   newChat,
-  // loggedin = false,
-  // modalCallback = () => {},
   selectedThreadId = null,
-  addThread = () => {},
+  addThread = () => { },
   threads = [],
+  user = null,
+  generateTitleFromQuestion = (question) => question || "New Chat",
+  loadThreadMessages = async () => [],
+  savedDiscourses = [],
+  onSaveDiscourse = async () => { },
+  onUnsaveDiscourse = async () => { },
 }) {
   const [messages, setMessages] = useState([]);
   const [askQuestion, setAskQuestion] = useState("");
@@ -27,14 +31,35 @@ export default function ChatBox({
         fetchCitations: cache[question].fetchCitations,
       };
     }
-    const response = await fetch(apiRoute("query"), {
+
+    const url = apiRoute("query");
+    console.log("🔍 Frontend calling URL:", url);
+    console.log("🔍 Environment variable:", process.env.REACT_APP_BASE_API_SERVER);
+
+    const headers = {
+      "Content-Type": "application/json",
+    };
+
+    // Add Authorization header if user is logged in
+    if (user && user.token) {
+      headers["Authorization"] = `Bearer ${user.token}`;
+    }
+
+    const requestBody = { query: question };
+
+    // Add user email to request body if available
+    if (user && user.email) {
+      requestBody.user_email = user.email;
+    }
+
+    const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: question }),
+      headers: headers,
+      body: JSON.stringify(requestBody),
     });
+    console.log("🔍 Response status:", response.status);
     const data = await response.json();
+    console.log("🔍 Response data:", data);
     const fetchCitations =
       data.response !==
       "It seems like there might be a misunderstanding with the question you provided. I'm here to offer spiritual guidance based on the teachings of Sathya Sai Baba. If you have any questions related to spirituality, personal growth, or Sai Baba's teachings, feel free to ask!";
@@ -50,23 +75,71 @@ export default function ChatBox({
     if (cache[question]?.citations) {
       return cache[question].citations;
     }
-    const response = await fetch(apiRoute("search"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: question }),
-    });
-    const data_citations = await response.json();
-    cache[question] = { ...cache[question], citations: data_citations };
-    return data_citations; // Ensure this matches your actual API response structure
+
+    try {
+      console.log("🔍 Making request to:", apiRoute("search"));
+      const response = await fetch(apiRoute("search"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: question }),
+      });
+
+      console.log("🔍 Response status:", response.status);
+      console.log("🔍 Response ok:", response.ok);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data_citations = await response.json();
+      console.log("🔍 Response data:", data_citations);
+
+      cache[question] = { ...cache[question], citations: data_citations };
+      return data_citations;
+    } catch (error) {
+      console.error("❌ Fetch error:", error);
+      return []; // Return empty array instead of letting it fail
+    }
+  };
+
+  // Save message to backend if user is logged in
+  // NOTE: This function is currently not used because messages are saved
+  // via the addThread() function which calls saveChatThread() in the parent component.
+  // Keeping this function for potential future use.
+  const saveMessageToBackend = async (question, reply) => {
+    if (!user || !user.token || !user.email || !selectedThreadId) return;
+
+    try {
+      const response = await fetch(apiRoute(`chats/${user.email}/${selectedThreadId}/messages`), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${user.token}`
+        },
+        body: JSON.stringify({
+          question: question,
+          reply: reply
+        })
+      });
+
+      if (!response.ok) {
+        console.error("Failed to save message to backend:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error saving message to backend:", error);
+    }
   };
 
   const handleSend = async (question = null) => {
     const val = question || inputRef.current.value.trim();
+    console.log('handleSend called with:', { question: val, user: !!user, selectedThreadId });
     if (val.length > 0) {
       setAskQuestion("");
       inputRef.current.value = "";
+      console.log(setAskQuestion)
+      console.log("hi guys shreyas here")
 
       const newIndex = messages.length;
       const updatedMessages = [...messages, { question: val, reply: null }];
@@ -74,41 +147,45 @@ export default function ChatBox({
       setLoadingIndex(newIndex); // Set loading index for the new question
 
       try {
-        const primaryResponsePromise = fetchPrimaryResponse(val);
-        const citationsPromise = primaryResponsePromise.then((result) => {
-          if (result.fetchCitations) {
-            return fetchCitations(val);
-          }
-          return [];
-        });
+        // Only fetch citations from /search endpoint
+        const citations = await fetchCitations(val);
 
-        const [primaryResponse, citations] = await Promise.all([
-          primaryResponsePromise,
-          citationsPromise,
-        ]);
-
-        // Update state once with both responses
+        // Update state with only citations
         const finalMessages = updatedMessages.map((q, index) =>
           index === newIndex
             ? {
-                ...q,
-                reply: {
-                  primaryResponse: primaryResponse.response,
-                  citations,
-                },
-              }
+              ...q,
+              reply: {
+                primaryResponse: "", // Empty since we don't want to display /query response
+                citations,
+              },
+            }
             : q,
         );
+        console.log('Setting messages with final messages:', finalMessages.length);
         setMessages(finalMessages);
 
         // Update the current thread with new messages
+        // Note: We don't call saveMessageToBackend here because addThread will
+        // save the entire thread (including this new message) to the backend via PUT
         const existingThread = threads.find(
           (thread) => thread.id === selectedThreadId,
         );
+
+        // Only update title if this is the first message or if thread has no title
+        const shouldUpdateTitle = !existingThread ||
+          !existingThread.title ||
+          existingThread.title === "New Chat" ||
+          existingThread.title === "";
+
+        // Generate title asynchronously if needed
+        const threadTitle = shouldUpdateTitle
+          ? await generateTitleFromQuestion(val)
+          : (existingThread ? existingThread.title : "New Chat");
+
         const newThread = {
           id: selectedThreadId || new Date().toISOString(),
-          title:
-            existingThread && existingThread.title ? existingThread.title : val,
+          title: threadTitle,
           timestamp: existingThread ? existingThread.timestamp : new Date(),
           messages: finalMessages,
         };
@@ -116,7 +193,7 @@ export default function ChatBox({
         addThread(newThread);
         // navigate(`/thread/${newThread.id}`);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching data in handleSend:", error);
       } finally {
         setLoadingIndex(null); // Reset loading index
       }
@@ -143,16 +220,38 @@ export default function ChatBox({
   }, [newChat]);
 
   useEffect(() => {
-    if (selectedThreadId) {
-      const selectedThread = threads.find(
-        (thread) => thread.id === selectedThreadId,
-      );
-      if (selectedThread) {
-        setMessages(selectedThread.messages);
-        // navigate(`/thread/${selectedThreadId}`);
+    const loadMessages = async () => {
+      if (selectedThreadId) {
+        // First check if thread exists locally and has messages
+        const selectedThread = threads.find(
+          (thread) => thread.id === selectedThreadId,
+        );
+
+        if (selectedThread && selectedThread.messages && selectedThread.messages.length > 0) {
+          // Use local messages if available
+          setMessages(selectedThread.messages);
+        } else if (user && user.token && user.email) {
+          // Load messages from backend if user is logged in
+          try {
+            const backendMessages = await loadThreadMessages(selectedThreadId);
+            setMessages(backendMessages);
+          } catch (error) {
+            console.error("Error loading messages from backend:", error);
+            // Fallback to local messages or empty array
+            setMessages(selectedThread?.messages || []);
+          }
+        } else {
+          // Not logged in, use local messages or empty array
+          setMessages(selectedThread?.messages || []);
+        }
+      } else {
+        // No thread selected, clear messages
+        setMessages([]);
       }
-    }
-  }, [selectedThreadId]);
+    };
+
+    loadMessages();
+  }, [selectedThreadId, threads, user]);
 
   const handleSampleQuestionClick = async (question) => {
     await handleSend(question);
@@ -164,9 +263,50 @@ export default function ChatBox({
     alert("Link copied to clipboard!");
   };
 
-  const handleReloadClick = (question) => {
-    // Handle reload logic here
-    alert(`Reloading chat for question: ${question}`);
+  const handleReloadClick = async (question) => {
+    // Create a new message entry with the same question
+    const newIndex = messages.length;
+    const updatedMessages = [...messages, { question: question, reply: null }];
+    setMessages(updatedMessages);
+    setLoadingIndex(newIndex); // Set loading index for the new question
+
+    try {
+      // Clear the cache for this question to force a fresh response
+      delete cache[question];
+
+      // Only fetch citations from /search endpoint
+      const citations = await fetchCitations(question);
+
+      // Update state with only citations
+      const finalMessages = updatedMessages.map((q, index) =>
+        index === newIndex
+          ? {
+            ...q,
+            reply: {
+              primaryResponse: "", // Empty since we don't want to display /query response
+              citations,
+            },
+          }
+          : q
+      );
+      setMessages(finalMessages);
+
+      // Update the thread
+      const existingThread = threads.find(
+        (thread) => thread.id === selectedThreadId
+      );
+      if (existingThread) {
+        const newThread = {
+          ...existingThread,
+          messages: finalMessages,
+        };
+        addThread(newThread);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoadingIndex(null); // Reset loading index
+    }
   };
 
   const handleCopyClick = (text) => {
@@ -177,12 +317,12 @@ export default function ChatBox({
   const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
   return (
-    <div className="w-full flex flex-col h-[100vh] mt-16">
+    <div className="w-full flex flex-col h-[100vh] mt-16 bg-white">
       <div className="flex-1 flex flex-col relative min-h-0">
         {messages.length > 0 ? (
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-[98%] md:w-[90%] mb-16">
+            className="flex-1 overflow-y-auto flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-full max-w-4xl mx-auto mb-16">
             {messages.map((msg, index) => (
               <Reply
                 key={index}
@@ -192,15 +332,18 @@ export default function ChatBox({
                 onLinkClick={handleLinkClick}
                 onReloadClick={handleReloadClick}
                 onCopyClick={handleCopyClick}
+                onSaveDiscourse={onSaveDiscourse}
+                onUnsaveDiscourse={onUnsaveDiscourse}
+                savedDiscourses={savedDiscourses}
+                user={user}
               />
             ))}
           </div>
         ) : (
           <div className="flex-grow overflow-y-scroll flex justify-center items-center">
-            <div className="flex flex-col w-8/12 items-center justify-center gap-4">
+            <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4 px-4">
               <p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
-                Ask your question to&nbsp;<b>Sai Vidya</b> and discover profound
-                wisdom!
+                Ask a question to&nbsp;<b>Sai Vidya</b> and get discourses that you can explore.
               </p>
               <div>
                 <SampleQuestions onQuestionClick={handleSampleQuestionClick} />
@@ -209,11 +352,11 @@ export default function ChatBox({
           </div>
         )}
 
-        <div className="sticky bottom-0 mx-4 md:mx-auto w-[98%] md:w-[90%] bg-white p-4">
+        <div className="sticky bottom-0 mx-4 md:mx-auto w-full max-w-4xl mx-auto bg-white p-4">
           <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[70px] p-4 bg-white">
             <textarea
               ref={inputRef}
-              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px]"
+              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px] bg-transparent"
               id="textBox"
               cols="10"
               rows="2"

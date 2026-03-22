@@ -5,9 +5,10 @@ import { VscEye } from "react-icons/vsc";
 
 export default function MaterialInput({
   text = "Email address",
-  callback = (value) => {},
+  callback = (value) => { },
   password = false,
   value = "",
+  onChange,
   ...rest
 }) {
   const [type, setType] = useState("text");
@@ -21,6 +22,14 @@ export default function MaterialInput({
     }
   }, [password]);
 
+  const handleChange = (e) => {
+    // Support both callback and onChange
+    if (onChange) {
+      onChange(e);
+    }
+    callback(e.target.value);
+  };
+
   return (
     <div className="relative w-full max-w-sm">
       <div
@@ -31,9 +40,8 @@ export default function MaterialInput({
           id="floating-input"
           placeholder=" "
           type={type}
-          onChange={(e) => {
-            callback(e.target.value);
-          }}
+          value={value}
+          onChange={handleChange}
           onFocus={() => setIsFocused(true)} // Set focus on input focus
           onBlur={() => setIsFocused(false)} // Remove focus on blur
           {...rest}
@@ -42,11 +50,10 @@ export default function MaterialInput({
         {/* Conditionally apply shrinking styles */}
         <label
           className={`bg-white font-medium absolute top-3 px-2 left-2 -z-1 origin-[0] transform text-sm text-gray-500 duration-300 
-             ${
-               isFocused || value
-                 ? "-translate-y-6 scale-75 peer-focus:-translate-y-6 peer-focus:scale-75"
-                 : "translate-y-0 scale-100 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100"
-             }  dark:text-gray-400`}
+             ${isFocused || value
+              ? "-translate-y-6 scale-75 peer-focus:-translate-y-6 peer-focus:scale-75"
+              : "translate-y-0 scale-100 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100"
+            }`}
           htmlFor="floating-input">
           {text}
         </label>

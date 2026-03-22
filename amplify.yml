@@ -1,0 +1,37 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  # Environment variables must be set in AWS Amplify Console
+  # Go to: App Settings > Environment variables
+  # Add: REACT_APP_BASE_API_SERVER with your staging API URL
+  # Example: https://your-api-gateway-url.execute-api.us-east-1.amazonaws.com/staging
+  environment:
+    REACT_APP_BASE_API_SERVER: ${REACT_APP_BASE_API_SERVER}
+  artifacts:
+    baseDirectory: build
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+  customHeaders:
+    - pattern: '**/*'
+      headers:
+        - key: 'X-Content-Type-Options'
+          value: 'nosniff'
+        - key: 'X-Frame-Options'
+          value: 'DENY'
+        - key: 'X-XSS-Protection'
+          value: '1; mode=block'
+        - key: 'Referrer-Policy'
+          value: 'strict-origin-when-cross-origin'
+  rewrites:
+    - source: '</^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|eot)$)([^.]+$)/>'
+      target: '/index.html'
+      status: '200' 

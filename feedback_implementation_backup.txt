@@ -1,0 +1,77 @@
+FEEDBACK IMPLEMENTATION BACKUP
+============================
+
+1. State Management:
+```javascript
+const [showFeedbackModal, setshowFeedbackModal] = useState(false);
+const [feedbackType, setFeedbackType] = useState(null); // 'up' or 'down'
+const [isReloading, setIsReloading] = useState(false);
+```
+
+2. Feedback Click Handler:
+```javascript
+const handleFeedbackClick = (type) => {
+  setFeedbackType(type);
+  setshowFeedbackModal(true);
+};
+```
+
+3. Thumbs Up/Down Buttons:
+```javascript
+<IoThumbsUpOutline
+  size={20}
+  className="cursor-pointer"
+  onClick={() => handleFeedbackClick('up')}
+/>
+<IoThumbsDownOutline
+  size={20}
+  className="cursor-pointer"
+  onClick={() => handleFeedbackClick('down')}
+/>
+```
+
+4. Feedback Modal:
+```javascript
+{showFeedbackModal ? (
+  <>
+    <div className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50">
+      <Feedback
+        closeModalCallback={() => {
+          setshowFeedbackModal(false);
+          setFeedbackType(null);
+        }}
+        options={
+          feedbackType === 'up'
+            ? [
+                "Helpful",
+                "Accurate Information",
+                "Clear Explanation",
+                "Good Sources",
+                "Answered the question well",
+              ]
+            : [
+                "Not helpful",
+                "Inaccurate",
+                "Out of date",
+                "Problematic",
+                "Misquoted the original source",
+              ]
+        }
+        question={
+          feedbackType === 'up'
+            ? "What did you like about this response?"
+            : "What could be improved about this response?"
+        }
+      />
+    </div>
+  </>
+) : (
+  <></>
+)}
+```
+
+This backup includes:
+- State management for feedback modal and type
+- Handler function for feedback clicks
+- UI components for thumbs up/down buttons
+- Feedback modal with conditional options and questions 

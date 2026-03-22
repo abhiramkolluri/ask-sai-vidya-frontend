@@ -1,0 +1,19 @@
+import React from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { IoMdLogOut } from "react-icons/io";
+
+const LogoutButton = () => {
+  const { logout } = useAuth();
+
+  return (
+    <button
+      onClick={() => logout()}
+      className="w-full gap-1 px-4 py-2 hover:border hover:border-primary bg-opacity-80 bg-orange-50 active:bg-opacity-100 text-black flex items-center rounded justify-between"
+    >
+      Sign out
+      <IoMdLogOut className="text-primary" size={18} />
+    </button>
+  );
+};
+
+export default LogoutButton; 

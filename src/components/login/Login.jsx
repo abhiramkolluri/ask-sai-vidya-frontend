@@ -15,7 +15,9 @@ import {
   loginSchema,
 } from "../../helpers/authHelpers";
 
-export default function Login({ callback = () => {}, inModal = true }) {
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+export default function Login({ callback = () => { }, inModal = true }) {
   const [forgetPassword, setforgetPassword] = useState(false);
 
   const {
@@ -24,6 +26,15 @@ export default function Login({ callback = () => {}, inModal = true }) {
     error: authError,
     success: authSuccess,
   } = useAuth();
+
+  // Close modal on successful login
+  React.useEffect(() => {
+    if (authSuccess && inModal) {
+      setTimeout(() => {
+        callback();
+      }, 1500); // Give user time to see success message
+    }
+  }, [authSuccess, inModal, callback]);
 
   const {
     register: formLogin,
@@ -43,8 +54,13 @@ export default function Login({ callback = () => {}, inModal = true }) {
     try {
       loginUser({ email: data.email, password: data.password });
     } catch (error) {
-      console.log(error);
+      // Handle error silently
     }
+  };
+
+  const handleGoogleLogin = () => {
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = `${API_BASE_URL}/auth/google/authorize`;
   };
 
   if (!forgetPassword) {
@@ -157,13 +173,19 @@ export default function Login({ callback = () => {}, inModal = true }) {
                 or
               </div>
             </div>
-            <button className=" -mt-4 w-full h-[40px]  border border-gray-300  flex justify-between px-2 items-center rounded">
+
+            <button
+              className="-mt-4 w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded hover:bg-gray-50"
+              onClick={handleGoogleLogin}
+              type="button"
+            >
               Continue with Google
               <span>
                 <FcGoogle size={18} />
               </span>
             </button>
-            <button className="w-full h-[40px]  border border-gray-300  flex justify-between px-2 items-center rounded">
+
+            <button className="w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded opacity-50 cursor-not-allowed" disabled>
               Continue with Apple
               <span>
                 <FaApple size={18} />
@@ -197,7 +219,7 @@ export default function Login({ callback = () => {}, inModal = true }) {
                 <MaterialInput text="Email address" />
               </div>
 
-              <button className="w-full h-[40px] font-bold text-white bg-orange-400 shadow flex justify-center items-center rounded">
+              <button className="w-full h-[40px] font-bold text-white bg-orange-400 shadow flex justify-center items-center rounded hover:bg-orange-500 transition-colors">
                 Send link
               </button>
             </div>

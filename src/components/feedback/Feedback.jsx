@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { IoMdClose } from "react-icons/io";
 
 export default function Feedback({
@@ -11,7 +11,33 @@ export default function Feedback({
   ],
   question = "Thank you for helping us improve the community. Tell us more about your feedback.",
   closeModalCallback = () => {},
+  onSubmit = () => {},
 }) {
+  const [selectedOption, setSelectedOption] = useState("");
+  const [additionalComments, setAdditionalComments] = useState("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (selectedOption || additionalComments.trim()) {
+      onSubmit(selectedOption, additionalComments);
+      setIsSubmitted(true);
+      // Close the modal after 1.5 seconds
+      setTimeout(() => {
+        closeModalCallback();
+      }, 1500);
+    }
+  };
+
+  if (isSubmitted) {
+    return (
+      <div className="w-[580px] h-[50vh] bg-white flex justify-center items-center flex-col gap-4 p-10 text-[14px]">
+        <div className="text-[#252525] text-2xl font-semibold text-center">
+          Thank You for your Feedback!
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-[580px] h-[50vh] bg-white flex justify-center items-center flex-col gap-4 p-10 text-[14px] ">
       <div className="w-full flex justify-end px-2">
@@ -22,12 +48,17 @@ export default function Feedback({
         </button>
       </div>
       <p className="text-[#252525] text-lg font-normal mb-4"> {question}</p>
-      <div className="flex flex-wrap  gap-2 ">
+      <div className="flex flex-wrap gap-2 ">
         {options.map((option, index) => {
           return (
             <div
               key={index}
-              className="px-2 py-1 border bg-[#E0E6DB] hover:bg-[#B6C4AB] border-gray-300 rounded cursor-pointer font-medium text-lg">
+              className={`px-2 py-1 border ${
+                selectedOption === option
+                  ? "bg-[#B6C4AB]"
+                  : "bg-[#E0E6DB] hover:bg-[#B6C4AB]"
+              } border-gray-300 rounded cursor-pointer font-medium text-lg`}
+              onClick={() => setSelectedOption(option)}>
               {option}
             </div>
           );
@@ -37,14 +68,18 @@ export default function Feedback({
         <textarea
           className="w-full p-2 border-[1px] text-lg outline-none border-[#C2C2C2]"
           placeholder="Please add more details about your feedback (optional)"
-          name=""
-          id=""
-          // rows={3}
-          // cols={4}
+          value={additionalComments}
+          onChange={(e) => setAdditionalComments(e.target.value)}
+          rows={3}
         />
       </div>
       <div className="w-full flex justify-end">
-        <button className=" bg-[#BC5B01] text-white flex w-[122px] justify-center py-3 px-2 rounded cursor-pointer ml-2 text-lg font-semibold">
+        <button 
+          className={`${
+            selectedOption || additionalComments.trim() ? "bg-[#BC5B01]" : "bg-gray-400"
+          } text-white flex w-[122px] justify-center py-3 px-2 rounded cursor-pointer ml-2 text-lg font-semibold`}
+          onClick={handleSubmit}
+          disabled={!(selectedOption || additionalComments.trim())}>
           Submit
         </button>
       </div>
