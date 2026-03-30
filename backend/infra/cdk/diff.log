@@ -1,0 +1,52 @@
+b'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
+b'!!                                                                                       !!\n'
+b'!!  Node 21 is end-of-life and not supported anymore by this software since 2024-12-01.  !!\n'
+b'!!  Please upgrade to a supported node version as soon as possible.                      !!\n'
+b'!!                                                                                       !!\n'
+b'!!  This software is currently running on node v21.7.3.                                  !!\n'
+b'!!  As of the current release of this software, supported node releases are:             !!\n'
+b'!!  - ^24.0.0 (Planned end-of-life: 2028-04-30)                                          !!\n'
+b'!!  - ^22.0.0 (Planned end-of-life: 2027-04-30)                                          !!\n'
+b'!!  - ^20.0.0 (Planned end-of-life: 2026-04-30)                                          !!\n'
+b'!!                                                                                       !!\n'
+b'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
+current credentials could not be used to assume 'arn:aws:iam::522814696973:role/cdk-hnb659fds-lookup-role-522814696973-us-east-1', but are for the right account. Proceeding anyway.
+Lookup role arn:aws:iam::522814696973:role/cdk-hnb659fds-lookup-role-522814696973-us-east-1 was not assumed. Proceeding with default credentials.
+Lookup role arn:aws:iam::522814696973:role/cdk-hnb659fds-lookup-role-522814696973-us-east-1 was not assumed. Proceeding with default credentials.
+Stack AskSaiVidyaApiGateway
+IAM Statement Changes
+┌───┬──────────────────────────────────────┬────────┬────────────────┬──────────────────────────────────┬───────────┐
+│   │ Resource                             │ Effect │ Action         │ Principal                        │ Condition │
+├───┼──────────────────────────────────────┼────────┼────────────────┼──────────────────────────────────┼───────────┤
+│ + │ ${AskSaiVidyaApi/CloudWatchRole.Arn} │ Allow  │ sts:AssumeRole │ Service:apigateway.amazonaws.com │           │
+└───┴──────────────────────────────────────┴────────┴────────────────┴──────────────────────────────────┴───────────┘
+IAM Policy Changes
+┌───┬──────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────┐
+│   │ Resource                         │ Managed Policy ARN                                                                      │
+├───┼──────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+│ + │ ${AskSaiVidyaApi/CloudWatchRole} │ arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs │
+└───┴──────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────┘
+(NOTE: There may be security-related changes not in this list. See https://github.com/aws/aws-cdk/issues/1299)
+
+Parameters
+[+] Parameter BootstrapVersion BootstrapVersion: {"Type":"AWS::SSM::Parameter::Value<String>","Default":"/cdk-bootstrap/hnb659fds/version","Description":"Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"}
+
+Conditions
+[+] Condition CDKMetadata/Condition CDKMetadataAvailable: {"Fn::Or":[{"Fn::Or":[{"Fn::Equals":[{"Ref":"AWS::Region"},"af-south-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-east-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-northeast-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-northeast-2"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-northeast-3"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-south-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-south-2"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-southeast-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-southeast-2"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-southeast-3"]}]},{"Fn::Or":[{"Fn::Equals":[{"Ref":"AWS::Region"},"ap-southeast-4"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ca-central-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"ca-west-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"cn-north-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"cn-northwest-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"eu-central-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"eu-central-2"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"eu-north-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"eu-south-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"eu-south-2"]}]},{"Fn::Or":[{"Fn::Equals":[{"Ref":"AWS::Region"},"eu-west-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"eu-west-2"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"eu-west-3"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"il-central-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"me-central-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"me-south-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"sa-east-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"us-east-1"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"us-east-2"]},{"Fn::Equals":[{"Ref":"AWS::Region"},"us-west-1"]}]},{"Fn::Equals":[{"Ref":"AWS::Region"},"us-west-2"]}]}
+
+Resources
+[+] AWS::ApiGateway::RestApi AskSaiVidyaApi AskSaiVidyaApi60624B8C
+[+] AWS::IAM::Role AskSaiVidyaApi/CloudWatchRole AskSaiVidyaApiCloudWatchRole9CB52BE1
+[+] AWS::ApiGateway::Account AskSaiVidyaApi/Account AskSaiVidyaApiAccountCC686FBA
+[+] AWS::ApiGateway::Deployment AskSaiVidyaApi/Deployment AskSaiVidyaApiDeployment469C96CEca6e38f4ccba308fe9c62619c8cd1367
+[+] AWS::ApiGateway::Stage AskSaiVidyaApi/DeploymentStage.staging AskSaiVidyaApiDeploymentStagestaging69E52452
+
+Outputs
+[+] Output AskSaiVidyaApi/Endpoint AskSaiVidyaApiEndpointC2CE932A: {"Value":{"Fn::Join":["",["https://",{"Ref":"AskSaiVidyaApi60624B8C"},".execute-api.",{"Ref":"AWS::Region"},".",{"Ref":"AWS::URLSuffix"},"/",{"Ref":"AskSaiVidyaApiDeploymentStagestaging69E52452"},"/"]]}}
+[+] Output ApiUrl ApiUrl: {"Value":{"Fn::Join":["",["https://",{"Ref":"AskSaiVidyaApi60624B8C"},".execute-api.",{"Ref":"AWS::Region"},".",{"Ref":"AWS::URLSuffix"},"/",{"Ref":"AskSaiVidyaApiDeploymentStagestaging69E52452"},"/"]]}}
+[+] Output ApiId ApiId: {"Value":{"Ref":"AskSaiVidyaApi60624B8C"}}
+
+
+
+✨  Number of stacks with differences: 1
+
