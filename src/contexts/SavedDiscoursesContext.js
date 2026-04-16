@@ -13,6 +13,44 @@ export const SavedDiscoursesProvider = ({ children }) => {
     const [loadingSaved, setLoadingSaved] = useState(false);
     const { user } = useAuth();
 
+    const mapSavedDiscourseFromApi = useCallback((item) => {
+        const sourceCitation = item.collection_name || "";
+        return {
+            id: item.id,
+            saved_at: item.saved_at,
+            question_context: item.question_context || "",
+            discourse: {
+                title: item.title || "",
+                content: item.content_preview || "",
+                source_url: item.link || "",
+                source_citation: sourceCitation,
+                highlights: []
+            }
+        };
+    }, []);
+
+    const deriveArticleUuid = (discourseData) => {
+        if (discourseData?.article_uuid) {
+            return discourseData.article_uuid;
+        }
+
+        const sourceUrl = discourseData?.source_url || "";
+        const blogId = sourceUrl.startsWith('/blog/') ? sourceUrl.replace('/blog/', '') : "";
+        if (blogId) {
+            return blogId;
+        }
+
+        return discourseData?.title || `saved-${Date.now()}`;
+    };
+
+    const deriveCollectionName = (discourseData) => {
+        const citation = discourseData?.source_citation || "";
+        if (!citation.includes(' - ')) {
+            return citation;
+        }
+        return citation.split(' - ').slice(1).join(' - ').trim();
+    };
+
     // Load saved discourses
     const loadSavedDiscourses = useCallback(async () => {
         if (!user || !user.token) {
@@ -32,7 +70,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
 
             if (response.ok) {
                 const savedDiscoursesData = await response.json();
-                setSavedDiscourses(savedDiscoursesData);
+                setSavedDiscourses(savedDiscoursesData.map(mapSavedDiscourseFromApi));
             } else {
                 console.error("Failed to load saved discourses:", response.statusText);
             }
@@ -41,7 +79,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
         } finally {
             setLoadingSaved(false);
         }
-    }, [user]);
+    }, [user, mapSavedDiscourseFromApi]);
 
     // Load saved discourses when user changes
     useEffect(() => {
@@ -88,10 +126,12 @@ export const SavedDiscoursesProvider = ({ children }) => {
                     "Authorization": `Bearer ${user.token}`
                 },
                 body: JSON.stringify({
-                    discourse: discourseData,
-                    question_context: questionContext,
-                    tags: [],
-                    notes: ""
+                    article_uuid: deriveArticleUuid(discourseData),
+                    title: discourseData?.title || "Untitled discourse",
+                    content_preview: discourseData?.content || "",
+                    link: discourseData?.source_url || "",
+                    collection_name: deriveCollectionName(discourseData),
+                    question_context: questionContext || ""
                 })
             });
 
@@ -99,7 +139,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
                 const data = await response.json();
                 // Reload to get updated list
                 await loadSavedDiscourses();
-                return data;
+                return mapSavedDiscourseFromApi(data);
             } else {
                 console.error("Failed to save discourse:", response.statusText);
                 alert('Failed to save discourse. Please try again.');
@@ -131,7 +171,8 @@ export const SavedDiscoursesProvider = ({ children }) => {
                 // Reload to get updated list
                 await loadSavedDiscourses();
             } else {
-                console.error("Failed to update discourse:", response.statusText);
+                // Backend currently does not expose PUT for saved discourse updates.
+                console.warn("Saved discourse update is not supported by backend yet.");
             }
         } catch (error) {
             console.error("Error updating discourse:", error);
@@ -143,7 +184,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
         if (!user || !user.token) return;
 
         try {
-            const response = await fetch(apiRoute(`saved-discourses/${discourseId}`), {
+            const response = await fetch(apiRoute(`saved-discourses/${user.email}/${discourseId}`), {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
