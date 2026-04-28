@@ -15,6 +15,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
 
     const mapSavedDiscourseFromApi = useCallback((item) => {
         const sourceCitation = item.collection_name || "";
+        const highlights = item.discourse?.highlights || item.highlights || [];
         return {
             id: item.id,
             saved_at: item.saved_at,
@@ -24,7 +25,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
                 content: item.content_preview || "",
                 source_url: item.link || "",
                 source_citation: sourceCitation,
-                highlights: []
+                highlights: highlights
             }
         };
     }, []);
@@ -131,7 +132,8 @@ export const SavedDiscoursesProvider = ({ children }) => {
                     content_preview: discourseData?.content || "",
                     link: discourseData?.source_url || "",
                     collection_name: deriveCollectionName(discourseData),
-                    question_context: questionContext || ""
+                    question_context: questionContext || "",
+                    highlights: discourseData?.highlights || []
                 })
             });
 
