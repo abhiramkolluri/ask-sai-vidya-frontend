@@ -215,7 +215,8 @@ const Chatpage = () => {
     }
   };
 
-  // Generate AI summary for chat title from the first question
+/*
+  // Generate AI summary for chat title from the first question (Disabled for now - using simple truncation instead)
   const generateAITitleFromQuestion = async (question) => {
     if (!question) return "New Chat";
 
@@ -225,7 +226,7 @@ const Chatpage = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ question: question })
+        body: JSON.stringify({ query: question })
       });
 
       if (response.ok) {
@@ -244,6 +245,13 @@ const Chatpage = () => {
       }
       return cleanQuestion.substring(0, 50) + "...";
     }
+  };
+*/
+
+  const getTitleFromQuestion = (question) => {
+    if (!question) return "New Chat";
+    const clean = question.trim();
+    return clean.length <= 50 ? clean : clean.substring(0, 50) + "...";
   };
 
   const handleNewChat = async () => {
@@ -412,7 +420,7 @@ const Chatpage = () => {
           addThread={addThread}
           threads={threads}
           user={user}
-          generateTitleFromQuestion={generateAITitleFromQuestion}
+          generateTitleFromQuestion={getTitleFromQuestion} // Using simple truncation for now not AI generation
           savedDiscourses={savedDiscourses}
           onSaveDiscourse={handleSaveDiscourse}
           onUnsaveDiscourse={handleUnsaveDiscourse}

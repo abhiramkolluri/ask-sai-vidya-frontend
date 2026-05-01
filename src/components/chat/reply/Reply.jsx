@@ -29,9 +29,7 @@ export default function Reply({
   user = null,
   onHighlightChange = () => { }, // New prop for managing highlights
 }) {
-  console.log("hi guys shreyas here too")
-
-  console.log("Reply component received reply:", reply);
+  
   const [showFeedbackModal, setshowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState(null); // 'up' or 'down'
   const [isReloading, setIsReloading] = useState(false);
