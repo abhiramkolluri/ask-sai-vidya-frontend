@@ -157,24 +157,24 @@ export const SavedDiscoursesProvider = ({ children }) => {
         if (!user || !user.token) return;
 
         try {
-            const response = await fetch(apiRoute(`saved-discourses/${discourseId}`), {
+            const response = await fetch(apiRoute(`saved-discourses/${user.email}/${discourseId}`), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${user.token}`
                 },
-                body: JSON.stringify({
-                    user_email: user.email,
-                    ...updates
-                })
+                body: JSON.stringify(updates)
             });
 
             if (response.ok) {
                 // Reload to get updated list
                 await loadSavedDiscourses();
             } else {
-                // Backend currently does not expose PUT for saved discourse updates.
-                console.warn("Saved discourse update is not supported by backend yet.");
+                console.error(
+                    "Failed to update saved discourse:",
+                    response.status,
+                    response.statusText
+                );
             }
         } catch (error) {
             console.error("Error updating discourse:", error);
