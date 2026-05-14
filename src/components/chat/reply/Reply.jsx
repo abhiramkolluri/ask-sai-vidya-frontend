@@ -29,9 +29,7 @@ export default function Reply({
   user = null,
   onHighlightChange = () => { }, // New prop for managing highlights
 }) {
-  console.log("hi guys shreyas here too")
-
-  console.log("Reply component received reply:", reply);
+  
   const [showFeedbackModal, setshowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState(null); // 'up' or 'down'
   const [isReloading, setIsReloading] = useState(false);
@@ -94,6 +92,29 @@ export default function Reply({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [showHighlightPopover]);
+
+  // Hydrate local highlights state from savedDiscourses so persisted highlights
+  // and comments survive a browser refresh. Keyed by citation._id; matches each
+  // citation to its saved discourse via the `${title} of "${collection}"` title
+  // convention used elsewhere in the codebase.
+  React.useEffect(() => {
+    const citations = reply?.citations || [];
+    if (!savedDiscourses || savedDiscourses.length === 0 || citations.length === 0) {
+      return;
+    }
+    const hydrated = {};
+    citations.forEach((citation) => {
+      const discourseTitle = `${citation.title} of "${citation.collection}"`;
+      const saved = savedDiscourses.find((s) => s.discourse.title === discourseTitle);
+      const savedHighlights = saved?.discourse?.highlights;
+      if (Array.isArray(savedHighlights) && savedHighlights.length > 0) {
+        hydrated[citation._id] = savedHighlights;
+      }
+    });
+    if (Object.keys(hydrated).length > 0) {
+      setHighlights((prev) => ({ ...prev, ...hydrated }));
+    }
+  }, [savedDiscourses, reply]);
 
   // Handle highlight action
   const handleHighlight = async () => {
@@ -178,20 +199,19 @@ export default function Reply({
     } else {
       // Update existing saved discourse with new highlights
       try {
-        const response = await fetch(apiRoute(`saved-discourses/${savedDiscourse.id}`), {
+        const response = await fetch(apiRoute(`saved-discourses/${user.email}/${savedDiscourse.id}`), {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${user.token}`
           },
           body: JSON.stringify({
-            user_email: user.email,
             highlights: highlightsArray
           })
         });
 
         if (!response.ok) {
-          console.error("Failed to update highlights:", response.statusText);
+          console.error("Failed to update highlights:", response.status, response.statusText);
         }
       } catch (error) {
         console.error("Error updating highlights:", error);

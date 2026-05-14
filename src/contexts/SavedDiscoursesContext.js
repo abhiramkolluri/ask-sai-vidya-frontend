@@ -15,6 +15,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
 
     const mapSavedDiscourseFromApi = useCallback((item) => {
         const sourceCitation = item.collection_name || "";
+        const highlights = item.discourse?.highlights || item.highlights || [];
         return {
             id: item.id,
             saved_at: item.saved_at,
@@ -24,7 +25,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
                 content: item.content_preview || "",
                 source_url: item.link || "",
                 source_citation: sourceCitation,
-                highlights: []
+                highlights: highlights
             }
         };
     }, []);
@@ -131,7 +132,8 @@ export const SavedDiscoursesProvider = ({ children }) => {
                     content_preview: discourseData?.content || "",
                     link: discourseData?.source_url || "",
                     collection_name: deriveCollectionName(discourseData),
-                    question_context: questionContext || ""
+                    question_context: questionContext || "",
+                    highlights: discourseData?.highlights || []
                 })
             });
 
@@ -155,24 +157,24 @@ export const SavedDiscoursesProvider = ({ children }) => {
         if (!user || !user.token) return;
 
         try {
-            const response = await fetch(apiRoute(`saved-discourses/${discourseId}`), {
+            const response = await fetch(apiRoute(`saved-discourses/${user.email}/${discourseId}`), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${user.token}`
                 },
-                body: JSON.stringify({
-                    user_email: user.email,
-                    ...updates
-                })
+                body: JSON.stringify(updates)
             });
 
             if (response.ok) {
                 // Reload to get updated list
                 await loadSavedDiscourses();
             } else {
-                // Backend currently does not expose PUT for saved discourse updates.
-                console.warn("Saved discourse update is not supported by backend yet.");
+                console.error(
+                    "Failed to update saved discourse:",
+                    response.status,
+                    response.statusText
+                );
             }
         } catch (error) {
             console.error("Error updating discourse:", error);
