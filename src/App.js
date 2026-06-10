@@ -36,9 +36,10 @@ function App() {
                   <Route path="/password/newpassword" element={<NewPassword />} />
                 </Route>
 
-                {/* should be protected */}
-                <Route index element={<Chatpage />} />
-                <Route path="/home" element={<Chatpage />} />
+                <Route index element={<Navigate to="/signin" replace />} />
+                <Route element={<PrivateRoute />}>
+                  <Route path="/home" element={<Chatpage />} />
+                </Route>
                 <Route path="/users" element={<UserList />} />
                 <Route path="/blog/:slugId" element={<Blog />} />
                 <Route path="*" element={<ErrorPage />} />
@@ -51,16 +52,15 @@ function App() {
   );
 }
 
-// PrivateRoute component for protected routes
-// const PrivateRoute = ({ children }) => {
-//   const { user } = useAuth();
-//   return user ? <Outlet /> : <Navigate to="/signin" />;
-// };
+const PrivateRoute = () => {
+  const { user } = useAuth();
+  return user ? <Outlet /> : <Navigate to="/signin" />;
+};
 
 // ProtectedRoute component for auth routes
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-  return !user ? <Outlet /> : <Navigate to="/" />;
+  return !user ? <Outlet /> : <Navigate to="/home" />;
 };
 
 export default App;
