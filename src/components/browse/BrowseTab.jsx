@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FaSpinner } from "react-icons/fa";
 import { GoArrowUpRight } from "react-icons/go";
 import { BsBookmarkFill, BsTrash } from "react-icons/bs";
+import DecorativeBackground from "../common/DecorativeBackground";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 
 // Question-context strings that are placeholders rather than real questions.
@@ -123,7 +124,9 @@ export default function BrowseTab() {
     useSavedDiscourses();
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-6">
+    <div className="relative isolate h-full overflow-hidden">
+      <DecorativeBackground />
+      <div className="h-full overflow-y-auto px-6 py-6">
       <div className="mb-6">
         <h1
           className="text-3xl font-semibold text-gray-800"
@@ -163,6 +166,7 @@ export default function BrowseTab() {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

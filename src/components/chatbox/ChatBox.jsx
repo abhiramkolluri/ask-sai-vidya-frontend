@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
+import DecorativeBackground from "../common/DecorativeBackground";
 import { apiRoute } from "../../helpers/apiRoute";
 
 const cache = {};
@@ -318,7 +319,8 @@ export default function ChatBox({
 
   return (
     <div className="w-full flex flex-col h-[100vh] mt-16 bg-white">
-      <div className="flex-1 flex flex-col relative min-h-0">
+      <div className="flex-1 flex flex-col relative min-h-0 isolate">
+        <DecorativeBackground />
         {messages.length > 0 ? (
           <div
             ref={containerRef}
