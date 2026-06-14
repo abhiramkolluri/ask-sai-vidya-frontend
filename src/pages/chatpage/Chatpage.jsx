@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
+import BrowseTab from "../../components/browse/BrowseTab";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
@@ -13,6 +14,7 @@ const Chatpage = () => {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [activeTab, setActiveTab] = useState("chat"); // "chat" | "browse"
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
 
@@ -413,18 +415,40 @@ const Chatpage = () => {
           <Navbar />
         </div>
 
-        {/* ChatBox */}
-        <ChatBox
-          newChat={newChat}
-          selectedThreadId={selectedThreadId}
-          addThread={addThread}
-          threads={threads}
-          user={user}
-          generateTitleFromQuestion={getTitleFromQuestion} // Using simple truncation for now not AI generation
-          savedDiscourses={savedDiscourses}
-          onSaveDiscourse={handleSaveDiscourse}
-          onUnsaveDiscourse={handleUnsaveDiscourse}
-        />
+        {/* Tab toggle: Chat vs Browse Saved Discourses */}
+        <div className="absolute top-4 left-16 z-40 flex overflow-hidden rounded-lg bg-white shadow-md">
+          <button
+            onClick={() => setActiveTab("chat")}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "chat" ? "bg-[#BC5B01] text-white" : "text-gray-600 hover:bg-gray-50"}`}
+          >
+            Chat
+          </button>
+          <button
+            onClick={() => setActiveTab("browse")}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "browse" ? "bg-[#BC5B01] text-white" : "text-gray-600 hover:bg-gray-50"}`}
+          >
+            Saved Discourses
+          </button>
+        </div>
+
+        {/* Main view */}
+        {activeTab === "chat" ? (
+          <ChatBox
+            newChat={newChat}
+            selectedThreadId={selectedThreadId}
+            addThread={addThread}
+            threads={threads}
+            user={user}
+            generateTitleFromQuestion={getTitleFromQuestion} // Using simple truncation for now not AI generation
+            savedDiscourses={savedDiscourses}
+            onSaveDiscourse={handleSaveDiscourse}
+            onUnsaveDiscourse={handleUnsaveDiscourse}
+          />
+        ) : (
+          <div className="flex-grow overflow-hidden pt-16">
+            <BrowseTab />
+          </div>
+        )}
       </div>
     </div>
   );
