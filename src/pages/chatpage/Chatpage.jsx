@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
+import BrowseTab from "../../components/browse/BrowseTab";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
@@ -8,6 +9,7 @@ import { apiRoute } from "../../helpers/apiRoute";
 // import Feedback from "../../components/feedback/Feedback";
 
 const Chatpage = () => {
+  const [activeTab, setActiveTab] = useState("chat"); // "chat" | "browse"
   const [newChat, setNewChat] = useState(null);
   const [selectedThreadId, setSelectedThreadId] = useState(null);
   const [threads, setThreads] = useState([]);
@@ -62,11 +64,14 @@ const Chatpage = () => {
 
       if (response.ok) {
         const chatThreads = await response.json();
-        setThreads(chatThreads);
 
-        // If user has existing chats, select the most recent one
         if (chatThreads.length > 0) {
+          setThreads(chatThreads);
           setSelectedThreadId(chatThreads[0].id);
+        } else {
+          const newThread = await createNewChatThread();
+          setThreads([newThread]);
+          setSelectedThreadId(newThread.id);
         }
       } else {
         console.error("Failed to load chats:", response.statusText);
@@ -306,6 +311,8 @@ const Chatpage = () => {
         }
         return updatedThreads;
       } else {
+        // New thread: set it as selected so ChatBox doesn't clear messages
+        setSelectedThreadId(thread.id);
         const newThreads = [thread, ...prevThreads];
         // Save to backend if user is logged in
         if (user && user.token) {
@@ -413,18 +420,48 @@ const Chatpage = () => {
           <Navbar />
         </div>
 
-        {/* ChatBox */}
-        <ChatBox
-          newChat={newChat}
-          selectedThreadId={selectedThreadId}
-          addThread={addThread}
-          threads={threads}
-          user={user}
-          generateTitleFromQuestion={getTitleFromQuestion} // Using simple truncation for now not AI generation
-          savedDiscourses={savedDiscourses}
-          onSaveDiscourse={handleSaveDiscourse}
-          onUnsaveDiscourse={handleUnsaveDiscourse}
-        />
+        {/* Tab bar */}
+        <div className="absolute top-[72px] left-0 right-0 z-30 flex border-b border-gray-100 bg-white px-16">
+          <button
+            onClick={() => setActiveTab("chat")}
+            className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === "chat"
+                ? "border-[#BC5B01] text-[#BC5B01]"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Chat
+          </button>
+          <button
+            onClick={() => setActiveTab("browse")}
+            className={`px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === "browse"
+                ? "border-[#BC5B01] text-[#BC5B01]"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Browse Discourses
+          </button>
+        </div>
+
+        {/* Tab content */}
+        <div className="flex-grow mt-[112px] overflow-hidden">
+          {activeTab === "chat" ? (
+            <ChatBox
+              newChat={newChat}
+              selectedThreadId={selectedThreadId}
+              addThread={addThread}
+              threads={threads}
+              user={user}
+              generateTitleFromQuestion={getTitleFromQuestion}
+              savedDiscourses={savedDiscourses}
+              onSaveDiscourse={handleSaveDiscourse}
+              onUnsaveDiscourse={handleUnsaveDiscourse}
+            />
+          ) : (
+            <BrowseTab />
+          )}
+        </div>
       </div>
     </div>
   );

@@ -25,13 +25,21 @@ export const AuthProvider = ({ children }) => {
     logout: auth0Logout
   } = useAuth0();
 
-  // Load user from localStorage on app start
+  // Load user from localStorage on app start, validating token expiry
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     const savedToken = localStorage.getItem('token');
 
     if (savedUser && savedToken) {
       try {
+        // Check if JWT is expired before restoring session
+        const payload = JSON.parse(atob(savedToken.split('.')[1]));
+        if (payload.exp && payload.exp * 1000 < Date.now()) {
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          return;
+        }
+
         const parsedUser = JSON.parse(savedUser);
         setUser({
           ...parsedUser,
@@ -200,11 +208,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Auto-logout on 401 responses (expired or invalid token)
+  const handleUnauthorized = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+  };
+
   const value = {
     user,
     login,
     register,
     logout,
+    handleUnauthorized,
     loginWithAuth0,
     loggingIn,
     registering,
