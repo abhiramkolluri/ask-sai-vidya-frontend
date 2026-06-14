@@ -352,11 +352,11 @@ export default function ChatBox({
           </div>
         )}
 
-        <div className="sticky bottom-0 mx-4 md:mx-auto w-full max-w-4xl mx-auto bg-white p-4">
-          <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[70px] p-4 bg-white">
+        <div className="sticky bottom-4 mx-4 md:mx-auto w-full max-w-4xl mx-auto bg-white p-4">
+          <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[84px] p-4 bg-white">
             <textarea
               ref={inputRef}
-              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px] bg-transparent"
+              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[72px] bg-transparent"
               id="textBox"
               cols="10"
               rows="2"
