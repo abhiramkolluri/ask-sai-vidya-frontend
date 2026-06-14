@@ -20,8 +20,8 @@ export default function SideNav({
 }) {
   const [sectionData, setSectionData] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [chatHistoryOpen, setChatHistoryOpen] = useState(false); // Changed to false (collapsed by default)
-  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(false); // Already false
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(true); // Expanded by default
+  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(true); // Expanded by default
   const [selectedDiscourse, setSelectedDiscourse] = useState(null);
   const [discourseToDelete, setDiscourseToDelete] = useState(null); // For delete confirmation modal
 
@@ -120,7 +120,7 @@ export default function SideNav({
             onClick={() => setChatHistoryOpen(!chatHistoryOpen)}
             className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
           >
-            <span className="font-semibold text-gray-700 flex items-center gap-2">
+            <span className="font-semibold text-lg text-gray-900 flex items-center gap-2">
               <IoChatbubbleEllipsesOutline size={20} className="text-primary" />
               Chat History ({threads.length})
             </span>
@@ -159,7 +159,7 @@ export default function SideNav({
             onClick={() => setSavedDiscoursesOpen(!savedDiscoursesOpen)}
             className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
           >
-            <span className="font-semibold text-gray-700 flex items-center gap-2">
+            <span className="font-semibold text-lg text-gray-900 flex items-center gap-2">
               <BsBookmarkStarFill size={18} className="text-primary" />
               Saved Discourses ({savedDiscourses.length})
             </span>
