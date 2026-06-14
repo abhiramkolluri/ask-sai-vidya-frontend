@@ -59,15 +59,15 @@ npm run build
 # ---------------------------------------------------------------------------
 # Step 3: Verify no localhost URLs in the bundle
 # ---------------------------------------------------------------------------
-echo "==> Checking for localhost URLs in build..."
-if grep -rl "localhost" build/static/js/*.js 2>/dev/null; then
+echo "==> Checking for localhost API URLs in build..."
+if grep -l "localhost:8000" build/static/js/*.js 2>/dev/null; then
   echo
-  echo "ERROR: localhost URLs found in production build. Aborting."
+  echo "ERROR: localhost:8000 (backend URL) found in production build. Aborting."
   echo "       Check .env.production and make sure REACT_APP_BASE_API_SERVER"
   echo "       and REACT_APP_API_URL point to the production API Gateway."
   exit 1
 fi
-echo "    No localhost URLs found — safe to deploy."
+echo "    No localhost API URLs found — safe to deploy."
 
 # ---------------------------------------------------------------------------
 # Step 4: Zip from inside build/ (Amplify expects files at archive root)

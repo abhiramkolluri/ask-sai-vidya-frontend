@@ -83,13 +83,6 @@ const Chatpage = () => {
     }
   };
 
-  // Load user when component mounts
-  useEffect(() => {
-    if (user && user.token) {
-      loadUserChats();
-    }
-  }, [user]);
-
   // Create a new chat thread in backend
   const createNewChatThread = async (title = "New Chat") => {
     if (!user || !user.token) {

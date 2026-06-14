@@ -23,6 +23,7 @@ export default function ChatBox({
   const [loadingIndex, setLoadingIndex] = useState(null); // Track loading for specific question
   const containerRef = useRef(null);
   const inputRef = useRef(null);
+  const threadsRef = useRef(threads);
 
   const fetchPrimaryResponse = async (question) => {
     if (cache[question]?.primaryResponse) {
@@ -220,38 +221,37 @@ export default function ChatBox({
   }, [newChat]);
 
   useEffect(() => {
+    threadsRef.current = threads;
+  }, [threads]);
+
+  useEffect(() => {
     const loadMessages = async () => {
       if (selectedThreadId) {
-        // First check if thread exists locally and has messages
-        const selectedThread = threads.find(
+        const currentThreads = threadsRef.current;
+        const selectedThread = currentThreads.find(
           (thread) => thread.id === selectedThreadId,
         );
 
         if (selectedThread && selectedThread.messages && selectedThread.messages.length > 0) {
-          // Use local messages if available
           setMessages(selectedThread.messages);
         } else if (user && user.token && user.email) {
-          // Load messages from backend if user is logged in
           try {
             const backendMessages = await loadThreadMessages(selectedThreadId);
             setMessages(backendMessages);
           } catch (error) {
             console.error("Error loading messages from backend:", error);
-            // Fallback to local messages or empty array
             setMessages(selectedThread?.messages || []);
           }
         } else {
-          // Not logged in, use local messages or empty array
           setMessages(selectedThread?.messages || []);
         }
       } else {
-        // No thread selected, clear messages
         setMessages([]);
       }
     };
 
     loadMessages();
-  }, [selectedThreadId, threads, user]);
+  }, [selectedThreadId]);
 
   const handleSampleQuestionClick = async (question) => {
     await handleSend(question);
