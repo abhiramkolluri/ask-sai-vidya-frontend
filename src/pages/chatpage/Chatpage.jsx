@@ -371,7 +371,7 @@ const Chatpage = () => {
   return (
     <div className="w-full h-[100vh] flex overflow-hidden bg-white">
       {/* Sidebar */}
-      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px]' : 'w-0'
+      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px] border-r border-gray-200' : 'w-0'
         } hidden md:flex`}>
         <SideNav
           startNewChatCallback={handleNewChat}
