@@ -139,7 +139,6 @@ export default function ChatBox({
       setAskQuestion("");
       inputRef.current.value = "";
       console.log(setAskQuestion)
-      console.log("hi guys shreyas here")
 
       const newIndex = messages.length;
       const updatedMessages = [...messages, { question: val, reply: null }];

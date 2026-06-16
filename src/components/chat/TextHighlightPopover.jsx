@@ -30,6 +30,19 @@ export default function TextHighlightPopover({
         }
     }, [isCommentMode]);
 
+    // Clamp popover within viewport bounds after every render
+    useEffect(() => {
+        if (!visible || !popoverRef.current) return;
+        const el = popoverRef.current;
+        const rect = el.getBoundingClientRect();
+        if (rect.right > window.innerWidth - 8) {
+            el.style.left = `${window.innerWidth - rect.width - 8}px`;
+        }
+        if (rect.bottom > window.innerHeight - 8) {
+            el.style.top = `${window.innerHeight - rect.height - 8}px`;
+        }
+    }, [visible, isCommentMode]);
+
     const handleHighlightClick = () => {
         onHighlight();
         setIsCommentMode(false);

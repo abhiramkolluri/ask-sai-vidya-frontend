@@ -480,7 +480,6 @@ export default function Reply({
                             to={`/blog/${item._id}`}
                             state={{ citations, questionContext: question }}
                             className="flex"
-                            onClick={handleSeeMore}
                           >
                             See more
                             <GoArrowUpRight size={20} />
