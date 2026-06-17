@@ -7,6 +7,7 @@ import { IoChevronDown, IoChevronUp, IoChatbubbleEllipsesOutline } from "react-i
 import { BsBookmarkFill, BsTrash, BsBookmarkStarFill } from "react-icons/bs";
 import { GoArrowUpRight } from "react-icons/go";
 import ChatSection from "../chat/chatSection/ChatSection";
+import { formatCollection } from "../../helpers/formatCollection";
 
 export default function SideNav({
   threads = [],
@@ -186,7 +187,7 @@ export default function SideNav({
                           onClick={() => handleViewDiscourse(saved)}
                         >
                           <p className="font-medium text-gray-800 text-sm truncate flex items-center gap-2">
-                            {saved.discourse.title}
+                            {formatCollection(saved.discourse.title)}
                             {saved.discourse.highlights && saved.discourse.highlights.length > 0 && (
                               <span className="inline-flex items-center justify-center bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">
                                 {saved.discourse.highlights.length} ✨
@@ -240,7 +241,7 @@ export default function SideNav({
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-800">
-                {selectedDiscourse.discourse.title}
+                {formatCollection(selectedDiscourse.discourse.title)}
               </h2>
               <button
                 onClick={handleCloseDiscourseModal}

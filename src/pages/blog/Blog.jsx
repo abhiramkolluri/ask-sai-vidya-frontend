@@ -14,6 +14,7 @@ import Navbar from "../../components/Navbar";
 import TextHighlightPopover from "../../components/chat/TextHighlightPopover";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
+import { formatCollection } from "../../helpers/formatCollection";
 
 export default function Blog() {
   const { slugId } = useParams();
@@ -360,7 +361,7 @@ export default function Blog() {
               {post.collection && (
                 <div className="flex gap-2 text-sm items-center">
                   <IoMdList size={18} className="text-orange-400" />
-                  <p className="text-gray-500">{post.collection}</p>
+                  <p className="text-gray-500">{formatCollection(post.collection)}</p>
                 </div>
               )}
 
@@ -457,7 +458,7 @@ export default function Blog() {
                     <p className="text-[#4D4D4D]">{c?.title}</p>
                     <div className="flex gap-2 text-sm items-center">
                       <IoMdList size={18} className="text-orange-400" />
-                      <p className="text-gray-500">{c?.collection}</p>
+                      <p className="text-gray-500">{formatCollection(c?.collection)}</p>
                     </div>
                     <div className="flex gap-2 text-sm items-center ">
                       <IoCalendar size={18} className="text-orange-400" />

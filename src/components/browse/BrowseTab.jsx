@@ -4,6 +4,7 @@ import { FaSpinner } from "react-icons/fa";
 import { GoArrowUpRight } from "react-icons/go";
 import { BsBookmarkFill, BsTrash } from "react-icons/bs";
 import DecorativeBackground from "../common/DecorativeBackground";
+import { formatCollection } from "../../helpers/formatCollection";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 
 // Question-context strings that are placeholders rather than real questions.
@@ -70,7 +71,7 @@ function SavedDiscourseCard({ saved, onRemove }) {
             className="text-2xl font-semibold text-gray-900"
             style={{ fontFamily: "'EB Garamond', serif" }}
           >
-            {discourse.title}
+            {formatCollection(discourse.title)}
           </h2>
           {saved_at && (
             <p className="mt-1 text-sm text-gray-400">

@@ -12,6 +12,7 @@ import { FaSpinner } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import { Link } from "react-router-dom";
 import { apiRoute, submitFeedback } from "../../../helpers/apiRoute";
+import { formatCollection } from "../../../helpers/formatCollection";
 
 import Feedback from "../../feedback/Feedback";
 import TextHighlightPopover from "../TextHighlightPopover";
@@ -422,7 +423,7 @@ export default function Reply({
                             [{index + 1}] {"\t\t"}
                           </span>
                           <span className="font-lg font-bold ">
-                            {item.title} of "{item.collection}"
+                            {item.title} of "{formatCollection(item.collection)}"
                           </span>
                         </p>
                         <p className="italic">{item.date}</p>
