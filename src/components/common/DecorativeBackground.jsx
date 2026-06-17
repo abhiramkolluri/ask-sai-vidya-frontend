@@ -2,7 +2,7 @@ import React from "react";
 import tree from "../../assets/illustrations/tree.svg";
 import birds from "../../assets/illustrations/birds.svg";
 import butterflies from "../../assets/illustrations/butterflies.svg";
-import doveOutline from "../../assets/illustrations/dove-outline.svg";
+import swami from "../../assets/illustrations/swami.svg";
 
 // Subtle, non-interactive illustration layer used behind page content.
 // Sits at -z-10 inside an `isolate` parent so it never intercepts clicks
@@ -14,9 +14,9 @@ export default function DecorativeBackground() {
       aria-hidden="true"
     >
       <img
-        src={doveOutline}
+        src={swami}
         alt=""
-        className="absolute left-6 top-10 w-24 opacity-[0.22] md:w-32"
+        className="absolute left-6 top-36 w-32 opacity-[0.25] md:w-44"
       />
       <img
         src={birds}
@@ -26,12 +26,12 @@ export default function DecorativeBackground() {
       <img
         src={tree}
         alt=""
-        className="absolute -left-4 bottom-0 w-52 opacity-[0.20] md:w-72"
+        className="absolute -right-4 bottom-0 w-52 opacity-[0.20] md:w-72"
       />
       <img
         src={butterflies}
         alt=""
-        className="absolute right-6 bottom-20 w-36 opacity-[0.24] md:w-52"
+        className="absolute left-6 bottom-20 w-36 opacity-[0.24] md:w-52"
       />
     </div>
   );
