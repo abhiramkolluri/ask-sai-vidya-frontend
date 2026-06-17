@@ -475,15 +475,15 @@ export default function Reply({
                         )}
 
                         <br />
-                        <span className="text-primary underline">
+                        <span className="text-primary underline text-lg">
                           <Link
                             to={`/blog/${item._id}`}
                             state={{ citations, questionContext: question }}
                             className="flex"
                             onClick={handleSeeMore}
                           >
-                            See more
-                            <GoArrowUpRight size={20} />
+                            Read the Discourse
+                            <GoArrowUpRight size={22} />
                           </Link>
                         </span>
                       </div>
