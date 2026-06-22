@@ -305,14 +305,6 @@ export default function Reply({
     }
   };
 
-  const handleSeeMore = (event) => {
-    // Code to handle the click event goes here
-    event.preventDefault(); // Stop the default navigation
-
-    // Open the link in a new tab with desired features (optional)
-    window.open(event.target.href, "_blank", "noopener,noreferrer");
-  };
-
   const handleFeedbackClick = (type) => {
     setFeedbackType(type);
     setshowFeedbackModal(true);
@@ -481,7 +473,6 @@ export default function Reply({
                             to={`/blog/${item._id}`}
                             state={{ citations, questionContext: question }}
                             className="flex"
-                            onClick={handleSeeMore}
                           >
                             Read the Discourse
                             <GoArrowUpRight size={22} />

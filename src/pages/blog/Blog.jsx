@@ -37,6 +37,7 @@ export default function Blog() {
   const [highlights, setHighlights] = useState([]);
   const [activeHighlightId, setActiveHighlightId] = useState(null); // Track which highlight is being viewed
   const contentRef = useRef(null);
+  const matchedRef = useRef(null); // the braces-wrapped matched passage block
 
   const { isLoading, isRefetching, data, isError, refetch } = useQuery(
     "blogPost",
@@ -49,6 +50,18 @@ export default function Blog() {
   useEffect(() => {
     refetch();
   }, [slugId, refetch]);
+
+  // When a discourse is opened from a citation, scroll the matched passage into
+  // view once it has rendered, so the answer is shown immediately.
+  useEffect(() => {
+    if (!data) return;
+    const t = setTimeout(() => {
+      if (matchedRef.current) {
+        matchedRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 150);
+    return () => clearTimeout(t);
+  }, [data, slugId]);
 
   // Load saved discourse highlights for this blog post
   useEffect(() => {
@@ -316,6 +329,98 @@ export default function Blog() {
     // return <div>{JSON.stringify(data)}</div>;
     const post = data;
 
+    // If we arrived here from a chat/search citation, find the matched passage
+    // for THIS discourse and locate the contiguous block of paragraphs it covers,
+    // so we can wrap it in decorative braces to show where the answer lives.
+    const matchedCitation = state?.citations?.find(
+      (c) => c._id === slugId || c._id === post._id
+    );
+    let matchedPassageText = matchedCitation?.matched_passage || "";
+
+    // Fallback: router state is lost on refresh / direct URL, so recover the
+    // matched passage for this discourse from sessionStorage (set at search time).
+    if (!matchedPassageText) {
+      try {
+        const map = JSON.parse(
+          sessionStorage.getItem("asv_matched_passages") || "{}"
+        );
+        matchedPassageText = map[slugId] || map[post._id] || "";
+      } catch (e) {
+        /* sessionStorage unavailable — non-fatal */
+      }
+    }
+
+    const contentLines = (post?.content || "").split("\n");
+    const normalize = (s) => (s || "").replace(/\s+/g, " ").trim();
+    const normMatched = normalize(matchedPassageText);
+    const normFull = normalize(post?.content || "");
+
+    // Map each non-empty line to its [start, end) char span within normFull, in order.
+    let cursor = 0;
+    const lineSpans = contentLines.map((line) => {
+      const nl = normalize(line);
+      if (!nl) return null;
+      const idx = normFull.indexOf(nl, cursor);
+      if (idx === -1) return null;
+      cursor = idx + nl.length;
+      return [idx, idx + nl.length];
+    });
+
+    // Locate the passage's char span using a distinctive middle anchor — robust
+    // to a truncated overlap prefix and to passages that are only part of a
+    // (very long) paragraph.
+    let passageSpan = null;
+    if (normMatched) {
+      const anchorLen = Math.min(120, normMatched.length);
+      const anchorStart = Math.max(0, Math.floor((normMatched.length - anchorLen) / 2));
+      const anchor = normMatched.slice(anchorStart, anchorStart + anchorLen);
+      const pos = normFull.indexOf(anchor);
+      if (pos !== -1) {
+        const start = Math.max(0, pos - anchorStart);
+        passageSpan = [start, start + normMatched.length];
+      }
+    }
+
+    let matchStart = -1;
+    let matchEnd = -1;
+    if (passageSpan) {
+      contentLines.forEach((line, i) => {
+        const span = lineSpans[i];
+        if (!span) return;
+        const interStart = Math.max(span[0], passageSpan[0]);
+        const interEnd = Math.min(span[1], passageSpan[1]);
+        const inter = interEnd - interStart;
+        if (inter <= 0) return;
+        const lineLen = span[1] - span[0];
+        const passageInsideLine =
+          passageSpan[0] >= span[0] && passageSpan[1] <= span[1];
+        // Mark a paragraph if the passage is inside it, or it is mostly covered
+        // by the passage (filters out the partial overlap paragraph at the top).
+        if (passageInsideLine || inter >= lineLen * 0.5) {
+          if (matchStart === -1) matchStart = i;
+          matchEnd = i;
+        }
+      });
+    }
+
+    const renderLine = (text, index) => (
+      <React.Fragment key={index}>
+        {text.includes(". ") ? (
+          <p className="mb-4">{renderContentWithHighlight(text)}</p>
+        ) : (
+          <h3 className="text-lg mb-4">
+            <strong>{renderContentWithHighlight(text)}</strong>
+          </h3>
+        )}
+      </React.Fragment>
+    );
+
+    const braceStyle = {
+      fontSize: "2.5rem",
+      transform: "scaleY(7)",
+      transformOrigin: "center",
+    };
+
     return (
       <div className="w-full">
         {/* Text Highlight Popover */}
@@ -425,17 +530,40 @@ export default function Blog() {
 
               {/* Content with text selection enabled - Added padding bottom for scroll space */}
               <div onMouseUp={handleTextSelection} className="select-text cursor-text pb-[50vh]">
-                {post?.content?.split("\n").map((text, index) => (
-                  <React.Fragment key={index}>
-                    {text.includes(". ") ? (
-                      <p className="mb-4">{renderContentWithHighlight(text)}</p>
-                    ) : (
-                      <h3 className="text-lg mb-4">
-                        <strong>{renderContentWithHighlight(text)}</strong>
-                      </h3>
-                    )}
-                  </React.Fragment>
-                ))}
+                {matchStart === -1 ? (
+                  contentLines.map((text, index) => renderLine(text, index))
+                ) : (
+                  <>
+                    {contentLines
+                      .slice(0, matchStart)
+                      .map((text, index) => renderLine(text, index))}
+
+                    {/* Matched passage — wrapped in decorative braces */}
+                    <div ref={matchedRef} className="relative my-6 px-10">
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none select-none absolute left-0 top-0 bottom-0 flex items-center font-light text-gray-600"
+                        style={braceStyle}
+                      >
+                        {"{"}
+                      </span>
+                      {contentLines
+                        .slice(matchStart, matchEnd + 1)
+                        .map((text, index) => renderLine(text, matchStart + index))}
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none select-none absolute right-0 top-0 bottom-0 flex items-center font-light text-gray-400"
+                        style={braceStyle}
+                      >
+                        {"}"}
+                      </span>
+                    </div>
+
+                    {contentLines
+                      .slice(matchEnd + 1)
+                      .map((text, index) => renderLine(text, matchEnd + 1 + index))}
+                  </>
+                )}
               </div>
             </div>
           </div>
