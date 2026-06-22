@@ -107,8 +107,8 @@ export default function SideNav({
         </div>
         <input
           type="text"
-          placeholder="Search"
-          className="w-full p-2 outline-none -ml-2 bg-transparent"
+          placeholder="Find past questions and saved discourses"
+          className="w-full p-2 outline-none -ml-2 bg-transparent text-base font-semibold placeholder:font-semibold"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -121,7 +121,7 @@ export default function SideNav({
             onClick={() => setChatHistoryOpen(!chatHistoryOpen)}
             className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
           >
-            <span className="font-semibold text-lg text-black flex items-center gap-2">
+            <span className="font-semibold text-lg text-gray-800 flex items-center gap-2">
               <IoChatbubbleEllipsesOutline size={20} className="text-primary" />
               Chat History ({threads.length})
             </span>
@@ -133,7 +133,7 @@ export default function SideNav({
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <FaSpinner className="animate-spin text-orange-400" size={24} />
-                  <span className="ml-2 text-black">Loading chats...</span>
+                  <span className="ml-2 text-gray-800">Loading chats...</span>
                 </div>
               ) : Object.keys(sectionData).length > 0 ? (
                 Object.keys(sectionData).map((key) => (
@@ -146,7 +146,7 @@ export default function SideNav({
                   />
                 ))
               ) : (
-                <div className="flex items-center justify-center py-8 text-black text-lg">
+                <div className="flex items-center justify-center py-8 text-gray-800 text-lg">
                   <span>No chats yet</span>
                 </div>
               )}
@@ -160,7 +160,7 @@ export default function SideNav({
             onClick={() => setSavedDiscoursesOpen(!savedDiscoursesOpen)}
             className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
           >
-            <span className="font-semibold text-lg text-black flex items-center gap-2">
+            <span className="font-semibold text-lg text-gray-800 flex items-center gap-2">
               <BsBookmarkStarFill size={18} className="text-primary" />
               Saved Discourses ({savedDiscourses.length})
             </span>
@@ -172,7 +172,7 @@ export default function SideNav({
               {loadingSaved ? (
                 <div className="flex items-center justify-center py-8">
                   <FaSpinner className="animate-spin text-orange-400" size={24} />
-                  <span className="ml-2 text-black">Loading...</span>
+                  <span className="ml-2 text-gray-800">Loading...</span>
                 </div>
               ) : savedDiscourses.length > 0 ? (
                 <div className="flex flex-col gap-2">
@@ -186,7 +186,7 @@ export default function SideNav({
                           className="flex-1 min-w-0"
                           onClick={() => handleViewDiscourse(saved)}
                         >
-                          <p className="font-medium text-black text-base truncate flex items-center gap-2">
+                          <p className="font-medium text-gray-800 text-base truncate flex items-center gap-2">
                             {formatCollection(saved.discourse.title)}
                             {saved.discourse.highlights && saved.discourse.highlights.length > 0 && (
                               <span className="inline-flex items-center justify-center bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">
@@ -194,10 +194,10 @@ export default function SideNav({
                               </span>
                             )}
                           </p>
-                          <p className="text-sm text-black mt-1 truncate">
+                          <p className="text-sm text-gray-800 mt-1 truncate">
                             From: "{saved.question_context}"
                           </p>
-                          <p className="text-sm text-black mt-1">
+                          <p className="text-sm text-gray-800 mt-1">
                             {new Date(saved.saved_at).toLocaleDateString()}
                           </p>
                         </div>
@@ -216,8 +216,8 @@ export default function SideNav({
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-black text-center px-2">
-                  <BsBookmarkFill size={32} className="text-gray-300 mb-2" />
+                <div className="flex flex-col items-center justify-center py-8 text-gray-800 text-center px-2">
+                  <BsBookmarkFill size={32} className="text-primary/40 mb-2" />
                   <span className="text-lg">No saved discourses yet</span>
                   <span className="text-base mt-1">Click the bookmark icon on any discourse to save it</span>
                 </div>

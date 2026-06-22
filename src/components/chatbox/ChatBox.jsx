@@ -358,7 +358,7 @@ export default function ChatBox({
         ) : (
           <div className="flex-grow overflow-y-scroll flex justify-center items-center">
             <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4 px-4">
-              <p className="p-2 text-black text-justify min-w-[350px] text-xl">
+              <p className="p-2 text-gray-800 text-justify min-w-[350px] text-xl">
                 Ask a question to&nbsp;<b>Sai Vidya</b> and get discourses that you can explore.
               </p>
               <div>
@@ -372,7 +372,7 @@ export default function ChatBox({
           <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[84px] p-4 bg-white">
             <textarea
               ref={inputRef}
-              className="flex-grow rounded pt-3 resize-none outline-none text-xl min-h-[72px] bg-transparent text-black placeholder:text-black"
+              className="flex-grow rounded pt-3 resize-none outline-none text-xl min-h-[72px] bg-transparent text-gray-800 placeholder:text-gray-800"
               id="textBox"
               cols="10"
               rows="2"

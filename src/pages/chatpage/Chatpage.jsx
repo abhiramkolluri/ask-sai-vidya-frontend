@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
 import BrowseTab from "../../components/browse/BrowseTab";
+import HowToTab from "../../components/howto/HowToTab";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
@@ -373,7 +374,7 @@ const Chatpage = () => {
   return (
     <div className="w-full h-[100vh] flex overflow-hidden bg-white">
       {/* Sidebar */}
-      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px] border-r border-gray-200' : 'w-0'
+      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[340px] border-r-2 border-primary/40' : 'w-0'
         } hidden md:flex`}>
         <SideNav
           startNewChatCallback={handleNewChat}
@@ -429,10 +430,16 @@ const Chatpage = () => {
           >
             Saved Discourses
           </button>
+          <button
+            onClick={() => setActiveTab("howto")}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "howto" ? "bg-[#BC5B01] text-white" : "text-gray-600 hover:bg-gray-50"}`}
+          >
+            How to Use
+          </button>
         </div>
 
         {/* Main view */}
-        {activeTab === "chat" ? (
+        {activeTab === "chat" && (
           <ChatBox
             newChat={newChat}
             selectedThreadId={selectedThreadId}
@@ -444,9 +451,15 @@ const Chatpage = () => {
             onSaveDiscourse={handleSaveDiscourse}
             onUnsaveDiscourse={handleUnsaveDiscourse}
           />
-        ) : (
+        )}
+        {activeTab === "browse" && (
           <div className="flex-grow overflow-hidden pt-16">
             <BrowseTab />
+          </div>
+        )}
+        {activeTab === "howto" && (
+          <div className="flex-grow overflow-hidden pt-16">
+            <HowToTab />
           </div>
         )}
       </div>

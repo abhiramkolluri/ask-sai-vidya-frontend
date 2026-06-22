@@ -25,7 +25,7 @@ function Highlights({ highlights }) {
   if (!highlights || highlights.length === 0) return null;
   return (
     <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-black">
+      <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-gray-800">
         <span className="text-yellow-600">✨</span>
         Your Highlights &amp; Comments ({highlights.length})
       </h3>
@@ -36,18 +36,18 @@ function Highlights({ highlights }) {
             className="rounded border border-yellow-300 bg-white p-3"
           >
             <div className="mb-2 inline-block rounded bg-yellow-200 px-2 py-1">
-              <p className="text-base text-black">"{highlight.text}"</p>
+              <p className="text-base text-gray-800">"{highlight.text}"</p>
             </div>
             {highlight.comment && (
               <div className="mt-2 border-l-2 border-blue-400 pl-3">
-                <p className="text-sm font-medium text-black">Your comment:</p>
+                <p className="text-sm font-medium text-gray-800">Your comment:</p>
                 <p className="mt-1 text-base italic text-blue-700">
                   💬 {highlight.comment}
                 </p>
               </div>
             )}
             {highlight.timestamp && (
-              <p className="mt-2 text-sm text-black">
+              <p className="mt-2 text-sm text-gray-800">
                 {new Date(highlight.timestamp).toLocaleString()}
               </p>
             )}
@@ -68,13 +68,13 @@ function SavedDiscourseCard({ saved, onRemove }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h2
-            className="text-2xl font-semibold text-black"
+            className="text-2xl font-semibold text-gray-800"
             style={{ fontFamily: "'EB Garamond', serif" }}
           >
             {formatCollection(discourse.title)}
           </h2>
           {saved_at && (
-            <p className="mt-1 text-sm text-black">
+            <p className="mt-1 text-sm text-gray-800">
               Saved {new Date(saved_at).toLocaleDateString()}
             </p>
           )}
@@ -90,10 +90,10 @@ function SavedDiscourseCard({ saved, onRemove }) {
 
       {isRealContext(question_context) && (
         <div className="mt-3 rounded bg-orange-50 p-3">
-          <p className="text-base text-black">
+          <p className="text-base text-gray-800">
             <strong>You discovered this while asking:</strong>
           </p>
-          <p className="mt-1 text-base italic text-black">
+          <p className="mt-1 text-base italic text-gray-800">
             "{question_context}"
           </p>
         </div>
@@ -130,12 +130,12 @@ export default function BrowseTab() {
       <div className="h-full overflow-y-auto px-6 py-6">
       <div className="mb-6">
         <h1
-          className="text-3xl font-semibold text-black"
+          className="text-3xl font-semibold text-gray-800"
           style={{ fontFamily: "'EB Garamond', serif" }}
         >
           Browse Saved Discourses
         </h1>
-        <p className="mt-1 text-base text-black">
+        <p className="mt-1 text-base text-gray-800">
           Your saved discourses, with your highlights and comments.
         </p>
       </div>
@@ -147,10 +147,10 @@ export default function BrowseTab() {
       )}
 
       {!loadingSaved && savedDiscourses.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center text-black">
-          <BsBookmarkFill size={40} className="mb-3 text-gray-300" />
+        <div className="flex flex-col items-center justify-center py-20 text-center text-gray-800">
+          <BsBookmarkFill size={40} className="mb-3 text-primary/40" />
           <p className="text-lg">No saved discourses yet</p>
-          <p className="mt-1 text-base text-black">
+          <p className="mt-1 text-base text-gray-800">
             Click the bookmark icon on any discourse to save it.
           </p>
         </div>
