@@ -68,7 +68,7 @@ export default function HowToTab() {
           </div>
 
           {/* Right: the "dialogue" cards, joined by a dashed connector curve */}
-          <div className="relative w-full lg:w-3/5">
+          <div className="relative w-full lg:w-3/5 lg:-translate-x-8">
             <div className="relative">
               <svg
                 aria-hidden="true"
