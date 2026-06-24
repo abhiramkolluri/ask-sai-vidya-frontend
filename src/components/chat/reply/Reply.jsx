@@ -420,20 +420,27 @@ export default function Reply({
                         </p>
                         <p className="italic">{item.date}</p>
 
-                        {/* Discourse content with text selection support */}
-                        <div
-                          ref={(el) => contentRefs.current[item._id] = el}
-                          className="p-2 ml-3 select-text"
-                          onMouseUp={() => handleTextSelection(item._id)}
-                          dangerouslySetInnerHTML={{
-                            __html: renderTextWithHighlights(
-                              item.content.length > 200
-                                ? item.content.slice(0, 200) + "..."
-                                : item.content,
-                              item._id
-                            )
-                          }}
-                        />
+                        {/* Best-answer quote from the discourse (single sentence,
+                            selected by the backend via Cohere), shown in full */}
+                        <div className="p-2 ml-3 italic text-gray-800">
+                          <span className="text-primary not-italic">&ldquo;</span>
+                          <span
+                            ref={(el) => contentRefs.current[item._id] = el}
+                            className="select-text"
+                            onMouseUp={() => handleTextSelection(item._id)}
+                            dangerouslySetInnerHTML={{
+                              __html: renderTextWithHighlights(
+                                item.best_sentence ||
+                                  (item.content && item.content.length > 200
+                                    ? item.content.slice(0, 200) + "..."
+                                    : item.content) ||
+                                  "",
+                                item._id
+                              )
+                            }}
+                          />
+                          <span className="text-primary not-italic">&rdquo;</span>
+                        </div>
 
                         {/* Show highlights for this discourse */}
                         {highlights[item._id] && highlights[item._id].length > 0 && (
