@@ -18,10 +18,8 @@ const Chatpage = () => {
 
   // Use saved discourses from context
   const {
-    savedDiscourses,
-    loadingSaved,
     saveDiscourse,
-    unsaveDiscourse,
+    removeBookmark,
     loadSavedDiscourses
   } = useSavedDiscourses();
 
@@ -43,7 +41,7 @@ const Chatpage = () => {
 
   // Unsave a discourse - now using context  
   const handleUnsaveDiscourse = async (discourseId) => {
-    await unsaveDiscourse(discourseId);
+    await removeBookmark(discourseId);
   };
 
   // Load user's chat threads from backend
@@ -62,11 +60,13 @@ const Chatpage = () => {
 
       if (response.ok) {
         const chatThreads = await response.json();
-        setThreads(chatThreads);
-
-        // If user has existing chats, select the most recent one
         if (chatThreads.length > 0) {
+          setThreads(chatThreads);
           setSelectedThreadId(chatThreads[0].id);
+        } else {
+          const newThread = await createNewChatThread();
+          setThreads([newThread]);
+          setSelectedThreadId(newThread.id);
         }
       } else {
         console.error("Failed to load chats:", response.statusText);
@@ -78,17 +78,52 @@ const Chatpage = () => {
     }
   };
 
-  // Load user when component mounts
-  useEffect(() => {
-    if (user && user.token) {
-      loadUserChats();
+  const loadThreadMessages = async (threadId) => {
+    if (!user || !user.token || !threadId) return [];
+
+    try {
+      const response = await fetch(apiRoute(`chats/${threadId}`), {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${user.token}`
+        }
+      });
+
+      if (response.ok) {
+        const thread = await response.json();
+        return thread.messages || [];
+      }
+    } catch (error) {
+      console.error("Error loading thread messages:", error);
     }
-  }, [user]);
+
+    return [];
+  };
+
+  const ensureActiveThread = async () => {
+    if (selectedThreadId) {
+      const existing = threads.find((t) => t.id === selectedThreadId);
+      if (existing) return existing;
+    }
+
+    const emptyChat = threads.find(
+      (thread) => !thread.messages || thread.messages.length === 0
+    );
+    if (emptyChat) {
+      setSelectedThreadId(emptyChat.id);
+      return emptyChat;
+    }
+
+    const newThread = await createNewChatThread();
+    setSelectedThreadId(newThread.id);
+    setThreads((prev) => [newThread, ...prev]);
+    return newThread;
+  };
 
   // Create a new chat thread in backend
   const createNewChatThread = async (title = "New Chat") => {
     if (!user || !user.token) {
-      // If not logged in, create local thread only
       const newThreadId = new Date().toISOString();
       return {
         id: newThreadId,
@@ -101,7 +136,6 @@ const Chatpage = () => {
     try {
       const requestBody = { title: title };
 
-      // Add user email to request body
       if (user.email) {
         requestBody.user_email = user.email;
       }
@@ -118,20 +152,18 @@ const Chatpage = () => {
       if (response.ok) {
         const newThread = await response.json();
         return newThread;
-      } else {
-        console.error("Failed to create chat thread:", response.statusText);
-        // Fallback to local thread
-        const newThreadId = new Date().toISOString();
-        return {
-          id: newThreadId,
-          title: title,
-          timestamp: new Date(),
-          messages: [],
-        };
       }
+
+      console.error("Failed to create chat thread:", response.statusText);
+      const newThreadId = new Date().toISOString();
+      return {
+        id: newThreadId,
+        title: title,
+        timestamp: new Date(),
+        messages: [],
+      };
     } catch (error) {
       console.error("Error creating chat thread:", error);
-      // Fallback to local thread
       const newThreadId = new Date().toISOString();
       return {
         id: newThreadId,
@@ -142,9 +174,38 @@ const Chatpage = () => {
     }
   };
 
+  // Load user chats when user logs in or out
+  useEffect(() => {
+    if (user && user.token) {
+      loadUserChats();
+    } else {
+      setThreads([]);
+      setSelectedThreadId(null);
+    }
+  }, [user]);
+
+  // Create initial chat if no threads exist and user is not logged in
+  useEffect(() => {
+    if (threads.length === 0 && !user && !initialChatCreatedRef.current) {
+      const createInitialChat = async () => {
+        initialChatCreatedRef.current = true;
+        const newThread = await createNewChatThread();
+        setSelectedThreadId(newThread.id);
+        addThread(newThread);
+      };
+      createInitialChat();
+    }
+  }, [threads.length, user]);
+
   // Save chat thread to backend
   const saveChatThread = async (thread) => {
-    if (!user || !user.token) return; // Don't save if not logged in
+    if (!user || !user.token) return;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(thread.id);
+    if (!isUuid) {
+      console.error("Cannot save chat thread: invalid thread id", thread.id);
+      return;
+    }
 
     try {
       const response = await fetch(apiRoute(`chats/${thread.id}`), {
@@ -330,44 +391,6 @@ const Chatpage = () => {
     };
   }, [selectedThreadId]);
 
-  // Load user chats when user logs in
-  useEffect(() => {
-    if (user && user.token) {
-      const initializeChats = async () => {
-        // Load existing chats (saved discourses are loaded by context)
-        await loadUserChats();
-      };
-      initializeChats();
-    } else {
-      // Clear threads when user logs out (saved discourses are cleared by context)
-      setThreads([]);
-      setSelectedThreadId(null);
-    }
-  }, [user]);
-
-  // Create initial chat if no threads exist and user is not logged in
-  useEffect(() => {
-    console.log('useEffect triggered:', {
-      threadsLength: threads.length,
-      user: !!user,
-      initialChatCreated: initialChatCreatedRef.current
-    });
-
-    if (threads.length === 0 && !user && !initialChatCreatedRef.current) {
-      console.log('Creating initial chat...');
-      // Create only one chat for unauthenticated users
-      const createInitialChat = async () => {
-        console.log('Setting initialChatCreatedRef to true');
-        initialChatCreatedRef.current = true; // Set flag to prevent multiple creations
-        const newThread = await createNewChatThread();
-        console.log('Created new thread:', newThread.id);
-        setSelectedThreadId(newThread.id);
-        addThread(newThread);
-      };
-      createInitialChat();
-    }
-  }, [threads.length, user]);
-
   return (
     <div className="w-full h-[100vh] flex overflow-hidden bg-white">
       {/* Sidebar */}
@@ -379,9 +402,6 @@ const Chatpage = () => {
           onDeleteChat={handleDeleteChat}
           threads={threads}
           loading={loading}
-          savedDiscourses={savedDiscourses}
-          loadingSaved={loadingSaved}
-          onDeleteSavedDiscourse={handleUnsaveDiscourse}
         />
       </div>
 
@@ -420,8 +440,9 @@ const Chatpage = () => {
           addThread={addThread}
           threads={threads}
           user={user}
+          ensureActiveThread={ensureActiveThread}
+          loadThreadMessages={loadThreadMessages}
           generateTitleFromQuestion={getTitleFromQuestion} // Using simple truncation for now not AI generation
-          savedDiscourses={savedDiscourses}
           onSaveDiscourse={handleSaveDiscourse}
           onUnsaveDiscourse={handleUnsaveDiscourse}
         />
