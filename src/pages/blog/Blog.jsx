@@ -364,6 +364,20 @@ export default function Blog() {
       }
     }
 
+    // The best-answer quote (1–3 sentences) for THIS discourse — highlighted and
+    // scrolled to. From router state, with a sessionStorage fallback for refresh.
+    let bestSentence = matchedCitation?.best_sentence || "";
+    if (!bestSentence) {
+      try {
+        const qmap = JSON.parse(
+          sessionStorage.getItem("asv_best_sentences") || "{}"
+        );
+        bestSentence = qmap[slugId] || qmap[post._id] || "";
+      } catch (e) {
+        /* sessionStorage unavailable — non-fatal */
+      }
+    }
+
     const contentLines = (post?.content || "").split("\n");
     const normalize = (s) => (s || "").replace(/\s+/g, " ").trim();
     const normMatched = normalize(matchedPassageText);
@@ -429,11 +443,30 @@ export default function Blog() {
       </React.Fragment>
     );
 
-    const braceStyle = {
-      fontSize: "2.5rem",
-      transform: "scaleY(7)",
-      transformOrigin: "center",
-    };
+    // Locate the best-answer quote within the matched paragraph range so we can
+    // highlight just those sentences (and scroll to them) instead of the whole
+    // paragraph. Whitespace-tolerant, mirroring the backend's verbatim check.
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    let quoteLineIndex = -1;
+    let quoteParts = null;
+    if (bestSentence && matchStart !== -1) {
+      const tokens = bestSentence.trim().split(/\s+/).filter(Boolean).map(escapeRegExp);
+      if (tokens.length) {
+        const re = new RegExp(tokens.join("\\s+"));
+        for (let i = matchStart; i <= matchEnd; i++) {
+          const m = contentLines[i].match(re);
+          if (m) {
+            quoteLineIndex = i;
+            quoteParts = {
+              before: contentLines[i].slice(0, m.index),
+              text: m[0],
+              after: contentLines[i].slice(m.index + m[0].length),
+            };
+            break;
+          }
+        }
+      }
+    }
 
     return (
       <div className="w-full">
@@ -544,40 +577,34 @@ export default function Blog() {
 
               {/* Content with text selection enabled - Added padding bottom for scroll space */}
               <div onMouseUp={handleTextSelection} className="select-text cursor-text pb-[50vh]">
-                {matchStart === -1 ? (
-                  contentLines.map((text, index) => renderLine(text, index))
-                ) : (
-                  <>
-                    {contentLines
-                      .slice(0, matchStart)
-                      .map((text, index) => renderLine(text, index))}
-
-                    {/* Matched passage — wrapped in decorative braces */}
-                    <div ref={matchedRef} className="relative my-6 px-10">
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none select-none absolute left-0 top-0 bottom-0 flex items-center font-light text-gray-600"
-                        style={braceStyle}
-                      >
-                        {"{"}
-                      </span>
-                      {contentLines
-                        .slice(matchStart, matchEnd + 1)
-                        .map((text, index) => renderLine(text, matchStart + index))}
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none select-none absolute right-0 top-0 bottom-0 flex items-center font-light text-gray-400"
-                        style={braceStyle}
-                      >
-                        {"}"}
-                      </span>
-                    </div>
-
-                    {contentLines
-                      .slice(matchEnd + 1)
-                      .map((text, index) => renderLine(text, matchEnd + 1 + index))}
-                  </>
-                )}
+                {contentLines.map((text, index) => {
+                  // The paragraph holding the quote: highlight just the quote span
+                  // and anchor the scroll ref to it.
+                  if (index === quoteLineIndex && quoteParts) {
+                    return (
+                      <p key={index} className="mb-4">
+                        {quoteParts.before}
+                        <mark
+                          ref={matchedRef}
+                          className="bg-yellow-300 rounded px-0.5 animate-[pulse_1.2s_ease-in-out_2]"
+                        >
+                          {quoteParts.text}
+                        </mark>
+                        {quoteParts.after}
+                      </p>
+                    );
+                  }
+                  // Fallback: quote not locatable, but we know the matched paragraph —
+                  // gently highlight it and anchor the scroll there.
+                  if (quoteLineIndex === -1 && index === matchStart) {
+                    return (
+                      <p key={index} ref={matchedRef} className="mb-4 bg-yellow-100 rounded px-0.5">
+                        {renderContentWithHighlight(text)}
+                      </p>
+                    );
+                  }
+                  return renderLine(text, index);
+                })}
               </div>
             </div>
           </div>

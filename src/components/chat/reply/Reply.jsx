@@ -336,8 +336,11 @@ export default function Reply({
             <span className="text-[#252525] text-lg">{question}</span>
           </div>
         </div>
-        <div className="flex animate-spin items-center justify-center w-24 h-24 mx-auto mt-12 text-orange-400">
-          <FaSpinner size={24} />
+        <div className="flex flex-col items-center justify-center mx-auto mt-6">
+          <FaSpinner size={40} className="animate-spin text-orange-400" />
+          <p className="mt-4 text-base text-gray-600">
+            Searching for discourses to answer your question…
+          </p>
         </div>
       </div>
     );

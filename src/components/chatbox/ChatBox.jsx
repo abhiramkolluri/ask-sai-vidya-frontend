@@ -98,16 +98,22 @@ export default function ChatBox({
       const data_citations = await response.json();
       console.log("🔍 Response data:", data_citations);
 
-      // Persist matched passages by discourse id so the blog page can show the
-      // matched paragraph even if router state is lost (refresh / direct URL).
+      // Persist matched passages + best-answer quotes by discourse id so the blog
+      // page can locate/highlight them even if router state is lost (refresh /
+      // direct URL).
       try {
         const map = JSON.parse(
           sessionStorage.getItem("asv_matched_passages") || "{}"
         );
+        const quoteMap = JSON.parse(
+          sessionStorage.getItem("asv_best_sentences") || "{}"
+        );
         (data_citations || []).forEach((c) => {
           if (c && c._id && c.matched_passage) map[c._id] = c.matched_passage;
+          if (c && c._id && c.best_sentence) quoteMap[c._id] = c.best_sentence;
         });
         sessionStorage.setItem("asv_matched_passages", JSON.stringify(map));
+        sessionStorage.setItem("asv_best_sentences", JSON.stringify(quoteMap));
       } catch (e) {
         /* sessionStorage unavailable — non-fatal */
       }
@@ -229,8 +235,20 @@ export default function ChatBox({
   };
 
   useEffect(() => {
-    if (containerRef.current)
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    const c = containerRef.current;
+    if (!c) return;
+    // Bring the latest question to the top so it and the first couple of
+    // discourses stay in view (instead of jumping to the very bottom).
+    const lastMsg = c.children[messages.length - 1];
+    if (lastMsg) {
+      const top =
+        lastMsg.getBoundingClientRect().top -
+        c.getBoundingClientRect().top +
+        c.scrollTop;
+      c.scrollTo({ top: Math.max(0, top - 12), behavior: "smooth" });
+    } else {
+      c.scrollTop = c.scrollHeight;
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -360,6 +378,10 @@ export default function ChatBox({
                 user={user}
               />
             ))}
+            {/* Spacer so the last reply / loading indicator clears the sticky
+                search bar (padding-bottom on a flex scroll container is ignored
+                for scroll space in Chrome/Safari). */}
+            <div aria-hidden="true" className="shrink-0 h-48" />
           </div>
         ) : (
           <div className="flex-grow overflow-y-scroll flex justify-center items-center">
