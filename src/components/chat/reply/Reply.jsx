@@ -12,6 +12,7 @@ import { FaSpinner } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import { Link } from "react-router-dom";
 import { apiRoute, submitFeedback } from "../../../helpers/apiRoute";
+import { formatCollection } from "../../../helpers/formatCollection";
 
 import Feedback from "../../feedback/Feedback";
 import TextHighlightPopover from "../TextHighlightPopover";
@@ -304,14 +305,6 @@ export default function Reply({
     }
   };
 
-  const handleSeeMore = (event) => {
-    // Code to handle the click event goes here
-    event.preventDefault(); // Stop the default navigation
-
-    // Open the link in a new tab with desired features (optional)
-    window.open(event.target.href, "_blank", "noopener,noreferrer");
-  };
-
   const handleFeedbackClick = (type) => {
     setFeedbackType(type);
     setshowFeedbackModal(true);
@@ -422,7 +415,7 @@ export default function Reply({
                             [{index + 1}] {"\t\t"}
                           </span>
                           <span className="font-lg font-bold ">
-                            {item.title} of "{item.collection}"
+                            {item.title} of "{formatCollection(item.collection)}"
                           </span>
                         </p>
                         <p className="italic">{item.date}</p>
@@ -475,14 +468,14 @@ export default function Reply({
                         )}
 
                         <br />
-                        <span className="text-primary underline">
+                        <span className="text-primary underline text-lg">
                           <Link
                             to={`/blog/${item._id}`}
                             state={{ citations, questionContext: question }}
                             className="flex"
                           >
-                            See more
-                            <GoArrowUpRight size={20} />
+                            Read the Discourse
+                            <GoArrowUpRight size={22} />
                           </Link>
                         </span>
                       </div>

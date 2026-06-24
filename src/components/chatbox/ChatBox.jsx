@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
+import DecorativeBackground from "../common/DecorativeBackground";
 import { apiRoute } from "../../helpers/apiRoute";
 
 const cache = {};
@@ -95,6 +96,20 @@ export default function ChatBox({
 
       const data_citations = await response.json();
       console.log("🔍 Response data:", data_citations);
+
+      // Persist matched passages by discourse id so the blog page can show the
+      // matched paragraph even if router state is lost (refresh / direct URL).
+      try {
+        const map = JSON.parse(
+          sessionStorage.getItem("asv_matched_passages") || "{}"
+        );
+        (data_citations || []).forEach((c) => {
+          if (c && c._id && c.matched_passage) map[c._id] = c.matched_passage;
+        });
+        sessionStorage.setItem("asv_matched_passages", JSON.stringify(map));
+      } catch (e) {
+        /* sessionStorage unavailable — non-fatal */
+      }
 
       cache[question] = { ...cache[question], citations: data_citations };
       return data_citations;
@@ -317,7 +332,8 @@ export default function ChatBox({
 
   return (
     <div className="w-full flex flex-col h-[100vh] mt-16 bg-white">
-      <div className="flex-1 flex flex-col relative min-h-0">
+      <div className="flex-1 flex flex-col relative min-h-0 isolate">
+        <DecorativeBackground />
         {messages.length > 0 ? (
           <div
             ref={containerRef}
@@ -341,7 +357,7 @@ export default function ChatBox({
         ) : (
           <div className="flex-grow overflow-y-scroll flex justify-center items-center">
             <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4 px-4">
-              <p className="p-2 text-gray-500 font-light text-justify min-w-[350px] text-xl">
+              <p className="p-2 text-gray-800 text-justify min-w-[350px] text-xl">
                 Ask a question to&nbsp;<b>Sai Vidya</b> and get discourses that you can explore.
               </p>
               <div>
@@ -351,11 +367,11 @@ export default function ChatBox({
           </div>
         )}
 
-        <div className="sticky bottom-0 mx-4 md:mx-auto w-full max-w-4xl mx-auto bg-white p-4">
-          <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[70px] p-4 bg-white">
+        <div className="sticky bottom-4 mx-4 md:mx-auto w-full max-w-4xl mx-auto bg-white p-4">
+          <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[84px] p-4 bg-white">
             <textarea
               ref={inputRef}
-              className="flex-grow rounded pt-3 resize-none outline-none text-lg min-h-[60px] bg-transparent"
+              className="flex-grow rounded pt-3 resize-none outline-none text-xl min-h-[72px] bg-transparent text-gray-800 placeholder:text-gray-800"
               id="textBox"
               cols="10"
               rows="2"
