@@ -9,6 +9,13 @@ import { GoArrowUpRight } from "react-icons/go";
 import ChatSection from "../chat/chatSection/ChatSection";
 import { formatCollection } from "../../helpers/formatCollection";
 
+// Saved titles are stored as `Title of "Collection"`; split so we can show the
+// discourse title above and its source below.
+function splitSavedTitle(full) {
+  const m = (full || "").match(/^(.*?) of "(.*)"$/);
+  return m ? { title: m[1], source: m[2] } : { title: full, source: "" };
+}
+
 export default function SideNav({
   threads = [],
   startNewChatCallback = () => { },
@@ -116,14 +123,14 @@ export default function SideNav({
 
       <div className="mt-4 flex flex-col gap-2 flex-grow overflow-y-scroll no-scrollbar">
         {/* Chat History Accordion */}
-        <div className="border-b border-gray-200">
+        <div className="border-b-2 border-gray-400">
           <button
             onClick={() => setChatHistoryOpen(!chatHistoryOpen)}
             className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
           >
             <span className="font-semibold text-lg text-gray-800 flex items-center gap-2">
               <IoChatbubbleEllipsesOutline size={20} className="text-primary" />
-              Chat History ({threads.length})
+              Question History ({threads.length})
             </span>
             {chatHistoryOpen ? <IoChevronUp size={20} /> : <IoChevronDown size={20} />}
           </button>
@@ -155,7 +162,7 @@ export default function SideNav({
         </div>
 
         {/* Saved Discourses Accordion */}
-        <div className="border-b border-gray-200">
+        <div className="border-b-2 border-gray-400">
           <button
             onClick={() => setSavedDiscoursesOpen(!savedDiscoursesOpen)}
             className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
@@ -186,14 +193,19 @@ export default function SideNav({
                           className="flex-1 min-w-0"
                           onClick={() => handleViewDiscourse(saved)}
                         >
-                          <p className="font-medium text-gray-800 text-base truncate flex items-center gap-2">
-                            {formatCollection(saved.discourse.title)}
+                          <p className="font-bold text-gray-900 text-base truncate flex items-center gap-2">
+                            {splitSavedTitle(saved.discourse.title).title}
                             {saved.discourse.highlights && saved.discourse.highlights.length > 0 && (
                               <span className="inline-flex items-center justify-center bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">
                                 {saved.discourse.highlights.length} ✨
                               </span>
                             )}
                           </p>
+                          {splitSavedTitle(saved.discourse.title).source && (
+                            <p className="text-sm text-gray-600 truncate">
+                              {formatCollection(splitSavedTitle(saved.discourse.title).source)}
+                            </p>
+                          )}
                           <p className="text-sm text-gray-800 mt-1 truncate">
                             From: "{saved.question_context}"
                           </p>

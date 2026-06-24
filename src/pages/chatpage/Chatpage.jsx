@@ -418,31 +418,30 @@ const Chatpage = () => {
           </svg>
         </button>
 
-        {/* Navbar */}
-        <div className="absolute top-0 left-0 right-0">
-          <Navbar />
-        </div>
-
-        {/* Tab toggle: Chat vs Browse Saved Discourses */}
-        <div className="absolute top-4 left-16 z-40 flex overflow-hidden rounded-lg bg-white shadow-md">
-          <button
-            onClick={() => setActiveTab("chat")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "chat" ? "bg-[#BC5B01] text-white" : "text-gray-600 hover:bg-gray-50"}`}
-          >
-            Chat
-          </button>
-          <button
-            onClick={() => setActiveTab("browse")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "browse" ? "bg-[#BC5B01] text-white" : "text-gray-600 hover:bg-gray-50"}`}
-          >
-            Saved Discourses
-          </button>
-          <button
-            onClick={() => setActiveTab("howto")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "howto" ? "bg-[#BC5B01] text-white" : "text-gray-600 hover:bg-gray-50"}`}
-          >
-            How to Use
-          </button>
+        {/* Header: tabs + account/login on one themed bar */}
+        <div className="absolute top-0 left-0 right-0 z-30">
+          <Navbar
+            tabs={
+              <div className="flex items-center gap-1 rounded-lg bg-white/90 p-1 shadow-md backdrop-blur-sm">
+                {[
+                  { key: "chat", label: "Questions" },
+                  { key: "browse", label: "Saved Discourses" },
+                  { key: "howto", label: "How to Use" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab.key
+                      ? "bg-[#BC5B01] text-white shadow-sm"
+                      : "text-gray-600 hover:bg-orange-50 hover:text-[#BC5B01]"
+                      }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            }
+          />
         </div>
 
         {/* Main view */}

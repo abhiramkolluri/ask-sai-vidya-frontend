@@ -63,18 +63,22 @@ function Highlights({ highlights }) {
 function SavedDiscourseCard({ saved, onRemove }) {
   const { discourse, question_context, saved_at } = saved;
 
+  // Saved titles are stored as `Title of "Collection"`; split so we can show the
+  // discourse title above and its source below, like the Questions tab.
+  const titleMatch = (discourse.title || "").match(/^(.*?) of "(.*)"$/);
+  const discTitle = titleMatch ? titleMatch[1] : discourse.title;
+  const discSource = titleMatch ? titleMatch[2] : "";
+
   return (
     <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-orange-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h2
-            className="text-2xl font-semibold text-gray-800"
-            style={{ fontFamily: "'EB Garamond', serif" }}
-          >
-            {formatCollection(discourse.title)}
-          </h2>
+          <h2 className="text-xl font-bold text-gray-900">{discTitle}</h2>
+          {discSource && (
+            <p className="text-lg text-gray-600">{formatCollection(discSource)}</p>
+          )}
           {saved_at && (
-            <p className="mt-1 text-sm text-gray-800">
+            <p className="mt-1 text-sm text-gray-500">
               Saved {new Date(saved_at).toLocaleDateString()}
             </p>
           )}
@@ -128,7 +132,7 @@ export default function BrowseTab() {
     <div className="relative isolate h-full overflow-hidden">
       <DecorativeBackground />
       <div className="h-full overflow-y-auto px-6 py-6">
-      <div className="mb-6">
+      <div className="mb-6 text-center">
         <h1
           className="text-3xl font-semibold text-gray-800"
           style={{ fontFamily: "'EB Garamond', serif" }}

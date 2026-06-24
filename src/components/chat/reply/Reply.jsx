@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   IoCopyOutline,
-  IoReload,
   IoLinkOutline,
   IoThumbsDownOutline,
   IoThumbsUpOutline,
@@ -33,7 +33,7 @@ export default function Reply({
   
   const [showFeedbackModal, setshowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState(null); // 'up' or 'down'
-  const [isReloading, setIsReloading] = useState(false);
+  const [feedbackItem, setFeedbackItem] = useState(null); // the discourse feedback is for
 
   // Text selection and highlighting state
   const [showHighlightPopover, setShowHighlightPopover] = useState(false);
@@ -293,33 +293,39 @@ export default function Reply({
     }
   };
 
-  const handleReload = async () => {
-    try {
-      setIsReloading(true);
-      onReloadClick(question);
-    } catch (error) {
-      console.error('Error reloading response:', error);
-      alert('Failed to reload response. Please try again.');
-    } finally {
-      setIsReloading(false);
-    }
+
+  const handleFeedbackClick = (type, item = null) => {
+    setFeedbackType(type);
+    setFeedbackItem(item);
+    setshowFeedbackModal(true);
   };
 
-  const handleFeedbackClick = (type) => {
-    setFeedbackType(type);
-    setshowFeedbackModal(true);
+  // Per-discourse actions
+  const handleCopyQuote = (item) => {
+    navigator.clipboard.writeText(item.best_sentence || item.content || "");
+    alert("Quote copied to clipboard!");
+  };
+
+  const handleCopyDiscourseLink = (item) => {
+    navigator.clipboard.writeText(`${window.location.origin}/blog/${item._id}`);
+    alert("Discourse link copied to clipboard!");
   };
 
   const handleFeedback = async (type, reason, additionalComments = '') => {
     try {
       const feedbackData = {
         question,
-        answer: reply.primaryResponse,
+        answer: feedbackItem
+          ? (feedbackItem.best_sentence || feedbackItem.content || "")
+          : reply.primaryResponse,
+        discourseTitle: feedbackItem?.title || null,
+        discourseId: feedbackItem?._id || null,
+        discourseSource: feedbackItem?.collection || null,
         feedbackType: type,
         reason,
         additionalComments,
         timestamp: new Date().toISOString(),
-        citations: reply.citations || []
+        citations: feedbackItem ? [feedbackItem] : (reply.citations || [])
       };
       console.log('Feedback data being sent:', feedbackData);
       await submitFeedback(feedbackData);
@@ -356,7 +362,7 @@ export default function Reply({
     );
   }
 
-  const { primaryResponse = "", citations = [] } = reply;
+  const { citations = [] } = reply;
 
   return (
     <div className="w-full mx-2">
@@ -397,36 +403,25 @@ export default function Reply({
                     const isSaved = isDiscourseSaved(discourseTitle);
 
                     return (
-                      <div key={index} className="text-[#252525] mb-6 relative">
-                        {/* Bookmark button */}
-                        {user && user.token && (
-                          <button
-                            onClick={() => handleBookmarkClick(item)}
-                            className="absolute top-0 right-0 text-primary hover:scale-110 transition-transform"
-                            title={isSaved ? "Remove from saved" : "Save discourse"}
-                          >
-                            {isSaved ? (
-                              <BsBookmarkFill size={20} className="text-primary" />
-                            ) : (
-                              <BsBookmark size={20} className="text-primary" />
-                            )}
-                          </button>
-                        )}
-
-                        <p className="">
+                      <div key={index} className="text-[#252525] mb-6">
+                        <p className="text-xl font-bold">
                           <span className="text-primary">
                             [{index + 1}] {"\t\t"}
                           </span>
-                          <span className="font-lg font-bold ">
-                            {item.title} of "{formatCollection(item.collection)}"
-                          </span>
+                          {item.title}
+                        </p>
+                        <p className="text-lg text-gray-600">
+                          {formatCollection(item.collection)}
                         </p>
                         <p className="italic">{item.date}</p>
 
                         {/* Best-answer quote from the discourse (single sentence,
                             selected by the backend via Cohere), shown in full */}
-                        <div className="p-2 ml-3 italic text-gray-800">
-                          <span className="text-primary not-italic">&ldquo;</span>
+                        <div
+                          className="p-2 ml-3 text-gray-800 text-xl italic"
+                          style={{ fontFamily: "'EB Garamond', serif" }}
+                        >
+                          <span className="text-primary">&ldquo;</span>
                           <span
                             ref={(el) => contentRefs.current[item._id] = el}
                             className="select-text"
@@ -442,7 +437,7 @@ export default function Reply({
                               )
                             }}
                           />
-                          <span className="text-primary not-italic">&rdquo;</span>
+                          <span className="text-primary">&rdquo;</span>
                         </div>
 
                         {/* Show highlights for this discourse */}
@@ -477,99 +472,134 @@ export default function Reply({
                           </div>
                         )}
 
-                        <br />
-                        <span className="text-primary underline text-lg">
-                          <Link
-                            to={`/blog/${item._id}`}
-                            state={{ citations, questionContext: question }}
-                            className="flex"
-                          >
-                            Read the Discourse
-                            <GoArrowUpRight size={22} />
-                          </Link>
-                        </span>
+                        <div className="mt-4 flex items-center justify-between gap-4">
+                          <span className="text-primary underline text-lg">
+                            <Link
+                              to={`/blog/${item._id}`}
+                              state={{ citations, questionContext: question }}
+                              className="flex"
+                            >
+                              Read &ldquo;{item.title}&rdquo;
+                              <GoArrowUpRight size={22} />
+                            </Link>
+                          </span>
+
+                          {/* Per-discourse actions — horizontal, bottom-right */}
+                          <div className="flex items-center gap-4 text-primary shrink-0">
+                            {user && user.token && (
+                              <button
+                                onClick={() => handleBookmarkClick(item)}
+                                title={isSaved ? "Remove from saved" : "Save discourse"}
+                                className="hover:scale-110 transition-transform"
+                              >
+                                {isSaved ? (
+                                  <BsBookmarkFill size={20} className="text-primary" />
+                                ) : (
+                                  <BsBookmark size={20} className="text-primary" />
+                                )}
+                              </button>
+                            )}
+                            <IoCopyOutline
+                              size={20}
+                              title="Copy the quote"
+                              className="cursor-pointer hover:opacity-70 transition-opacity"
+                              onClick={() => handleCopyQuote(item)}
+                            />
+                            <IoLinkOutline
+                              size={20}
+                              title="Copy link to this discourse"
+                              className="cursor-pointer hover:opacity-70 transition-opacity"
+                              onClick={() => handleCopyDiscourseLink(item)}
+                            />
+                            <IoThumbsUpOutline
+                              size={20}
+                              title="This discourse was helpful"
+                              className="cursor-pointer hover:opacity-70 transition-opacity"
+                              onClick={() => handleFeedbackClick('up', item)}
+                            />
+                            <IoThumbsDownOutline
+                              size={20}
+                              title="This discourse was not helpful"
+                              className="cursor-pointer hover:opacity-70 transition-opacity"
+                              onClick={() => handleFeedbackClick('down', item)}
+                            />
+                          </div>
+                        </div>
                       </div>
                     );
                   })
                 ) : (
-                  <p>No citations found.</p>
+                  <p>
+                    No citations found. This is usually because the search engine
+                    needs more context — try asking your question again in a
+                    slightly different way.
+                  </p>
                 )}
               </div>
               <div className="flex-grow w-20"></div>
             </div>
           </div>
-          <div className="flex-shrink-0 py-2 px-2 flex gap-4 text-primary">
-            <IoCopyOutline
-              size={20}
-              className="cursor-pointer hover:opacity-70 transition-opacity"
-              onClick={() => onCopyClick(primaryResponse)}
-            />
-            <IoLinkOutline
-              size={20}
-              className="cursor-pointer hover:opacity-70 transition-opacity"
-              onClick={() => onLinkClick(question)}
-            />
-            <IoThumbsUpOutline
-              size={20}
-              className="cursor-pointer hover:opacity-70 transition-opacity"
-              onClick={() => handleFeedbackClick('up')}
-            />
-            <IoThumbsDownOutline
-              size={20}
-              className="cursor-pointer hover:opacity-70 transition-opacity"
-              onClick={() => handleFeedbackClick('down')}
-            />
-            {isReloading ? (
-              <div className="animate-spin">
-                <FaSpinner size={20} />
-              </div>
-            ) : (
-              <IoReload
-                size={20}
-                className="cursor-pointer hover:opacity-70 transition-opacity"
-                onClick={handleReload}
-              />
-            )}
-          </div>
         </div>
       </div>
-      {showFeedbackModal ? (
-        <>
-          <div className="absolute top-0 bottom-0 right-0 left-0 flex justify-center items-center bg-black bg-opacity-20 z-50">
+      {showFeedbackModal && createPortal(
+          <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-40 z-[100] p-6">
             <Feedback
               closeModalCallback={() => {
                 setshowFeedbackModal(false);
                 setFeedbackType(null);
+                setFeedbackItem(null);
               }}
+              title={feedbackType === 'up' ? "Positive Feedback" : "Negative Feedback"}
+              context={
+                feedbackItem && (
+                  <div className="w-full rounded-lg border border-orange-200 bg-orange-50 p-4 text-left">
+                    <p className="text-base font-semibold text-gray-600">
+                      Your question
+                    </p>
+                    <p className="text-lg text-gray-900">
+                      &ldquo;{question}&rdquo;
+                    </p>
+                    <p className="mt-3 text-base font-semibold text-gray-600">
+                      Retrieved discourse
+                    </p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {feedbackItem.title}
+                    </p>
+                    {feedbackItem.collection && (
+                      <p className="text-base text-gray-600">
+                        {formatCollection(feedbackItem.collection)}
+                      </p>
+                    )}
+                    {feedbackItem.best_sentence && (
+                      <p className="mt-2 text-lg text-gray-900">
+                        &ldquo;{feedbackItem.best_sentence}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                )
+              }
               options={
                 feedbackType === 'up'
                   ? [
-                    "Helpful",
-                    "Accurate Information",
-                    "Clear Explanation",
-                    "Good Sources",
-                    "Answered the question well",
+                    "Quote answered the question",
+                    "Discourse answered the question",
                   ]
                   : [
-                    "Not helpful",
-                    "Inaccurate",
-                    "Out of date",
-                    "Problematic",
-                    "Misquoted the original source",
+                    "Quote did not answer the question",
+                    "Discourse did not answer the question",
                   ]
               }
               question={
-                feedbackType === 'up'
-                  ? "What did you like about this response?"
-                  : "What could be improved about this response?"
+                (feedbackType === 'up'
+                  ? "This feedback means that the search engine will use this Discourse and/or quote to answer similar questions in the future. "
+                  : "This feedback means that the search engine will avoid using this Discourse and/or quote to answer similar questions in the future. ") +
+                "By submitting this feedback, we can help turn Ask Sai Vidya into a library for our community, one that will store the collective wisdom of our devotees and deliver it to new devotees across generations."
               }
               onSubmit={(reason, additionalComments) => handleFeedback(feedbackType, reason, additionalComments)}
             />
-          </div>
-        </>
-      ) : (
-        <></>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

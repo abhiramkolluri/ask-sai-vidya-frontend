@@ -32,10 +32,10 @@ export default function Chats({
 	return (
 		<>
 			<div
-				className={`w-full p-2 flex flex-col text-sm gap-2 transition-all ease-in-out cursor-pointer border border-transparent rounded hover:bg-orange-50 hover:border-orange-400 relative group`}
+				className={`w-full p-2 flex flex-col text-lg gap-2 transition-all ease-in-out cursor-pointer border border-transparent rounded hover:bg-orange-50 hover:border-orange-400 relative group`}
 				onClick={() => onChatSelect(id)}
 			>
-				<div className={`flex gap-2 text-gray-600 items-center justify-between`}>
+				<div className={`flex gap-2 text-gray-900 font-medium items-center justify-between`}>
 					<div className="flex gap-2 items-center flex-1 min-w-0">
 						<span className="text-orange-400">
 							<BsChatLeftDots size={16} />
@@ -53,7 +53,7 @@ export default function Chats({
 					</button>
 				</div>
 
-				<div className="flex text-xs text-gray-400 font-thin">
+				<div className="flex text-base text-gray-600">
 					<div className="flex-grow">
 						<p>{messageCount + " "} Questions</p>
 					</div>
