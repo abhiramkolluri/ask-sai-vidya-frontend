@@ -4,6 +4,7 @@ import { IoCalendar } from "react-icons/io5";
 import { useQuery } from "react-query";
 import { IoMdList } from "react-icons/io";
 import { MdClose } from "react-icons/md";
+import { TbLayoutSidebarRightExpand } from "react-icons/tb";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 import bgflower from "../../images/bgflower.png";
@@ -29,12 +30,25 @@ export default function Blog() {
     getSavedDiscourseByTitle
   } = useSavedDiscourses();
 
+  // Citations drawer
+  const [citationsOpen, setCitationsOpen] = useState(false);
+
+  const citations = state?.citations?.length
+    ? state.citations
+    : JSON.parse(sessionStorage.getItem("blog-citations") || "null") || [];
+
+  useEffect(() => {
+    if (state?.citations?.length) {
+      sessionStorage.setItem("blog-citations", JSON.stringify(state.citations));
+    }
+  }, [state]);
+
   // Highlighting state
   const [showHighlightPopover, setShowHighlightPopover] = useState(false);
   const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
   const [selectedText, setSelectedText] = useState("");
   const [highlights, setHighlights] = useState([]);
-  const [activeHighlightId, setActiveHighlightId] = useState(null); // Track which highlight is being viewed
+  const [activeHighlightId, setActiveHighlightId] = useState(null);
   const contentRef = useRef(null);
 
   const { isLoading, isRefetching, data, isError, refetch } = useQuery(
@@ -439,69 +453,116 @@ export default function Blog() {
             </div>
           </div>
 
-          {state?.citations?.length && (
-            <div className="w-[440px] flex flex-col mt-12 gap-2 mb-12">
-              <p>Citations</p>
-              {state?.citations?.map((c, i) => (
-                <Link
-                  to={`/blog/${c._id}`}
-                  state={state}
-                  key={i}
-                // reloadDocument
-                >
-                  <div
-                    className={`w-[420px] border ${slugId === c._id
-                      ? "border-[#FE9F44] bg-[#fe9e4417] "
-                      : "border-b hover:bg-[#fe9e4425]"
-                      } rounded-lg p-6 flex flex-col gap-4`}>
-                    <p className="text-[#4D4D4D]">{c?.title}</p>
-                    <div className="flex gap-2 text-sm items-center">
-                      <IoMdList size={18} className="text-orange-400" />
-                      <p className="text-gray-500">{c?.collection}</p>
-                    </div>
-                    <div className="flex gap-2 text-sm items-center ">
-                      <IoCalendar size={18} className="text-orange-400" />
-                      <p className="text-gray-500">{c?.date}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              {/* <div className="w-[420px] bg-[##FE9F440A] border border-[#FE9F44] rounded-lg p-6 flex flex-col gap-4">
-              <p className="text-[#4D4D4D]">Sristi and Dristhi</p>
-              <div className="flex gap-2 text-sm items-center">
-                <IoMdList size={18} className="text-orange-400" />
-                <p className="text-gray-500">SSS, Vol 29 Disc. 10</p>
-              </div>
-              <div className="flex gap-2 text-sm items-center ">
-                <IoCalendar size={18} className="text-orange-400" />
-                <p className="text-gray-500">12 April 1996</p>
-              </div>
-            </div>
-            <div className="w-[420px]  border-b rounded-lg p-6 flex flex-col gap-4">
-              <p>Nammi Nammi</p>
-              <div className="flex gap-2 text-sm items-center">
-                <IoMdList size={18} className="text-orange-400" />
-                <p className="text-gray-500">SSS, Vol 29 Disc. 10</p>
-              </div>
-              <div className="flex gap-2 text-sm items-center ">
-                <IoCalendar size={18} className="text-orange-400" />
-                <p className="text-gray-500">12 April 1996</p>
-              </div>
-            </div>
-            <div className="w-[420px]  border-b rounded-lg p-6 flex flex-col gap-4">
-              <p>Power of meditation</p>
-              <div className="flex gap-2 text-sm items-center">
-                <IoMdList size={18} className="text-orange-400" />
-                <p className="text-gray-500">SSS, Vol 29 Disc. 10</p>
-              </div>
-              <div className="flex gap-2 text-sm items-center ">
-                <IoCalendar size={18} className="text-orange-400" />
-                <p className="text-gray-500">12 April 1996</p>
-              </div>
-            </div> */}
-            </div>
-          )}
         </div>
+
+        {/* Floating Citations Tab */}
+        {citations.length > 0 && (
+          <button
+            onClick={() => setCitationsOpen(true)}
+            className="fixed top-1/2 -translate-y-1/2 right-0 z-40 flex items-center gap-2 bg-white border border-gray-200 shadow-lg px-3 py-4 rounded-l-xl text-orange-400 hover:bg-orange-50 transition-colors"
+            style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+          >
+            <TbLayoutSidebarRightExpand size={20} style={{ transform: "rotate(180deg)" }} />
+            <span className="text-xs font-semibold tracking-wide text-gray-600">Citations ({citations.length})</span>
+          </button>
+        )}
+
+        {/* Citations Drawer Overlay */}
+        {citationsOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            {/* Dimmed background */}
+            <div
+              className="absolute inset-0 bg-black/20"
+              onClick={() => setCitationsOpen(false)}
+            />
+
+            {/* Drawer panel */}
+            <div className="relative w-full max-w-sm bg-white h-full shadow-2xl flex flex-col overflow-hidden">
+              {/* Drawer header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <button
+                  onClick={() => setCitationsOpen(false)}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                >
+                  <MdClose size={22} />
+                </button>
+                <h2 className="text-sm font-semibold text-gray-700">Citations ({citations.length})</h2>
+                <div className="w-6" />
+              </div>
+
+              {/* Citation cards */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+                {citations.map((c, i) => {
+                  const lookupTitle = `${c.title} of "${c.collection}"`;
+                  const savedDiscourse = getSavedDiscourseByTitle(lookupTitle);
+                  const recentHighlights = user && savedDiscourse?.discourse?.highlights
+                    ? [...savedDiscourse.discourse.highlights]
+                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                        .slice(0, 3)
+                    : [];
+                  const isActive = slugId === c._id;
+
+                  return (
+                    <Link
+                      key={i}
+                      to={`/blog/${c._id}`}
+                      state={{ citations, questionContext: state?.questionContext }}
+                      onClick={() => setCitationsOpen(false)}
+                    >
+                      <div className={`rounded-xl border p-4 flex flex-col gap-3 transition-colors ${
+                        isActive
+                          ? "border-orange-400 bg-orange-50"
+                          : "border-gray-200 hover:bg-orange-50/50"
+                      }`}>
+                        <p className={`font-medium text-sm ${isActive ? "text-orange-600" : "text-gray-800"}`}>
+                          {c.title}
+                        </p>
+
+                        <div className="flex flex-col gap-1">
+                          {c.collection && (
+                            <div className="flex gap-2 items-center text-xs text-gray-500">
+                              <IoMdList size={14} className="text-orange-400 shrink-0" />
+                              <span>{c.collection.replace(/(\d)(Disc\.)/g, '$1 $2')}</span>
+                            </div>
+                          )}
+                          {c.date && (
+                            <div className="flex gap-2 items-center text-xs text-gray-500">
+                              <IoCalendar size={14} className="text-orange-400 shrink-0" />
+                              <span>{c.date}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Highlights & comments */}
+                        {recentHighlights.length > 0 && (
+                          <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                            <p className="text-xs font-semibold text-gray-500">
+                              Your highlights {savedDiscourse.discourse.highlights.length > 3 ? `(showing 3 of ${savedDiscourse.discourse.highlights.length})` : ""}
+                            </p>
+                            {recentHighlights.map((h) => (
+                              <div key={h.id} className="flex flex-col gap-1">
+                                <div className="bg-yellow-100 rounded px-2 py-1">
+                                  <p className="text-xs text-gray-700 line-clamp-2">
+                                    "{h.text.substring(0, 80)}{h.text.length > 80 ? "…" : ""}"
+                                  </p>
+                                </div>
+                                {h.comment && (
+                                  <p className="text-xs text-blue-600 italic pl-2 border-l-2 border-blue-300">
+                                    {h.comment}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
