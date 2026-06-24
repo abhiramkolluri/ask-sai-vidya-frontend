@@ -10,6 +10,7 @@ const cache = {};
 export default function ChatBox({
   newChat,
   selectedThreadId = null,
+  setSelectedThreadId = () => { },
   addThread = () => { },
   threads = [],
   user = null,
@@ -205,6 +206,12 @@ export default function ChatBox({
         };
 
         addThread(newThread);
+        // Ensure the just-created thread becomes the selected one, otherwise the
+        // loadMessages effect (keyed on threads) re-fires with a stale/null
+        // selectedThreadId and wipes the answer we just rendered.
+        if (newThread.id !== selectedThreadId) {
+          setSelectedThreadId(newThread.id);
+        }
         // navigate(`/thread/${newThread.id}`);
       } catch (error) {
         console.error("Error fetching data in handleSend:", error);

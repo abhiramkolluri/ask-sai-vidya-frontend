@@ -67,9 +67,16 @@ const Chatpage = () => {
         const chatThreads = await response.json();
         setThreads(chatThreads);
 
-        // If user has existing chats, select the most recent one
+        // If user has existing chats, select the most recent one. Otherwise
+        // create and select an empty chat so there is always a valid
+        // selectedThreadId before the user's first question (prevents the
+        // loadMessages effect from wiping the first answer).
         if (chatThreads.length > 0) {
           setSelectedThreadId(chatThreads[0].id);
+        } else {
+          const newThread = await createNewChatThread();
+          setSelectedThreadId(newThread.id);
+          addThread(newThread);
         }
       } else {
         console.error("Failed to load chats:", response.statusText);
@@ -443,6 +450,7 @@ const Chatpage = () => {
           <ChatBox
             newChat={newChat}
             selectedThreadId={selectedThreadId}
+            setSelectedThreadId={setSelectedThreadId}
             addThread={addThread}
             threads={threads}
             user={user}
