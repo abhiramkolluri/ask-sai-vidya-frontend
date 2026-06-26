@@ -73,9 +73,12 @@ export default function ChatBox({
     return { response: data.response, fetchCitations };
   };
 
-  const fetchCitations = async (question) => {
-    if (cache[question]?.citations) {
-      return cache[question].citations;
+  const fetchCitations = async (question, history = []) => {
+    // Cache by question + history so multi-turn follow-ups aren't served stale
+    // single-turn results.
+    const cacheKey = question + "||" + history.join("|");
+    if (cache[cacheKey]?.citations) {
+      return cache[cacheKey].citations;
     }
 
     try {
@@ -85,7 +88,7 @@ export default function ChatBox({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: question }),
+        body: JSON.stringify({ query: question, history }),
       });
 
       console.log("🔍 Response status:", response.status);
@@ -118,7 +121,7 @@ export default function ChatBox({
         /* sessionStorage unavailable — non-fatal */
       }
 
-      cache[question] = { ...cache[question], citations: data_citations };
+      cache[cacheKey] = { ...cache[cacheKey], citations: data_citations };
       return data_citations;
     } catch (error) {
       console.error("❌ Fetch error:", error);
@@ -168,8 +171,13 @@ export default function ChatBox({
       setLoadingIndex(newIndex); // Set loading index for the new question
 
       try {
+        // Recent prior questions in this thread → multi-turn query planning context.
+        const history = messages
+          .map((m) => m.question)
+          .filter(Boolean)
+          .slice(-3);
         // Only fetch citations from /search endpoint
-        const citations = await fetchCitations(val);
+        const citations = await fetchCitations(val, history);
 
         // Update state with only citations
         const finalMessages = updatedMessages.map((q, index) =>
