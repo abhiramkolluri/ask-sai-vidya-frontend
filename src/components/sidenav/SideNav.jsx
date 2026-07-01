@@ -10,6 +10,14 @@ import { GoArrowUpRight } from "react-icons/go";
 import ChatSection from "../chat/chatSection/ChatSection";
 import SavedDiscourseModal from "../savedDiscourse/SavedDiscourseModal";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
+import { formatCollection } from "../../helpers/formatCollection";
+
+// Saved titles are stored as `Title of "Collection"`; split so we can show the
+// discourse title above and its source below.
+function splitSavedTitle(full) {
+  const m = (full || "").match(/^(.*?) of "(.*)"$/);
+  return m ? { title: m[1], source: m[2] } : { title: full, source: "" };
+}
 
 export default function SideNav({
   threads = [],
@@ -34,6 +42,10 @@ export default function SideNav({
   const [selectedSavedDiscourse, setSelectedSavedDiscourse] = useState(null);
   const [selectedAnnotatedDiscourse, setSelectedAnnotatedDiscourse] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(true); // Expanded by default
+  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(true); // Expanded by default
+  const [selectedDiscourse, setSelectedDiscourse] = useState(null);
+  const [discourseToDelete, setDiscourseToDelete] = useState(null); // For delete confirmation modal
 
   useEffect(() => {
     const groupedThreads = threads.reduce((acc, thread) => {
@@ -106,22 +118,23 @@ export default function SideNav({
         </div>
         <input
           type="text"
-          placeholder="Search"
-          className="w-full p-2 outline-none -ml-2 bg-transparent"
+          placeholder="Find past questions and saved discourses"
+          className="w-full p-2 outline-none -ml-2 bg-transparent text-base font-semibold placeholder:font-semibold"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
       <div className="mt-4 flex flex-col gap-2 flex-grow overflow-y-scroll no-scrollbar">
-        <div className="border-b border-gray-200">
+        {/* Chat History Accordion */}
+        <div className="border-b-2 border-gray-400">
           <button
             onClick={() => setChatHistoryOpen(!chatHistoryOpen)}
             className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
           >
-            <span className="font-semibold text-gray-700 flex items-center gap-2">
+            <span className="font-semibold text-lg text-gray-800 flex items-center gap-2">
               <IoChatbubbleEllipsesOutline size={20} className="text-primary" />
-              Chat History ({threads.length})
+              Question History ({threads.length})
             </span>
             {chatHistoryOpen ? <IoChevronUp size={20} /> : <IoChevronDown size={20} />}
           </button>
@@ -131,7 +144,7 @@ export default function SideNav({
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <FaSpinner className="animate-spin text-orange-400" size={24} />
-                  <span className="ml-2 text-gray-500">Loading chats...</span>
+                  <span className="ml-2 text-gray-800">Loading chats...</span>
                 </div>
               ) : Object.keys(sectionData).length > 0 ? (
                 Object.keys(sectionData).map((key) => (
@@ -144,7 +157,7 @@ export default function SideNav({
                   />
                 ))
               ) : (
-                <div className="flex items-center justify-center py-8 text-gray-500">
+                <div className="flex items-center justify-center py-8 text-gray-800 text-lg">
                   <span>No chats yet</span>
                 </div>
               )}
@@ -152,12 +165,13 @@ export default function SideNav({
           )}
         </div>
 
-        <div className="border-b border-gray-200">
+        {/* Saved Discourses Accordion */}
+        <div className="border-b-2 border-gray-400">
           <button
             onClick={() => setSavedDiscoursesOpen(!savedDiscoursesOpen)}
             className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
           >
-            <span className="font-semibold text-gray-700 flex items-center gap-2">
+            <span className="font-semibold text-lg text-gray-800 flex items-center gap-2">
               <BsBookmarkStarFill size={18} className="text-primary" />
               Saved Discourses ({bookmarkedDiscourses.length})
             </span>
@@ -169,7 +183,7 @@ export default function SideNav({
               {loadingSaved ? (
                 <div className="flex items-center justify-center py-8">
                   <FaSpinner className="animate-spin text-orange-400" size={24} />
-                  <span className="ml-2 text-gray-500">Loading...</span>
+                  <span className="ml-2 text-gray-800">Loading...</span>
                 </div>
               ) : bookmarkedDiscourses.length > 0 ? (
                 <div className="flex flex-col gap-2">
@@ -183,15 +197,23 @@ export default function SideNav({
                           className="flex-1 min-w-0"
                           onClick={() => setSelectedSavedDiscourse(saved)}
                         >
-                          <p className="font-medium text-gray-800 text-sm truncate">
-                            {saved.discourse.title}
+                          <p className="font-bold text-gray-900 text-base truncate flex items-center gap-2">
+                            {splitSavedTitle(saved.discourse.title).title}
+                            {saved.discourse.highlights && saved.discourse.highlights.length > 0 && (
+                              <span className="inline-flex items-center justify-center bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">
+                                {saved.discourse.highlights.length} ✨
+                              </span>
+                            )}
                           </p>
-                          {saved.question_context && (
-                            <p className="text-xs text-gray-500 mt-1 truncate">
-                              From: "{saved.question_context}"
+                          {splitSavedTitle(saved.discourse.title).source && (
+                            <p className="text-sm text-gray-600 truncate">
+                              {formatCollection(splitSavedTitle(saved.discourse.title).source)}
                             </p>
                           )}
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-sm text-gray-800 mt-1 truncate">
+                            From: "{saved.question_context}"
+                          </p>
+                          <p className="text-sm text-gray-800 mt-1">
                             {new Date(saved.saved_at).toLocaleDateString()}
                           </p>
                         </div>
@@ -210,27 +232,48 @@ export default function SideNav({
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-gray-500 text-center px-2">
-                  <BsBookmarkFill size={32} className="text-gray-300 mb-2" />
-                  <span className="text-xs">No saved discourses yet</span>
-                  <span className="text-xs mt-1">Click the bookmark icon on any discourse to save it</span>
+                <div className="flex flex-col items-center justify-center py-8 text-gray-800 text-center px-2">
+                  <BsBookmarkFill size={32} className="text-primary/40 mb-2" />
+                  <span className="text-lg">No saved discourses yet</span>
+                  <span className="text-base mt-1">Click the bookmark icon on any discourse to save it</span>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        <div className="border-b border-gray-200">
-          <button
-            onClick={() => setAnnotationsOpen(!annotationsOpen)}
-            className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
-          >
-            <span className="font-semibold text-gray-700 flex items-center gap-2">
-              <MdOutlineAutoStories size={18} className="text-primary" />
-              Highlights & Comments ({annotatedDiscourses.length})
-            </span>
-            {annotationsOpen ? <IoChevronUp size={20} /> : <IoChevronDown size={20} />}
-          </button>
+      {/* Modal for viewing saved discourse */}
+      {selectedDiscourse && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-800">
+                {formatCollection(selectedDiscourse.discourse.title)}
+              </h2>
+              <button
+                onClick={handleCloseDiscourseModal}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Show question context only if it's valid */}
+              {selectedDiscourse.question_context &&
+                selectedDiscourse.question_context.trim() !== "" &&
+                selectedDiscourse.question_context !== "No question provided" &&
+                selectedDiscourse.question_context !== "From blog page" &&
+                selectedDiscourse.question_context !== "Browsing discourses" && (
+                  <div className="mb-4 bg-orange-50 p-3 rounded">
+                    <p className="text-sm text-gray-600">
+                      <strong>You discovered this while asking:</strong>
+                    </p>
+                    <p className="text-sm text-gray-800 italic mt-1">
+                      "{selectedDiscourse.question_context}"
+                    </p>
+                  </div>
+                )}
 
           {annotationsOpen && (
             <div className="py-2">

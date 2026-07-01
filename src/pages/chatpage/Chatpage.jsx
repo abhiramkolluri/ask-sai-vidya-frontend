@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
+import BrowseTab from "../../components/browse/BrowseTab";
+import HowToTab from "../../components/howto/HowToTab";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
@@ -13,6 +15,7 @@ const Chatpage = () => {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [activeTab, setActiveTab] = useState("chat"); // "chat" | "browse"
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
 
@@ -60,13 +63,19 @@ const Chatpage = () => {
 
       if (response.ok) {
         const chatThreads = await response.json();
+        setThreads(chatThreads);
+
+        // If user has existing chats, select the most recent one. Otherwise
+        // create and select an empty chat so there is always a valid
+        // selectedThreadId before the user's first question (prevents the
+        // loadMessages effect from wiping the first answer).
         if (chatThreads.length > 0) {
           setThreads(chatThreads);
           setSelectedThreadId(chatThreads[0].id);
         } else {
           const newThread = await createNewChatThread();
-          setThreads([newThread]);
           setSelectedThreadId(newThread.id);
+          addThread(newThread);
         }
       } else {
         console.error("Failed to load chats:", response.statusText);
@@ -394,7 +403,7 @@ const Chatpage = () => {
   return (
     <div className="w-full h-[100vh] flex overflow-hidden bg-white">
       {/* Sidebar */}
-      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[300px]' : 'w-0'
+      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[340px] border-r-2 border-primary/40' : 'w-0'
         } hidden md:flex`}>
         <SideNav
           startNewChatCallback={handleNewChat}
@@ -428,24 +437,57 @@ const Chatpage = () => {
           </svg>
         </button>
 
-        {/* Navbar */}
-        <div className="absolute top-0 left-0 right-0">
-          <Navbar />
+        {/* Header: tabs + account/login on one themed bar */}
+        <div className="absolute top-0 left-0 right-0 z-30">
+          <Navbar
+            tabs={
+              <div className="flex items-center gap-1 rounded-lg bg-white/90 p-1 shadow-md backdrop-blur-sm">
+                {[
+                  { key: "chat", label: "Questions" },
+                  { key: "browse", label: "Saved Discourses" },
+                  { key: "howto", label: "How to Use" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab.key
+                      ? "bg-[#BC5B01] text-white shadow-sm"
+                      : "text-gray-600 hover:bg-orange-50 hover:text-[#BC5B01]"
+                      }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            }
+          />
         </div>
 
-        {/* ChatBox */}
-        <ChatBox
-          newChat={newChat}
-          selectedThreadId={selectedThreadId}
-          addThread={addThread}
-          threads={threads}
-          user={user}
-          ensureActiveThread={ensureActiveThread}
-          loadThreadMessages={loadThreadMessages}
-          generateTitleFromQuestion={getTitleFromQuestion} // Using simple truncation for now not AI generation
-          onSaveDiscourse={handleSaveDiscourse}
-          onUnsaveDiscourse={handleUnsaveDiscourse}
-        />
+        {/* Main view */}
+        {activeTab === "chat" && (
+          <ChatBox
+            newChat={newChat}
+            selectedThreadId={selectedThreadId}
+            setSelectedThreadId={setSelectedThreadId}
+            addThread={addThread}
+            threads={threads}
+            user={user}
+            generateTitleFromQuestion={getTitleFromQuestion} // Using simple truncation for now not AI generation
+            savedDiscourses={savedDiscourses}
+            onSaveDiscourse={handleSaveDiscourse}
+            onUnsaveDiscourse={handleUnsaveDiscourse}
+          />
+        )}
+        {activeTab === "browse" && (
+          <div className="flex-grow overflow-hidden pt-16">
+            <BrowseTab />
+          </div>
+        )}
+        {activeTab === "howto" && (
+          <div className="flex-grow overflow-hidden pt-16">
+            <HowToTab />
+          </div>
+        )}
       </div>
     </div>
   );

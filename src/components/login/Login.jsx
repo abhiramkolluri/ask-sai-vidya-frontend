@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, Input } from "@material-tailwind/react";
 import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
@@ -182,13 +181,6 @@ export default function Login({ callback = () => { }, inModal = true }) {
               Continue with Google
               <span>
                 <FcGoogle size={18} />
-              </span>
-            </button>
-
-            <button className="w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded opacity-50 cursor-not-allowed" disabled>
-              Continue with Apple
-              <span>
-                <FaApple size={18} />
               </span>
             </button>
           </div>
