@@ -16,6 +16,7 @@ import { formatCollection } from "../../../helpers/formatCollection";
 
 import Feedback from "../../feedback/Feedback";
 import TextHighlightPopover from "../TextHighlightPopover";
+import FollowUpQuestions from "../../followups/FollowUpQuestions";
 
 export default function Reply({
   question = "What the user asked?",
@@ -29,6 +30,10 @@ export default function Reply({
   savedDiscourses = [],
   user = null,
   onHighlightChange = () => { }, // New prop for managing highlights
+  followUps = [],
+  onFollowUpClick = () => { },
+  onGenerateFollowups = () => { },
+  followUpsLoading = false,
 }) {
   
   const [showFeedbackModal, setshowFeedbackModal] = useState(false);
@@ -539,6 +544,32 @@ export default function Reply({
               <div className="flex-grow w-20"></div>
             </div>
           </div>
+          {reply?.citations?.length > 0 && (
+            <div className="mx-2 mt-2">
+              {followUps && followUps.length > 0 ? (
+                <FollowUpQuestions
+                  questions={followUps}
+                  onQuestionClick={onFollowUpClick}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onGenerateFollowups()}
+                  disabled={followUpsLoading}
+                  className="border border-gray-300 rounded hover:border-orange-500 hover:bg-orange-100 px-4 py-2 text-gray-800 transition-all ease-linear cursor-pointer flex items-center gap-2 disabled:opacity-60"
+                >
+                  {followUpsLoading ? (
+                    <>
+                      <FaSpinner className="animate-spin text-orange-400" />
+                      Generating…
+                    </>
+                  ) : (
+                    "Generate Followup Questions"
+                  )}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {showFeedbackModal && createPortal(

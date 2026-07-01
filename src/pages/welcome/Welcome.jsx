@@ -15,6 +15,9 @@ export default function Welcome() {
       <div className="absolute top-0 left-0 opacity-100">
         <img src={leaves} alt="" className=" h-[400px]" />
       </div>
+      <div className="absolute bottom-0 right-0 opacity-100 z-30 pointer-events-none">
+        <img src={sai} alt="Sai Baba" className=" h-[250px]" />
+      </div>
       <div className=" flex  h-full ">
         <div className="hidden md:flex flex-col items-center justify-end  flex-grow">
           <div className="w-[700px]  flex  gap-12 justify-center items-center relative -top-20 ">

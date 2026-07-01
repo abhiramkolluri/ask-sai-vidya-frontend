@@ -23,8 +23,10 @@ export default function ChatBox({
   const [messages, setMessages] = useState([]);
   const [askQuestion, setAskQuestion] = useState("");
   const [loadingIndex, setLoadingIndex] = useState(null); // Track loading for specific question
+  const [followupLoadingIndex, setFollowupLoadingIndex] = useState(null); // Track follow-up generation per message
   const containerRef = useRef(null);
   const inputRef = useRef(null);
+  const prevMessageCount = useRef(0);
 
   const fetchPrimaryResponse = async (question) => {
     if (cache[question]?.primaryResponse) {
@@ -129,6 +131,70 @@ export default function ChatBox({
     }
   };
 
+  // Fetch verified follow-up questions for an answer the user just received.
+  // The backend regenerates+verifies follow-ups grounded in the citations we
+  // already have, so we pass them along. Cached alongside citations by
+  // question + history. Returns [] on any error (UI just shows no follow-ups).
+  const fetchFollowups = async (question, history = [], citations = []) => {
+    const cacheKey = question + "||" + history.join("|");
+    if (cache[cacheKey]?.followups) {
+      return cache[cacheKey].followups;
+    }
+    try {
+      const response = await fetch(apiRoute("followups"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: question, history, results: citations }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      const followups = Array.isArray(data?.followups) ? data.followups : [];
+      cache[cacheKey] = { ...cache[cacheKey], followups };
+      return followups;
+    } catch (error) {
+      console.error("❌ Follow-up fetch error:", error);
+      return [];
+    }
+  };
+
+  // Generate follow-up questions on demand for a specific message and patch them onto
+  // that message's reply (and the persisted thread). Storing them inside
+  // `reply.followUps` keeps them through the loadMessages reload + thread save.
+  const handleGenerateFollowups = async (index) => {
+    const target = messages[index];
+    const citations = target?.reply?.citations || [];
+    if (!target || citations.length === 0) return;
+
+    // Recent prior questions in this thread → same multi-turn context handleSend uses.
+    const history = messages
+      .slice(0, index)
+      .map((m) => m.question)
+      .filter(Boolean)
+      .slice(-3);
+
+    setFollowupLoadingIndex(index);
+    try {
+      const followUps = await fetchFollowups(target.question, history, citations);
+      if (!followUps || followUps.length === 0) return; // leave the button for a retry
+      const withFollowups = messages.map((q, i) =>
+        i === index ? { ...q, reply: { ...q.reply, followUps } } : q
+      );
+      setMessages(withFollowups);
+      const existingThread = threads.find(
+        (thread) => thread.id === selectedThreadId
+      );
+      if (existingThread) {
+        addThread({ ...existingThread, messages: withFollowups });
+      }
+    } finally {
+      setFollowupLoadingIndex(null);
+    }
+  };
+
   // Save message to backend if user is logged in
   // NOTE: This function is currently not used because messages are saved
   // via the addThread() function which calls saveChatThread() in the parent component.
@@ -226,6 +292,8 @@ export default function ChatBox({
         if (newThread.id !== selectedThreadId) {
           setSelectedThreadId(newThread.id);
         }
+        // Follow-ups are now opt-in — the user generates them via a button on the
+        // answer (handleGenerateFollowups), so nothing is fetched here.
         // navigate(`/thread/${newThread.id}`);
       } catch (error) {
         console.error("Error fetching data in handleSend:", error);
@@ -243,6 +311,13 @@ export default function ChatBox({
   };
 
   useEffect(() => {
+    // Only scroll when a new message is added, not when an existing message is
+    // patched in place (e.g. follow-ups generated on demand), which would yank
+    // the user back to the top of the answer.
+    const added = messages.length > prevMessageCount.current;
+    prevMessageCount.current = messages.length;
+    if (!added) return;
+
     const c = containerRef.current;
     if (!c) return;
     // Bring the latest question to the top so it and the first couple of
@@ -342,12 +417,13 @@ export default function ChatBox({
       const existingThread = threads.find(
         (thread) => thread.id === selectedThreadId
       );
+      let reloadedThread = null;
       if (existingThread) {
-        const newThread = {
+        reloadedThread = {
           ...existingThread,
           messages: finalMessages,
         };
-        addThread(newThread);
+        addThread(reloadedThread);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -384,6 +460,10 @@ export default function ChatBox({
                 onUnsaveDiscourse={onUnsaveDiscourse}
                 savedDiscourses={savedDiscourses}
                 user={user}
+                followUps={msg.reply?.followUps || []}
+                onFollowUpClick={(q) => handleSend(q)}
+                onGenerateFollowups={() => handleGenerateFollowups(index)}
+                followUpsLoading={followupLoadingIndex === index}
               />
             ))}
             {/* Spacer so the last reply / loading indicator clears the sticky
