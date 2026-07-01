@@ -465,6 +465,32 @@ export default function Reply({
               <div className="flex-grow w-20"></div>
             </div>
           </div>
+          {reply?.citations?.length > 0 && (
+            <div className="mx-2 mt-2">
+              {followUps && followUps.length > 0 ? (
+                <FollowUpQuestions
+                  questions={followUps}
+                  onQuestionClick={onFollowUpClick}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onGenerateFollowups()}
+                  disabled={followUpsLoading}
+                  className="border border-gray-300 rounded hover:border-orange-500 hover:bg-orange-100 px-4 py-2 text-gray-800 transition-all ease-linear cursor-pointer flex items-center gap-2 disabled:opacity-60"
+                >
+                  {followUpsLoading ? (
+                    <>
+                      <FaSpinner className="animate-spin text-orange-400" />
+                      Generating…
+                    </>
+                  ) : (
+                    "Generate Followup Questions"
+                  )}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {showFeedbackModal && createPortal(

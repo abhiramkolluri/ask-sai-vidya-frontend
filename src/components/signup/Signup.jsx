@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { Button, Input } from "@material-tailwind/react";
 import { VscEye, VscEyeClosed } from "react-icons/vsc";
@@ -86,7 +85,7 @@ export default function Signup({ callback = () => { }, inModal = true }) {
   };
 
   return (
-    <div className="w-[400px] bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
+    <div className="w-[400px] bg-white rounded overflow-hidden text-[15px] flex flex-col gap-2 justify-between text-gray-600">
       {inModal ? (
         <div>
           <img src={Chat} height={"140px"} width={"400px"} alt="" />
@@ -204,13 +203,6 @@ export default function Signup({ callback = () => { }, inModal = true }) {
             Continue with Google
             <span>
               <FcGoogle size={18} />
-            </span>
-          </button>
-
-          <button className="w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded opacity-50 cursor-not-allowed" disabled>
-            Continue with Apple
-            <span>
-              <FaApple size={18} />
             </span>
           </button>
         </div>
