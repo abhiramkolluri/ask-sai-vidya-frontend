@@ -16,7 +16,7 @@ export default function ChatBox({
   user = null,
   generateTitleFromQuestion = (question) => question || "New Chat",
   loadThreadMessages = async () => [],
-  savedDiscourses = [],
+  ensureActiveThread = async () => null,
   onSaveDiscourse = async () => { },
   onUnsaveDiscourse = async () => { },
 }) {
@@ -237,11 +237,9 @@ export default function ChatBox({
       setLoadingIndex(newIndex); // Set loading index for the new question
 
       try {
-        // Recent prior questions in this thread → multi-turn query planning context.
-        const history = messages
-          .map((m) => m.question)
-          .filter(Boolean)
-          .slice(-3);
+        const activeThread = user?.token ? await ensureActiveThread() : null;
+        const threadId = activeThread?.id || selectedThreadId || new Date().toISOString();
+
         // Only fetch citations from /search endpoint
         const citations = await fetchCitations(val, history);
 
@@ -264,8 +262,8 @@ export default function ChatBox({
         // Note: We don't call saveMessageToBackend here because addThread will
         // save the entire thread (including this new message) to the backend via PUT
         const existingThread = threads.find(
-          (thread) => thread.id === selectedThreadId,
-        );
+          (thread) => thread.id === threadId,
+        ) || activeThread;
 
         // Only update title if this is the first message or if thread has no title
         const shouldUpdateTitle = !existingThread ||
@@ -279,7 +277,7 @@ export default function ChatBox({
           : (existingThread ? existingThread.title : "New Chat");
 
         const newThread = {
-          id: selectedThreadId || new Date().toISOString(),
+          id: threadId,
           title: threadTitle,
           timestamp: existingThread ? existingThread.timestamp : new Date(),
           messages: finalMessages,
@@ -458,7 +456,6 @@ export default function ChatBox({
                 onCopyClick={handleCopyClick}
                 onSaveDiscourse={onSaveDiscourse}
                 onUnsaveDiscourse={onUnsaveDiscourse}
-                savedDiscourses={savedDiscourses}
                 user={user}
                 followUps={msg.reply?.followUps || []}
                 onFollowUpClick={(q) => handleSend(q)}
