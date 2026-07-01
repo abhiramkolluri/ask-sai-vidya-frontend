@@ -13,6 +13,7 @@ import { fetchBlogPost } from "../../helpers/apiRoute";
 import ErrorPage from "../../components/error/ErrorPage";
 import Navbar from "../../components/Navbar";
 import TextHighlightPopover from "../../components/chat/TextHighlightPopover";
+import HighlightsSidebar from "../../components/highlights/HighlightsSidebar";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 import { formatCollection } from "../../helpers/formatCollection";
@@ -24,11 +25,11 @@ export default function Blog() {
 
   // Use saved discourses from context
   const {
-    savedDiscourses,
-    saveDiscourse,
-    updateSavedDiscourse,
-    unsaveDiscourse,
-    getSavedDiscourseByTitle
+    saveHighlights,
+    getSavedDiscourseByTitle,
+    deleteDiscourseRecord,
+    clearAnnotations,
+    loadingSaved,
   } = useSavedDiscourses();
 
   // Citations drawer
@@ -53,17 +54,20 @@ export default function Blog() {
   const contentRef = useRef(null);
   const matchedRef = useRef(null); // the braces-wrapped matched passage block
 
-  const { isLoading, isRefetching, data, isError, refetch } = useQuery(
-    "blogPost",
+  const { isLoading, isRefetching, data, isError } = useQuery(
+    ["blogPost", slugId],
     () => fetchBlogPost(slugId),
     {
       retry: false,
+      enabled: Boolean(slugId),
     },
   );
 
   useEffect(() => {
-    refetch();
-  }, [slugId, refetch]);
+    setHighlights([]);
+    setActiveHighlightId(null);
+    setShowHighlightPopover(false);
+  }, [slugId]);
 
   // When a discourse is opened from a citation, scroll the matched passage into
   // view once it has rendered, so the answer is shown immediately.
@@ -79,17 +83,12 @@ export default function Blog() {
 
   // Load saved discourse highlights for this blog post
   useEffect(() => {
-    if (data && savedDiscourses.length > 0) {
-      const discourseTitle = `${data.title} of "${data.collection}"`;
-      const savedDiscourse = getSavedDiscourseByTitle(discourseTitle);
+    if (!data || data._id !== slugId || loadingSaved) return;
 
-      if (savedDiscourse && savedDiscourse.discourse.highlights) {
-        setHighlights(savedDiscourse.discourse.highlights);
-      } else {
-        setHighlights([]);
-      }
-    }
-  }, [data, savedDiscourses, getSavedDiscourseByTitle]);
+    const discourseTitle = `${data.title} of "${data.collection}"`;
+    const savedDiscourse = getSavedDiscourseByTitle(discourseTitle);
+    setHighlights(savedDiscourse?.discourse?.highlights || []);
+  }, [slugId, data, loadingSaved, getSavedDiscourseByTitle]);
 
   // Handle text selection
   const handleTextSelection = () => {
@@ -145,10 +144,14 @@ export default function Blog() {
       timestamp: new Date().toISOString(),
     };
 
-    const updatedHighlights = [...highlights, newHighlight];
+    const previousHighlights = highlights;
+    const updatedHighlights = [...previousHighlights, newHighlight];
     setHighlights(updatedHighlights);
 
-    await saveDiscourseWithHighlights(updatedHighlights);
+    const saved = await saveDiscourseWithHighlights(updatedHighlights);
+    if (!saved) {
+      setHighlights(previousHighlights);
+    }
 
     window.getSelection().removeAllRanges();
     setShowHighlightPopover(false);
@@ -167,10 +170,14 @@ export default function Blog() {
       timestamp: new Date().toISOString(),
     };
 
-    const updatedHighlights = [...highlights, newHighlight];
+    const previousHighlights = highlights;
+    const updatedHighlights = [...previousHighlights, newHighlight];
     setHighlights(updatedHighlights);
 
-    await saveDiscourseWithHighlights(updatedHighlights);
+    const saved = await saveDiscourseWithHighlights(updatedHighlights);
+    if (!saved) {
+      setHighlights(previousHighlights);
+    }
 
     window.getSelection().removeAllRanges();
     setShowHighlightPopover(false);
@@ -179,7 +186,7 @@ export default function Blog() {
 
   // Save or update discourse with highlights
   const saveDiscourseWithHighlights = async (highlightsArray) => {
-    if (!user || !user.token || !data) return;
+    if (!user || !user.token || !data) return false;
 
     const discourseTitle = `${data.title} of "${data.collection}"`;
     const existingSaved = getSavedDiscourseByTitle(discourseTitle);
@@ -192,45 +199,29 @@ export default function Blog() {
       highlights: highlightsArray,
     };
 
-    if (existingSaved) {
-      // Update existing with new highlights
-      await updateSavedDiscourse(existingSaved.id, { highlights: highlightsArray });
-    } else {
-      // Create new saved discourse with the question context from navigation state
-      const questionContext = state?.questionContext || "Browsing discourses";
-      await saveDiscourse(discourseData, questionContext);
+    if (highlightsArray.length === 0) {
+      if (!existingSaved) return true;
+      if (existingSaved.bookmarked) {
+        const result = await clearAnnotations(existingSaved.id);
+        return Boolean(result);
+      }
+      const deleted = await deleteDiscourseRecord(existingSaved.id);
+      return Boolean(deleted);
     }
+
+    const result = await saveHighlights(discourseData, highlightsArray);
+    return Boolean(result);
   };
 
   // Remove highlight
   const handleRemoveHighlight = async (highlightId) => {
+    const previousHighlights = highlights;
     const updatedHighlights = highlights.filter(h => h.id !== highlightId);
     setHighlights(updatedHighlights);
 
-    const discourseTitle = `${data.title} of "${data.collection}"`;
-    const existingSaved = getSavedDiscourseByTitle(discourseTitle);
-
-    // Check if there are any highlights left
-    if (updatedHighlights.length === 0 && existingSaved) {
-      // No highlights left - check if discourse should be unsaved
-      // Check if the discourse has a valid question context
-      const questionContext = existingSaved.question_context;
-      const hasValidQuestionContext = questionContext &&
-        questionContext.trim() !== "" &&
-        questionContext !== "No question provided" &&
-        questionContext !== "From blog page" &&
-        questionContext !== "Browsing discourses";
-
-      if (!hasValidQuestionContext) {
-        // No valid question context and no highlights - remove the saved discourse entirely
-        await unsaveDiscourse(existingSaved.id);
-        return; // Exit early, don't update highlights
-      }
-    }
-
-    // Update the saved discourse with new highlights (or empty array if all removed but has valid question)
-    if (existingSaved) {
-      await saveDiscourseWithHighlights(updatedHighlights);
+    const saved = await saveDiscourseWithHighlights(updatedHighlights);
+    if (!saved) {
+      setHighlights(previousHighlights);
     }
   };
 
@@ -311,7 +302,7 @@ export default function Blog() {
     return (
       <>
         {before}
-        <span className="bg-yellow-400 animate-pulse px-1 rounded transition-all duration-300">
+        <span className="bg-orange-300 animate-pulse px-1 rounded transition-all duration-300">
           {highlight}
         </span>
         {after}
@@ -483,9 +474,18 @@ export default function Blog() {
         />
 
         <div className="w-full h-[375px] flex flex-col bg-[#FE9F440A] items-center">
-          <div className="p-9 flex justify-between w-full">
-            {/* nav section */}
-            <Logo />
+          <div className="p-9 flex justify-between w-full items-start">
+            <div className="flex flex-col gap-2">
+              <Logo />
+              {user?.token && (
+                <HighlightsSidebar
+                  highlights={highlights}
+                  onHighlightClick={handleHighlightClick}
+                  onRemoveHighlight={handleRemoveHighlight}
+                  activeHighlightId={activeHighlightId}
+                />
+              )}
+            </div>
             <Navbar variant="blog" />
           </div>
           <h1 className=" text-[22px] text-center font-bold mb-10">
@@ -504,8 +504,8 @@ export default function Blog() {
             <img src={bgflower} alt="" className="w-full " />
           </div>
         </div>
-        <div className="flex flex-wrap justify-center  w-[96vw] max:w-[1400px] mx-auto md:gap-12 gap-4 leading-8">
-          <div className=" flex flex-col md:w-[800px]  border border-gray-300 rounded shadow p-8 gap-8 relative -top-20 bg-white">
+        <div className="flex flex-wrap md:flex-nowrap justify-center items-start w-[96vw] max-w-[1400px] mx-auto md:gap-4 gap-4 leading-8 px-2">
+          <div className="flex flex-col w-full md:w-[800px] md:flex-shrink-0 border border-gray-300 rounded shadow p-8 gap-8 relative -top-20 bg-white">
             <h2 className=" text-[20px] mt-4 text-center font-bold text-[#4D4D4D]">
               {post?.occasion}
             </h2>
@@ -525,56 +525,6 @@ export default function Blog() {
               )}
             </div>
             <div className="p-4 md:p-8 flex flex-col gap-8" ref={contentRef}>
-              {/* Show highlights if any */}
-              {highlights.length > 0 && (
-                <div className="mb-4 bg-yellow-50 p-4 rounded border border-yellow-200">
-                  <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <span className="text-yellow-600">✨</span>
-                    Your Highlights & Comments ({highlights.length})
-                  </h3>
-                  <div className="space-y-3">
-                    {highlights.map((highlight) => (
-                      <div
-                        key={highlight.id}
-                        className="bg-white p-3 rounded border border-yellow-300 cursor-pointer hover:shadow-md transition-shadow"
-                        onClick={() => handleHighlightClick(highlight)}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <div className="bg-yellow-200 px-2 py-1 rounded inline-block mb-2 hover:bg-yellow-300 transition-colors">
-                              <p className="text-sm text-gray-800">
-                                "{highlight.text.substring(0, 100)}{highlight.text.length > 100 ? '...' : ''}"
-                              </p>
-                            </div>
-                            {highlight.comment && (
-                              <div className="mt-2 pl-3 border-l-2 border-blue-400">
-                                <p className="text-xs text-gray-600 font-medium">Your comment:</p>
-                                <p className="text-sm text-blue-700 italic mt-1">
-                                  💬 {highlight.comment}
-                                </p>
-                              </div>
-                            )}
-                            <p className="text-xs text-gray-400 mt-2">
-                              {new Date(highlight.timestamp).toLocaleString()}
-                            </p>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation(); // Prevent triggering the highlight click
-                              handleRemoveHighlight(highlight.id);
-                            }}
-                            className="text-gray-400 hover:text-red-600 transition-colors"
-                            title="Remove highlight"
-                          >
-                            <MdClose size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Content with text selection enabled - Added padding bottom for scroll space */}
               <div onMouseUp={handleTextSelection} className="select-text cursor-text pb-[50vh]">
                 {contentLines.map((text, index) => {
@@ -610,7 +560,7 @@ export default function Blog() {
           </div>
 
           {state?.citations?.length && (
-            <div className="w-[440px] flex flex-col mt-12 gap-2 mb-12">
+            <div className="w-full md:w-[360px] md:flex-shrink-0 flex flex-col mt-12 md:mt-0 gap-2 mb-12 relative -top-20">
               <p>Citations</p>
               {state?.citations?.map((c, i) => (
                 <Link

@@ -9,13 +9,13 @@ import {
 import { BsBookmark, BsBookmarkFill } from "react-icons/bs";
 import { GoArrowUpRight } from "react-icons/go";
 import { FaSpinner } from "react-icons/fa";
-import { MdClose } from "react-icons/md";
 import { Link } from "react-router-dom";
 import { apiRoute, submitFeedback } from "../../../helpers/apiRoute";
 import { formatCollection } from "../../../helpers/formatCollection";
 
 import Feedback from "../../feedback/Feedback";
 import TextHighlightPopover from "../TextHighlightPopover";
+import { useSavedDiscourses } from "../../../contexts/SavedDiscoursesContext";
 
 export default function Reply({
   question = "What the user asked?",
@@ -26,11 +26,14 @@ export default function Reply({
   onCopyClick,
   onSaveDiscourse,
   onUnsaveDiscourse,
-  savedDiscourses = [],
   user = null,
-  onHighlightChange = () => { }, // New prop for managing highlights
+  onHighlightChange = () => { },
 }) {
-  
+  const {
+    isDiscourseBookmarked,
+    saveHighlights,
+    getDiscourseByTitle,
+  } = useSavedDiscourses();
   const [showFeedbackModal, setshowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState(null); // 'up' or 'down'
   const [feedbackItem, setFeedbackItem] = useState(null); // the discourse feedback is for
@@ -94,28 +97,25 @@ export default function Reply({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [showHighlightPopover]);
 
-  // Hydrate local highlights state from savedDiscourses so persisted highlights
-  // and comments survive a browser refresh. Keyed by citation._id; matches each
-  // citation to its saved discourse via the `${title} of "${collection}"` title
-  // convention used elsewhere in the codebase.
   React.useEffect(() => {
     const citations = reply?.citations || [];
-    if (!savedDiscourses || savedDiscourses.length === 0 || citations.length === 0) {
-      return;
-    }
-    const hydrated = {};
-    citations.forEach((citation) => {
-      const discourseTitle = `${citation.title} of "${citation.collection}"`;
-      const saved = savedDiscourses.find((s) => s.discourse.title === discourseTitle);
-      const savedHighlights = saved?.discourse?.highlights;
-      if (Array.isArray(savedHighlights) && savedHighlights.length > 0) {
-        hydrated[citation._id] = savedHighlights;
-      }
+    if (!citations.length) return;
+
+    setHighlights((prev) => {
+      const next = { ...prev };
+      citations.forEach((citation) => {
+        const discourseTitle = `${citation.title} of "${citation.collection}"`;
+        const saved = getDiscourseByTitle(discourseTitle);
+        const savedHighlights = saved?.discourse?.highlights;
+        if (Array.isArray(savedHighlights) && savedHighlights.length > 0) {
+          next[citation._id] = savedHighlights;
+        } else {
+          delete next[citation._id];
+        }
+      });
+      return next;
     });
-    if (Object.keys(hydrated).length > 0) {
-      setHighlights((prev) => ({ ...prev, ...hydrated }));
-    }
-  }, [savedDiscourses, reply]);
+  }, [getDiscourseByTitle, reply]);
 
   // Handle highlight action
   const handleHighlight = async () => {
@@ -179,12 +179,8 @@ export default function Reply({
     setSelectedText("");
   };
 
-  // Auto-save discourse when highlights are added
   const autoSaveDiscourseWithHighlights = async (citation, highlightsArray) => {
     const discourseTitle = `${citation.title} of "${citation.collection}"`;
-    const savedDiscourse = savedDiscourses.find(
-      saved => saved.discourse.title === discourseTitle
-    );
 
     const discourseData = {
       title: discourseTitle,
@@ -194,76 +190,11 @@ export default function Reply({
       highlights: highlightsArray,
     };
 
-    if (!savedDiscourse) {
-      // Save new discourse with highlights
-      await onSaveDiscourse(discourseData, question);
-    } else {
-      // Update existing saved discourse with new highlights
-      try {
-        const response = await fetch(apiRoute(`saved-discourses/${user.email}/${savedDiscourse.id}`), {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${user.token}`
-          },
-          body: JSON.stringify({
-            highlights: highlightsArray
-          })
-        });
-
-        if (!response.ok) {
-          console.error("Failed to update highlights:", response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error("Error updating highlights:", error);
-      }
-    }
+    await saveHighlights(discourseData, highlightsArray);
   };
 
-  // Remove highlight
-  const handleRemoveHighlight = async (discourseId, highlightId) => {
-    const updatedHighlights = (highlights[discourseId] || []).filter(h => h.id !== highlightId);
+  const isDiscourseSaved = (discourseTitle) => isDiscourseBookmarked(discourseTitle);
 
-    setHighlights(prev => ({
-      ...prev,
-      [discourseId]: updatedHighlights
-    }));
-
-    // Update the saved discourse with new highlights
-    const citation = citations.find(c => c._id === discourseId);
-    if (citation) {
-      await autoSaveDiscourseWithHighlights(citation, updatedHighlights);
-    }
-  };
-
-  // Render text with highlights
-  const renderTextWithHighlights = (text, discourseId) => {
-    const discourseHighlights = highlights[discourseId] || [];
-
-    if (discourseHighlights.length === 0) {
-      return text;
-    }
-
-    // Simple implementation: wrap text in mark tags
-    // TODO: Implement proper range-based highlighting
-    let result = text;
-    discourseHighlights.forEach((highlight, index) => {
-      const highlightHtml = `<mark class="bg-yellow-200 relative group cursor-pointer" data-highlight-id="${highlight.id}">
-        ${highlight.text}
-        ${highlight.comment ? `<span class="hidden group-hover:block absolute bottom-full left-0 bg-blue-600 text-white text-xs p-2 rounded shadow-lg mb-1 w-48 z-10">${highlight.comment}</span>` : ''}
-      </mark>`;
-      result = result.replace(highlight.text, highlightHtml);
-    });
-
-    return result;
-  };
-
-  // Check if a discourse is saved
-  const isDiscourseSaved = (discourseTitle) => {
-    return savedDiscourses.some(saved => saved.discourse.title === discourseTitle);
-  };
-
-  // Handle bookmark click
   const handleBookmarkClick = async (citation) => {
     if (!user || !user.token) {
       alert('Please log in to save discourses');
@@ -271,23 +202,18 @@ export default function Reply({
     }
 
     const discourseTitle = `${citation.title} of "${citation.collection}"`;
-    const isSaved = isDiscourseSaved(discourseTitle);
 
-    if (isSaved) {
-      // Find and unsave
-      const savedDiscourse = savedDiscourses.find(
-        saved => saved.discourse.title === discourseTitle
-      );
+    if (isDiscourseBookmarked(discourseTitle)) {
+      const savedDiscourse = getDiscourseByTitle(discourseTitle);
       if (savedDiscourse) {
         await onUnsaveDiscourse(savedDiscourse.id);
       }
     } else {
-      // Save discourse
       const discourseData = {
         title: discourseTitle,
         content: citation.content,
         source_url: `/blog/${citation._id}`,
-        source_citation: `${citation.date} - ${citation.collection}`
+        source_citation: `${citation.date} - ${citation.collection}`,
       };
       await onSaveDiscourse(discourseData, question);
     }
