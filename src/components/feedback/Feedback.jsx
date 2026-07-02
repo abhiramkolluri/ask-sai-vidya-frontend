@@ -9,6 +9,9 @@ export default function Feedback({
     "Unsatisfied",
     "Very unsatisfied",
   ],
+  title = "",
+  subheader = "",
+  context = null,
   question = "Thank you for helping us improve the community. Tell us more about your feedback.",
   closeModalCallback = () => {},
   onSubmit = () => {},
@@ -18,14 +21,12 @@ export default function Feedback({
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = () => {
-    if (selectedOption || additionalComments.trim()) {
-      onSubmit(selectedOption, additionalComments);
-      setIsSubmitted(true);
-      // Close the modal after 1.5 seconds
-      setTimeout(() => {
-        closeModalCallback();
-      }, 1500);
-    }
+    onSubmit(selectedOption, additionalComments);
+    setIsSubmitted(true);
+    // Close the modal after 1.5 seconds
+    setTimeout(() => {
+      closeModalCallback();
+    }, 1500);
   };
 
   if (isSubmitted) {
@@ -39,7 +40,7 @@ export default function Feedback({
   }
 
   return (
-    <div className="w-[580px] h-[50vh] bg-white flex justify-center items-center flex-col gap-4 p-10 text-[14px] ">
+    <div className="w-[640px] max-w-[92vw] max-h-[88vh] overflow-y-auto rounded-xl shadow-2xl bg-white flex justify-start items-center flex-col gap-5 p-10 text-[14px]">
       <div className="w-full flex justify-end px-2">
         <button
           className="text-orange-400"
@@ -47,7 +48,18 @@ export default function Feedback({
           <IoMdClose size={18} />{" "}
         </button>
       </div>
-      <p className="text-[#252525] text-lg font-normal mb-4"> {question}</p>
+      {title && (
+        <p className="text-[#252525] text-2xl font-bold text-center">{title}</p>
+      )}
+      {subheader && (
+        <p className="text-gray-600 text-base text-center max-w-[460px] -mt-1">
+          {subheader}
+        </p>
+      )}
+      {context}
+      <p className="text-[#252525] text-base font-normal text-center max-w-[520px] mb-2">
+        {question}
+      </p>
       <div className="flex flex-wrap gap-2 ">
         {options.map((option, index) => {
           return (
@@ -74,12 +86,9 @@ export default function Feedback({
         />
       </div>
       <div className="w-full flex justify-end">
-        <button 
-          className={`${
-            selectedOption || additionalComments.trim() ? "bg-[#BC5B01]" : "bg-gray-400"
-          } text-white flex w-[122px] justify-center py-3 px-2 rounded cursor-pointer ml-2 text-lg font-semibold`}
-          onClick={handleSubmit}
-          disabled={!(selectedOption || additionalComments.trim())}>
+        <button
+          className="bg-[#BC5B01] hover:bg-orange-600 text-white flex w-[122px] justify-center py-3 px-2 rounded cursor-pointer ml-2 text-lg font-semibold transition-colors"
+          onClick={handleSubmit}>
           Submit
         </button>
       </div>

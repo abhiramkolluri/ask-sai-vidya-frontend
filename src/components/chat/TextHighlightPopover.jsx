@@ -30,6 +30,19 @@ export default function TextHighlightPopover({
         }
     }, [isCommentMode]);
 
+    // Clamp popover within viewport bounds after every render
+    useEffect(() => {
+        if (!visible || !popoverRef.current) return;
+        const el = popoverRef.current;
+        const rect = el.getBoundingClientRect();
+        if (rect.right > window.innerWidth - 8) {
+            el.style.left = `${window.innerWidth - rect.width - 8}px`;
+        }
+        if (rect.bottom > window.innerHeight - 8) {
+            el.style.top = `${window.innerHeight - rect.height - 8}px`;
+        }
+    }, [visible, isCommentMode]);
+
     const handleHighlightClick = () => {
         onHighlight();
         setIsCommentMode(false);
@@ -82,10 +95,10 @@ export default function TextHighlightPopover({
                     <div className="flex items-center gap-1 p-1">
                         <button
                             onClick={handleHighlightClick}
-                            className="flex items-center gap-2 px-3 py-2 hover:bg-yellow-50 rounded transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 hover:bg-orange-50 rounded transition-colors"
                             title="Highlight text"
                         >
-                            <MdHighlight size={18} className="text-yellow-600" />
+                            <MdHighlight size={18} className="text-orange-500" />
                             <span className="text-sm text-gray-700">Highlight</span>
                         </button>
 
@@ -93,10 +106,10 @@ export default function TextHighlightPopover({
 
                         <button
                             onClick={handleCommentButtonClick}
-                            className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 rounded transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 hover:bg-orange-50 rounded transition-colors"
                             title="Add comment"
                         >
-                            <MdOutlineComment size={18} className="text-blue-600" />
+                            <MdOutlineComment size={18} className="text-orange-600" />
                             <span className="text-sm text-gray-700">Comment</span>
                         </button>
                     </div>

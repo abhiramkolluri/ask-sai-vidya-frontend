@@ -5,7 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import LoginButton from "../auth/LoginButton";
 import LogoutButton from "../auth/LogoutButton";
 
-export default function Navbar({ variant }) {
+export default function Navbar({ variant, tabs }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const { user, isAuth0User } = useAuth();
   const isBlogVariant = variant === "blog";
@@ -28,10 +28,12 @@ export default function Navbar({ variant }) {
   return (
     <div
       className={`w-full ${isBlogVariant ? "bg-transparent" : "bg-white"
-        }  px-12 text-[14px] flex items-center justify-end py-6 relative`}>
+        }  px-12 text-[14px] flex items-center ${tabs ? "justify-between" : "justify-end"} py-6 relative`}>
       {isBlogVariant ? null : (
         <div className=" w-full h-[72px] bg-gradient-to-r from-primary to-orange-50 absolute -z-10"></div>
       )}
+
+      {tabs ? <div className="pl-8">{tabs}</div> : null}
 
       <div className="flex items-center gap-4">
         {isAuthenticated && user ? (

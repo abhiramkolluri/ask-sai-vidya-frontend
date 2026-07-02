@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, Input } from "@material-tailwind/react";
 import { FcGoogle } from "react-icons/fc";
-import { FaApple } from "react-icons/fa";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
@@ -65,7 +64,7 @@ export default function Login({ callback = () => { }, inModal = true }) {
 
   if (!forgetPassword) {
     return (
-      <div className="w-[400px]  bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
+      <div className="w-[400px]  bg-white rounded overflow-hidden text-[15px] flex flex-col gap-2 justify-between text-gray-600">
         {inModal ? (
           <div>
             <img src={Chat} height={"140px"} width={"400px"} alt="" />
@@ -168,8 +167,8 @@ export default function Login({ callback = () => { }, inModal = true }) {
               )}{" "}
             </h1>
 
-            <div className="border-t mt-2 border-gray-300 flex justify-center items-center">
-              <div className="bg-white relative -top-[20px] p-2 text-gray-300">
+            <div className="border-t mt-2 border-gray-400 flex justify-center items-center">
+              <div className="bg-white relative -top-[20px] p-2 text-gray-500">
                 or
               </div>
             </div>
@@ -184,20 +183,13 @@ export default function Login({ callback = () => { }, inModal = true }) {
                 <FcGoogle size={18} />
               </span>
             </button>
-
-            <button className="w-full h-[40px] border border-gray-300 flex justify-between px-2 items-center rounded opacity-50 cursor-not-allowed" disabled>
-              Continue with Apple
-              <span>
-                <FaApple size={18} />
-              </span>
-            </button>
           </div>
         </div>
       </div>
     );
   } else {
     return (
-      <div className="w-[400px]  bg-white rounded overflow-hidden text-[14px] flex flex-col gap-2 justify-between text-gray-600">
+      <div className="w-[400px]  bg-white rounded overflow-hidden text-[15px] flex flex-col gap-2 justify-between text-gray-600">
         {inModal ? (
           <>
             <div>

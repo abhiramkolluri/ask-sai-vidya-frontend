@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import leaves from "../../images/leaves.png";
+import swami from "../../assets/illustrations/swami.svg";
 import Login from "../../components/login/Login";
 import Signup from "../../components/signup/Signup";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -58,6 +59,12 @@ export default function Signin({ showLogin = false }) {
         style={{ backgroundImage: `url("${leaves}")` }}>
         {/* <img src={leaves} alt="" /> */}
       </div>
+      <img
+        src={swami}
+        alt=""
+        aria-hidden="true"
+        className="absolute bottom-6 left-6 z-0 w-32 opacity-60 md:w-44 pointer-events-none select-none"
+      />
       <div className=" flex  h-full ">
         <div className="hidden md:flex flex-col items-center justify-center  flex-grow">
           <div className="lg:w-[600px] p-4">
