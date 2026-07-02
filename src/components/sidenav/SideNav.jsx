@@ -36,14 +36,12 @@ export default function SideNav({
 
   const [sectionData, setSectionData] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
-  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(false);
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(true); // Expanded by default
+  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(true); // Expanded by default
   const [annotationsOpen, setAnnotationsOpen] = useState(false);
   const [selectedSavedDiscourse, setSelectedSavedDiscourse] = useState(null);
   const [selectedAnnotatedDiscourse, setSelectedAnnotatedDiscourse] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
-  const [chatHistoryOpen, setChatHistoryOpen] = useState(true); // Expanded by default
-  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(true); // Expanded by default
   const [selectedDiscourse, setSelectedDiscourse] = useState(null);
   const [discourseToDelete, setDiscourseToDelete] = useState(null); // For delete confirmation modal
 
@@ -242,38 +240,18 @@ export default function SideNav({
           )}
         </div>
 
-      {/* Modal for viewing saved discourse */}
-      {selectedDiscourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-800">
-                {formatCollection(selectedDiscourse.discourse.title)}
-              </h2>
-              <button
-                onClick={handleCloseDiscourseModal}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="p-6">
-              {/* Show question context only if it's valid */}
-              {selectedDiscourse.question_context &&
-                selectedDiscourse.question_context.trim() !== "" &&
-                selectedDiscourse.question_context !== "No question provided" &&
-                selectedDiscourse.question_context !== "From blog page" &&
-                selectedDiscourse.question_context !== "Browsing discourses" && (
-                  <div className="mb-4 bg-orange-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">
-                      <strong>You discovered this while asking:</strong>
-                    </p>
-                    <p className="text-sm text-gray-800 italic mt-1">
-                      "{selectedDiscourse.question_context}"
-                    </p>
-                  </div>
-                )}
+        {/* Annotations Accordion */}
+        <div className="border-b-2 border-gray-400">
+          <button
+            onClick={() => setAnnotationsOpen(!annotationsOpen)}
+            className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
+          >
+            <span className="font-semibold text-lg text-gray-800 flex items-center gap-2">
+              <MdOutlineAutoStories size={20} className="text-primary" />
+              Highlights & Notes ({annotatedDiscourses.length})
+            </span>
+            {annotationsOpen ? <IoChevronUp size={20} /> : <IoChevronDown size={20} />}
+          </button>
 
           {annotationsOpen && (
             <div className="py-2">
@@ -285,44 +263,44 @@ export default function SideNav({
               ) : annotatedDiscourses.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   {annotatedDiscourses.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-2 hover:bg-orange-50 rounded border border-transparent hover:border-orange-300 transition-all group"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-800 text-sm truncate">
-                              {item.discourse.title}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              {item.discourse.source_url && (
-                                <Link
-                                  to={item.discourse.source_url}
-                                  className="inline-flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600"
-                                >
-                                  Open discourse
-                                  <GoArrowUpRight size={12} />
-                                </Link>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setSelectedAnnotatedDiscourse(item)}
-                                className="text-xs font-medium text-gray-500 hover:text-gray-700"
+                    <div
+                      key={item.id}
+                      className="p-2 hover:bg-orange-50 rounded border border-transparent hover:border-orange-300 transition-all group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-800 text-sm truncate">
+                            {item.discourse.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {item.discourse.source_url && (
+                              <Link
+                                to={item.discourse.source_url}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600"
                               >
-                                Quick view
-                              </button>
-                            </div>
+                                Open discourse
+                                <GoArrowUpRight size={12} />
+                              </Link>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAnnotatedDiscourse(item)}
+                              className="text-xs font-medium text-gray-500 hover:text-gray-700"
+                            >
+                              Quick view
+                            </button>
                           </div>
-                          <button
-                            onClick={() => setPendingAction({ type: "annotations", id: item.id })}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
-                            title="Remove all annotations"
-                          >
-                            <BsTrash size={14} className="text-red-600" />
-                          </button>
                         </div>
+                        <button
+                          onClick={() => setPendingAction({ type: "annotations", id: item.id })}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                          title="Remove all annotations"
+                        >
+                          <BsTrash size={14} className="text-red-600" />
+                        </button>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-500 text-center px-2">

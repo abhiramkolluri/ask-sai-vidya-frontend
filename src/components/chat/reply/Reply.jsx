@@ -9,6 +9,7 @@ import {
 import { BsBookmark, BsBookmarkFill } from "react-icons/bs";
 import { GoArrowUpRight } from "react-icons/go";
 import { FaSpinner } from "react-icons/fa";
+import { MdClose } from "react-icons/md";
 import { Link } from "react-router-dom";
 import { apiRoute, submitFeedback } from "../../../helpers/apiRoute";
 import { formatCollection } from "../../../helpers/formatCollection";
@@ -16,6 +17,7 @@ import { formatCollection } from "../../../helpers/formatCollection";
 import Feedback from "../../feedback/Feedback";
 import TextHighlightPopover from "../TextHighlightPopover";
 import { useSavedDiscourses } from "../../../contexts/SavedDiscoursesContext";
+import FollowUpQuestions from "../../followups/FollowUpQuestions";
 
 export default function Reply({
   question = "What the user asked?",
@@ -28,6 +30,10 @@ export default function Reply({
   onUnsaveDiscourse,
   user = null,
   onHighlightChange = () => { },
+  followUps = [],
+  onFollowUpClick = () => { },
+  onGenerateFollowups = () => { },
+  followUpsLoading = false,
 }) {
   const {
     isDiscourseBookmarked,
@@ -191,6 +197,29 @@ export default function Reply({
     };
 
     await saveHighlights(discourseData, highlightsArray);
+  };
+
+  const handleRemoveHighlight = async (discourseId, highlightId) => {
+    const updatedHighlights = (highlights[discourseId] || []).filter(h => h.id !== highlightId);
+    setHighlights(prev => ({ ...prev, [discourseId]: updatedHighlights }));
+    const citation = (reply?.citations || []).find(c => c._id === discourseId);
+    if (citation) {
+      await autoSaveDiscourseWithHighlights(citation, updatedHighlights);
+    }
+  };
+
+  const renderTextWithHighlights = (text, discourseId) => {
+    const discourseHighlights = highlights[discourseId] || [];
+    if (discourseHighlights.length === 0) return text;
+    let result = text;
+    discourseHighlights.forEach((highlight) => {
+      const highlightHtml = `<mark class="bg-yellow-200 relative group cursor-pointer" data-highlight-id="${highlight.id}">
+        ${highlight.text}
+        ${highlight.comment ? `<span class="hidden group-hover:block absolute bottom-full left-0 bg-blue-600 text-white text-xs p-2 rounded shadow-lg mb-1 w-48 z-10">${highlight.comment}</span>` : ''}
+      </mark>`;
+      result = result.replace(highlight.text, highlightHtml);
+    });
+    return result;
   };
 
   const isDiscourseSaved = (discourseTitle) => isDiscourseBookmarked(discourseTitle);

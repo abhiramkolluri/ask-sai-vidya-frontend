@@ -21,6 +21,7 @@ const Chatpage = () => {
 
   // Use saved discourses from context
   const {
+    savedDiscourses,
     saveDiscourse,
     removeBookmark,
     loadSavedDiscourses

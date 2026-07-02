@@ -240,6 +240,11 @@ export default function ChatBox({
         const activeThread = user?.token ? await ensureActiveThread() : null;
         const threadId = activeThread?.id || selectedThreadId || new Date().toISOString();
 
+        // Recent prior questions in this thread → multi-turn query planning context.
+        const history = messages
+          .map((m) => m.question)
+          .filter(Boolean)
+          .slice(-3);
         // Only fetch citations from /search endpoint
         const citations = await fetchCitations(val, history);
 
