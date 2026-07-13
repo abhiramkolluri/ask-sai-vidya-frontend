@@ -1,0 +1,29 @@
+---
+description: Core conventions for the Ask Sai Vidya frontend (CRA + react-query v3 + Tailwind)
+globs:
+alwaysApply: true
+---
+
+# Ask Sai Vidya frontend — core rules
+
+## Stack
+- Create React App (not Vite/Next) with react-query **v3** (`useQuery(key, fn, opts)` signature — not the v4/v5 object form), react-router v6, Tailwind utility classes.
+- Discourse/reader text uses `fontFamily: "'EB Garamond', serif"`; the accent color is `#BC5B01` with `orange-50` hover surfaces. Match these in new reader/collections UI.
+
+## State and navigation
+- Shareable UI state lives in URL query params, not component state or router state: `?tab=`, `book`, `volume`, `year`, `undated=1`. New views must survive refresh and deep-linking; read params with `useSearchParams`.
+- AuthContext loads the stored user **synchronously** in the `useState` initializer. Never move it into a `useEffect` — the unauthenticated first render bounces through /signin and strips query params, breaking deep links (this was a shipped bug).
+- The backend is reached via `REACT_APP_*` env vars; there are dual vars for the two environments — don't hardcode gateway URLs.
+
+## Data fetching
+- Backend identifiers go in query strings, never path segments (API Gateway sibling-path-variable collisions).
+- Collections hooks pattern (`useCollections.js`): `retry: false` or `retry: 1` on queries whose failure should show fast (cold backend endpoints can take ~10s; default retries make E2E and UX hang).
+- The whole-corpus discourse index for search is fetched lazily (`enabled:` flag) — keep it off the initial render path.
+
+## Copy and content
+- User-facing copy says "Swami", never "Bhagawan".
+- The book is spelled "Geeta Vahini" (corpus spelling). Search matching handles the "Gita" variant via vowel-skeleton matching in `CollectionsSearch.jsx` — extend that, don't rename corpus data.
+- `chapter_index` from the API is 0-based; display as `chapter_index + 1`, labeled "Chapter" for vahinis and "Discourse" for Sathya Sai Speaks/series. Suppress the label when `collection_name` already carries "Vol N".
+
+## Testing
+- E2E via Playwright with fake auth: inject `localStorage` `user`/`token` in `addInitScript` before page load. Wait on selectors/`waitFor`, not timeouts — cold endpoints plus react-query retries cause flaky timing otherwise.
