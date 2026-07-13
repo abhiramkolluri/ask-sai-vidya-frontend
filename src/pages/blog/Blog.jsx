@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import { LuPencilLine } from "react-icons/lu";
-import { IoCalendar } from "react-icons/io5";
+import { IoCalendar, IoBookOutline } from "react-icons/io5";
 import { useQuery } from "react-query";
 import { IoMdList } from "react-icons/io";
 import { MdClose } from "react-icons/md";
 import { TbLayoutSidebarRightExpand } from "react-icons/tb";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 
 import bgflower from "../../images/bgflower.png";
 import Logo from "../../components/logo/Logo";
@@ -17,11 +17,25 @@ import HighlightsSidebar from "../../components/highlights/HighlightsSidebar";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 import { formatCollection } from "../../helpers/formatCollection";
+import { useCollectionChapters } from "../../components/collections/useCollections";
+import ChapterNavBar from "../../components/collections/ChapterNavBar";
 
 export default function Blog() {
   const { slugId } = useParams();
   const { state } = useLocation();
   const { user } = useAuth();
+
+  // Collections context (?book=...&volume=...&year=...): present only when the
+  // discourse was opened from the Collections tab. Everything it drives is
+  // gated on `navBook`, so the citation flow (router state + sessionStorage)
+  // is untouched when the params are absent. Query params — not router state —
+  // so chapter navigation survives refresh.
+  const [searchParams] = useSearchParams();
+  const navBook = searchParams.get("book");
+  const navVolume = searchParams.get("volume");
+  const navYear = searchParams.get("year");
+  const navUndated = searchParams.get("undated") === "1";
+  const { data: chaptersData } = useCollectionChapters(navBook, navVolume, navYear, navUndated);
 
   // Use saved discourses from context
   const {
@@ -334,6 +348,50 @@ export default function Blog() {
     // return <div>{JSON.stringify(data)}</div>;
     const post = data;
 
+    // Positional prev/next within the collection's chapter list (positional so
+    // gaps/duplicates in chapter_index are harmless). idx === -1 (e.g. stale
+    // list) degrades to breadcrumb-only.
+    const chapterList = navBook ? chaptersData?.chapters || [] : [];
+    const chapterIdx = chapterList.findIndex(
+      (c) => c.id === post._id || c.id === slugId
+    );
+    const prevChapter = chapterIdx > 0 ? chapterList[chapterIdx - 1] : null;
+    const nextChapter =
+      chapterIdx !== -1 && chapterIdx < chapterList.length - 1
+        ? chapterList[chapterIdx + 1]
+        : null;
+    // Position-within-book line for the metadata row: "Vol 14 · Discourse 10"
+    // for Sathya Sai Speaks, "Chapter 3" for vahinis, "Discourse N" for the
+    // year-based series. Omitted when the corpus has no position data.
+    const isVahini = (post.book || post.collection || "")
+      .toLowerCase()
+      .includes("vahini");
+    const positionWord = isVahini ? "Chapter" : "Discourse";
+    // Old SSS collection_names already carry "Vol N, Disc. M" (rendered by
+    // formatCollection) — don't repeat it on a second line.
+    const chapterLabel = /vol\s*\d/i.test(post.collection || "")
+      ? ""
+      : [
+          post.volume != null ? `Vol ${post.volume}` : null,
+          post.chapter_index != null
+            ? `${positionWord} ${post.chapter_index + 1}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+    const chapterNav = navBook ? (
+      <ChapterNavBar
+        book={navBook}
+        volume={navVolume}
+        year={navYear}
+        undated={navUndated}
+        prevChapter={prevChapter}
+        nextChapter={nextChapter}
+        chaptersQS={searchParams.toString()}
+      />
+    ) : null;
+
     // If we arrived here from a chat/search citation, find the matched passage
     // for THIS discourse and locate the contiguous block of paragraphs it covers,
     // so we can wrap it in decorative braces to show where the answer lives.
@@ -506,14 +564,26 @@ export default function Blog() {
         </div>
         <div className="flex flex-wrap md:flex-nowrap justify-center items-start w-[96vw] max-w-[1400px] mx-auto md:gap-4 gap-4 leading-8 px-2">
           <div className="flex flex-col w-full md:w-[800px] md:flex-shrink-0 border border-gray-300 rounded shadow p-8 gap-8 relative -top-20 bg-white">
+            {chapterNav && (
+              <div className="flex justify-center border-b border-orange-100 pb-2 -mb-4">
+                {chapterNav}
+              </div>
+            )}
             <h2 className=" text-[20px] mt-4 text-center font-bold text-[#4D4D4D]">
               {post?.occasion}
             </h2>
-            <div className="w-full flex justify-between">
+            <div className="w-full flex flex-wrap gap-x-6 gap-y-2 justify-between">
               {post.collection && (
                 <div className="flex gap-2 text-sm items-center">
                   <IoMdList size={18} className="text-orange-400" />
                   <p className="text-gray-500">{formatCollection(post.collection)}</p>
+                </div>
+              )}
+
+              {chapterLabel && (
+                <div className="flex gap-2 text-sm items-center">
+                  <IoBookOutline size={18} className="text-orange-400" />
+                  <p className="text-gray-500">{chapterLabel}</p>
                 </div>
               )}
 
@@ -557,6 +627,11 @@ export default function Blog() {
                 })}
               </div>
             </div>
+            {chapterNav && (
+              <div className="flex justify-center border-t border-orange-100 pt-4">
+                {chapterNav}
+              </div>
+            )}
           </div>
 
           {state?.citations?.length && (

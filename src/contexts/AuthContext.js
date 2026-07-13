@@ -9,8 +9,27 @@ export const useAuth = () => {
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
+// Read the persisted session synchronously so the very first render already
+// knows the user. Loading it in an effect (the previous approach) left `user`
+// null for one render, which bounced /home?tab=...&book=... through /signin
+// and back to /home — stripping the query string and breaking deep links.
+const loadStoredUser = () => {
+  const savedUser = localStorage.getItem('user');
+  const savedToken = localStorage.getItem('token');
+  if (savedUser && savedToken) {
+    try {
+      return { ...JSON.parse(savedUser), token: savedToken, isAuth0: false };
+    } catch (error) {
+      console.error('Error parsing saved user:', error);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+    }
+  }
+  return null;
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(loadStoredUser);
   const [error, setError] = useState();
   const [success, setSuccess] = useState(null);
   const [loggingIn, setLoggingIn] = useState(false);
@@ -24,27 +43,6 @@ export const AuthProvider = ({ children }) => {
     loginWithRedirect,
     logout: auth0Logout
   } = useAuth0();
-
-  // Load user from localStorage on app start
-  useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const savedToken = localStorage.getItem('token');
-
-    if (savedUser && savedToken) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser({
-          ...parsedUser,
-          token: savedToken,
-          isAuth0: false
-        });
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-      }
-    }
-  }, []);
 
   // Custom login function
   const login = async (credentials) => {

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
 import BrowseTab from "../../components/browse/BrowseTab";
+import CollectionsTab from "../../components/collections/CollectionsTab";
 import HowToTab from "../../components/howto/HowToTab";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../contexts/AuthContext";
@@ -15,9 +17,17 @@ const Chatpage = () => {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
-  const [activeTab, setActiveTab] = useState("chat"); // "chat" | "browse"
+  // Tab state lives in the URL (?tab=...) so Collections deep links
+  // (/home?tab=collections&book=...) and the browser back button work.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "chat"; // "chat" | "browse" | "collections" | "howto"
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
+
+  const handleTabSelect = (key) => {
+    // Switching tabs drops collection params — they only apply within Collections.
+    setSearchParams(key === "chat" ? {} : { tab: key }, { replace: true });
+  };
 
   // Use saved discourses from context
   const {
@@ -445,12 +455,13 @@ const Chatpage = () => {
               <div className="flex items-center gap-1 rounded-lg bg-white/90 p-1 shadow-md backdrop-blur-sm">
                 {[
                   { key: "chat", label: "Questions" },
+                  { key: "collections", label: "Collections" },
                   { key: "browse", label: "Saved Discourses" },
                   { key: "howto", label: "How to Use" },
                 ].map((tab) => (
                   <button
                     key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
+                    onClick={() => handleTabSelect(tab.key)}
                     className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab.key
                       ? "bg-[#BC5B01] text-white shadow-sm"
                       : "text-gray-600 hover:bg-orange-50 hover:text-[#BC5B01]"
@@ -478,6 +489,11 @@ const Chatpage = () => {
             onSaveDiscourse={handleSaveDiscourse}
             onUnsaveDiscourse={handleUnsaveDiscourse}
           />
+        )}
+        {activeTab === "collections" && (
+          <div className="flex-grow overflow-hidden pt-16">
+            <CollectionsTab />
+          </div>
         )}
         {activeTab === "browse" && (
           <div className="flex-grow overflow-hidden pt-16">
