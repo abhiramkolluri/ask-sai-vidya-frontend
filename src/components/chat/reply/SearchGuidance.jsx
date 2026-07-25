@@ -25,27 +25,28 @@ export default function SearchGuidance({ trace }) {
     );
   }
 
-  // (2) Factual-question note — independent of quality.
-  const factualNote = reasons.some((r) => r.code === "FACTUAL_QUESTION")
-    ? REASON_COPY.FACTUAL_QUESTION()
-    : null;
+  // (2) Kind-of-question notes — shown regardless of quality (not "you did
+  // something wrong", just honest context about how this question was handled).
+  const NOTE_CODES = ["FACTUAL_QUESTION", "COMPARISON_BOTH_SIDES", "META_REQUEST", "KB_KNOWN_GAP"];
+  const noteReason = reasons.find((r) => NOTE_CODES.includes(r.code));
+  const note = noteReason ? REASON_COPY[noteReason.code](noteReason) : null;
 
   // (3) Refinement tips — weak/empty only, excluding the notes handled above.
   const refineReasons = reasons.filter(
-    (r) => r.code !== "FACTUAL_QUESTION" && r.code !== "SERVICE_UNAVAILABLE"
+    (r) => !NOTE_CODES.includes(r.code) && r.code !== "SERVICE_UNAVAILABLE"
   );
   const tips =
     quality === "partial" || quality === "none"
       ? reasonsToTips(refineReasons, 3)
       : [];
 
-  if (!factualNote && tips.length === 0) return null;
+  if (!note && tips.length === 0) return null;
 
   return (
     <>
-      {factualNote && (
+      {note && (
         <p className="mx-2 mt-2 text-sm text-gray-500">
-          <span className="font-medium text-[#BC5B01]">Note:</span> {factualNote}
+          <span className="font-medium text-[#BC5B01]">Note:</span> {note}
         </p>
       )}
 

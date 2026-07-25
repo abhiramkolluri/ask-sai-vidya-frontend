@@ -33,6 +33,21 @@ function buildNarrative(trace) {
     return steps;
   }
 
+  // 0. What kind of question the router judged this to be (only when it's a
+  // notable, non-default intent — plain conceptual questions need no preamble).
+  const INTENT_PHRASE = {
+    scenario: "I read this as a personal-guidance question",
+    aspect: "I noticed you asked about a specific aspect of the topic",
+    factual: "I read this as a factual question",
+    named_text: "I read this as a question about a specific text or quote",
+    occasion: "I read this as a request for discourses from a specific occasion",
+    comparative: "I read this as a comparison between ideas",
+    org_doctrine: "I read this as a question about the Sathya Sai organization",
+  };
+  if (INTENT_PHRASE[trace.intent]) {
+    steps.push(`${INTENT_PHRASE[trace.intent]}.`);
+  }
+
   // 1. How the question was rephrased into search terms.
   if (facets.length === 1) {
     steps.push(`I rephrased your question into a search: "${facets[0]}".`);

@@ -44,6 +44,19 @@ export const REASON_COPY = {
 
   FACTUAL_QUESTION: () =>
     "I search discourses by theme, not biographical facts — here are related discourses that may touch on it.",
+
+  META_REQUEST: () =>
+    "This looks like a request to the app rather than the discourses — to get follow-up questions, use the “Generate Follow-ups” button on an answer.",
+
+  COMPARISON_BOTH_SIDES: () =>
+    "You're comparing two ideas — I searched for each and show discourses on both, but I don't compose a side-by-side comparison.",
+
+  KB_KNOWN_GAP: (reason) => {
+    const entity = reason.data?.entity;
+    return entity
+      ? `The discourses don't directly cover “${entity}”. I'd rather tell you that than show loosely related discourses as if they answered it.`
+      : "The discourses don't directly cover this. I'd rather say so than show loosely related discourses as if they answered it.";
+  },
 };
 
 // Generic fallback for any code we don't have specific copy for.
