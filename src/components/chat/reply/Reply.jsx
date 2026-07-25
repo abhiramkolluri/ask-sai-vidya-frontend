@@ -18,6 +18,10 @@ import Feedback from "../../feedback/Feedback";
 import TextHighlightPopover from "../TextHighlightPopover";
 import { useSavedDiscourses } from "../../../contexts/SavedDiscoursesContext";
 import FollowUpQuestions from "../../followups/FollowUpQuestions";
+import StagedLotusLoader from "../../common/StagedLotusLoader";
+import SearchTracePanel from "./SearchTracePanel";
+import SearchGuidance from "./SearchGuidance";
+import { buildSummaryLine } from "./traceSummary";
 
 export default function Reply({
   question = "What the user asked?",
@@ -297,11 +301,10 @@ export default function Reply({
             <span className="text-[#252525] text-lg">{question}</span>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center mx-auto mt-6">
-          <FaSpinner size={40} className="animate-spin text-orange-400" />
-          <p className="mt-4 text-base text-gray-600">
-            Searching for discourses to answer your question…
-          </p>
+        <div className="mx-auto mt-6">
+          {/* Narrate the pipeline stages while the query runs. Detect a quoted
+              phrase so the loader can say "looking for your exact phrase". */}
+          <StagedLotusLoader hasExactPhrase={question.includes('"')} />
         </div>
       </div>
     );
@@ -339,15 +342,22 @@ export default function Reply({
         </div>
       </div>
 
-      <div className="md:p-1 mx-2">
+      {/* asv-fade-in: the answer eases in when it replaces the lotus loader
+          instead of appearing abruptly. */}
+      <div className="md:p-1 mx-2 asv-fade-in">
         <div className="border-l border-primary p-2 px-4 flex flex-col">
           <div className="px-2 py-1 flex items-end mb-2">
             <div className="">
+              {/* Trace-aware summary of how the question was interpreted; falls
+                  back to the legacy line when no trace is present (old messages). */}
               <p className="text-lg font-normal text-[#252525]">
-                Here are some discourses where you can start learning about the topic:
+                {buildSummaryLine(reply.trace, citations)}
               </p>
             </div>
           </div>
+
+          {/* "How I searched" — the pipeline window (renders only when a trace exists). */}
+          <SearchTracePanel trace={reply.trace} />
 
           <div className="m-2 flex flex-col bg-[#FEF4EB] rounded ">
             <div className="mx-1 flex">
@@ -483,6 +493,10 @@ export default function Reply({
                       </div>
                     );
                   })
+                ) : reply.trace ? (
+                  // Empty result WITH a trace → show the refinement guidance
+                  // callout (derived from the pipeline's reason codes).
+                  <SearchGuidance trace={reply.trace} />
                 ) : (
                   <p>
                     No citations found. This is usually because the search engine
@@ -494,6 +508,9 @@ export default function Reply({
               <div className="flex-grow w-20"></div>
             </div>
           </div>
+          {/* Weak-but-nonempty results → a quiet one-line refinement tip under the
+              cards (SearchGuidance renders nothing when the result was strong). */}
+          {reply?.citations?.length > 0 && <SearchGuidance trace={reply.trace} />}
           {reply?.citations?.length > 0 && (
             <div className="mx-2 mt-2">
               {followUps && followUps.length > 0 ? (

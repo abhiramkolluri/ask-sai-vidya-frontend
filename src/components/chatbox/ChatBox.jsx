@@ -75,12 +75,30 @@ export default function ChatBox({
     return { response: data.response, fetchCitations };
   };
 
-  const fetchCitations = async (question, history = []) => {
+  // Every passage already quoted in the given messages, as the
+  // { article_id, passage_index } pairs the backend excludes so follow-up
+  // answers never repeat a quote the user has seen. Legacy thread messages
+  // may lack passage_index — those citations are simply not excludable.
+  const collectSeenPairs = (msgs) =>
+    msgs
+      .flatMap((m) => m.reply?.citations || [])
+      .filter((c) => c && typeof c._id === "string" && typeof c.passage_index === "number")
+      .map((c) => ({ article_id: c._id, passage_index: c.passage_index }));
+
+  // Returns { citations, trace }: the discourse list plus the pipeline
+  // transparency trace (how the search ran — planned facets, grader verdicts,
+  // timings) that powers the "How I searched" panel. `trace` is null when the
+  // backend doesn't send one (older backend, or a cached entry from before this
+  // feature), and every consumer treats it as optional.
+  const fetchCitations = async (question, history = [], excludeSeen = []) => {
     // Cache by question + history so multi-turn follow-ups aren't served stale
-    // single-turn results.
-    const cacheKey = question + "||" + history.join("|");
+    // single-turn results; the exclusion count keeps an excluded search from
+    // being served the unexcluded cache entry (and vice versa).
+    const cacheKey =
+      question + "||" + history.join("|") +
+      (excludeSeen.length ? "||ex" + excludeSeen.length : "");
     if (cache[cacheKey]?.citations) {
-      return cache[cacheKey].citations;
+      return { citations: cache[cacheKey].citations, trace: cache[cacheKey].trace || null };
     }
 
     try {
@@ -90,7 +108,12 @@ export default function ChatBox({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: question, history }),
+        body: JSON.stringify({
+          query: question,
+          history,
+          include_trace: true,
+          ...(excludeSeen.length && { exclude_seen: excludeSeen }),
+        }),
       });
 
       console.log("🔍 Response status:", response.status);
@@ -100,8 +123,13 @@ export default function ChatBox({
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data_citations = await response.json();
-      console.log("🔍 Response data:", data_citations);
+      // Backward compatible: a trace-aware backend returns { results, trace };
+      // an older one returns a bare citations array. Normalize both here so the
+      // rest of the app only ever sees { citations, trace }.
+      const data = await response.json();
+      const citations = Array.isArray(data) ? data : (data.results || []);
+      const trace = Array.isArray(data) ? null : (data.trace || null);
+      console.log("🔍 Response data:", citations, trace);
 
       // Persist matched passages + best-answer quotes by discourse id so the blog
       // page can locate/highlight them even if router state is lost (refresh /
@@ -113,7 +141,7 @@ export default function ChatBox({
         const quoteMap = JSON.parse(
           sessionStorage.getItem("asv_best_sentences") || "{}"
         );
-        (data_citations || []).forEach((c) => {
+        citations.forEach((c) => {
           if (c && c._id && c.matched_passage) map[c._id] = c.matched_passage;
           if (c && c._id && c.best_sentence) quoteMap[c._id] = c.best_sentence;
         });
@@ -123,11 +151,11 @@ export default function ChatBox({
         /* sessionStorage unavailable — non-fatal */
       }
 
-      cache[cacheKey] = { ...cache[cacheKey], citations: data_citations };
-      return data_citations;
+      cache[cacheKey] = { ...cache[cacheKey], citations, trace };
+      return { citations, trace };
     } catch (error) {
       console.error("❌ Fetch error:", error);
-      return []; // Return empty array instead of letting it fail
+      return { citations: [], trace: null }; // Degrade gracefully instead of failing
     }
   };
 
@@ -135,8 +163,10 @@ export default function ChatBox({
   // The backend regenerates+verifies follow-ups grounded in the citations we
   // already have, so we pass them along. Cached alongside citations by
   // question + history. Returns [] on any error (UI just shows no follow-ups).
-  const fetchFollowups = async (question, history = [], citations = []) => {
-    const cacheKey = question + "||" + history.join("|");
+  const fetchFollowups = async (question, history = [], citations = [], excludeSeen = []) => {
+    const cacheKey =
+      question + "||" + history.join("|") +
+      (excludeSeen.length ? "||ex" + excludeSeen.length : "");
     if (cache[cacheKey]?.followups) {
       return cache[cacheKey].followups;
     }
@@ -146,7 +176,12 @@ export default function ChatBox({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: question, history, results: citations }),
+        body: JSON.stringify({
+          query: question,
+          history,
+          results: citations,
+          ...(excludeSeen.length && { exclude_seen: excludeSeen }),
+        }),
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -178,7 +213,10 @@ export default function ChatBox({
 
     setFollowupLoadingIndex(index);
     try {
-      const followUps = await fetchFollowups(target.question, history, citations);
+      // Everything quoted in the thread up to and including this answer — the
+      // backend verifies candidates against UNSEEN passages only.
+      const seenPairs = collectSeenPairs(messages.slice(0, index + 1));
+      const followUps = await fetchFollowups(target.question, history, citations, seenPairs);
       if (!followUps || followUps.length === 0) return; // leave the button for a retry
       const withFollowups = messages.map((q, i) =>
         i === index ? { ...q, reply: { ...q.reply, followUps } } : q
@@ -223,7 +261,7 @@ export default function ChatBox({
     }
   };
 
-  const handleSend = async (question = null) => {
+  const handleSend = async (question = null, { excludeSeen = false } = {}) => {
     const val = question || inputRef.current.value.trim();
     console.log('handleSend called with:', { question: val, user: !!user, selectedThreadId });
     if (val.length > 0) {
@@ -245,10 +283,15 @@ export default function ChatBox({
           .map((m) => m.question)
           .filter(Boolean)
           .slice(-3);
-        // Only fetch citations from /search endpoint
-        const citations = await fetchCitations(val, history);
+        // Only fetch citations from /search endpoint. Clicked follow-ups
+        // exclude every passage already quoted in the thread; typed questions
+        // don't (deliberately re-asking should return full results).
+        const seenPairs = excludeSeen ? collectSeenPairs(messages) : [];
+        const { citations, trace } = await fetchCitations(val, history, seenPairs);
 
-        // Update state with only citations
+        // Update state with citations + the pipeline trace (may be null). The
+        // trace is stored on the reply so it persists with the thread and the
+        // "How I searched" panel survives a reload.
         const finalMessages = updatedMessages.map((q, index) =>
           index === newIndex
             ? {
@@ -256,6 +299,7 @@ export default function ChatBox({
               reply: {
                 primaryResponse: "", // Empty since we don't want to display /query response
                 citations,
+                trace,
               },
             }
             : q,
@@ -400,9 +444,9 @@ export default function ChatBox({
       delete cache[question];
 
       // Only fetch citations from /search endpoint
-      const citations = await fetchCitations(question);
+      const { citations, trace } = await fetchCitations(question);
 
-      // Update state with only citations
+      // Update state with citations + the pipeline trace (may be null)
       const finalMessages = updatedMessages.map((q, index) =>
         index === newIndex
           ? {
@@ -410,6 +454,7 @@ export default function ChatBox({
             reply: {
               primaryResponse: "", // Empty since we don't want to display /query response
               citations,
+              trace,
             },
           }
           : q
@@ -463,7 +508,7 @@ export default function ChatBox({
                 onUnsaveDiscourse={onUnsaveDiscourse}
                 user={user}
                 followUps={msg.reply?.followUps || []}
-                onFollowUpClick={(q) => handleSend(q)}
+                onFollowUpClick={(q) => handleSend(q, { excludeSeen: true })}
                 onGenerateFollowups={() => handleGenerateFollowups(index)}
                 followUpsLoading={followupLoadingIndex === index}
               />
