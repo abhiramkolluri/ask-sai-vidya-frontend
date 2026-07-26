@@ -27,7 +27,7 @@ export default function SearchGuidance({ trace }) {
 
   // (2) Kind-of-question notes — shown regardless of quality (not "you did
   // something wrong", just honest context about how this question was handled).
-  const NOTE_CODES = ["FACTUAL_QUESTION", "COMPARISON_BOTH_SIDES", "META_REQUEST", "KB_KNOWN_GAP", "LISTING_NOT_FOUND"];
+  const NOTE_CODES = ["FACTUAL_QUESTION", "COMPARISON_BOTH_SIDES", "META_REQUEST", "KB_KNOWN_GAP", "LISTING_NOT_FOUND", "UNANSWERABLE"];
   const noteReason = reasons.find((r) => NOTE_CODES.includes(r.code));
   const note = noteReason ? REASON_COPY[noteReason.code](noteReason) : null;
 

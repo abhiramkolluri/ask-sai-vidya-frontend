@@ -42,6 +42,21 @@ export const REASON_COPY = {
   SERVICE_UNAVAILABLE: () =>
     "This was a temporary problem reaching the search service, not an empty result — please try your question again.",
 
+  // The ONLY entry whose text comes from the backend rather than from this file.
+  // The router writes one sentence about the specific question it refused, which
+  // is far more useful than a category ("this asks which chapter is most
+  // important, and no discourse ranks them" beats "this can't be answered").
+  // Falls back to static copy whenever that sentence is missing or was rejected
+  // as malformed, so a bad generation degrades the wording, never the refusal.
+  UNANSWERABLE: (reason) => {
+    const why = reason?.data?.reason;
+    const suffix =
+      " I'd rather tell you that than hand you a discourse that only looks like an answer. Try one of the questions below instead.";
+    return why
+      ? why.trim() + suffix
+      : "This isn't something the discourses can answer — it asks for a judgement, an opinion, or a prediction that none of them state." + suffix;
+  },
+
   RERANK_DEGRADED: () =>
     "My ranking step didn't run for this search, so these discourses are ordered by keyword and meaning overlap alone. They're genuine matches, but the most relevant one may not be first — searching again usually restores the better ordering.",
 

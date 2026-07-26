@@ -197,7 +197,10 @@ export default function ChatBox({
   // The backend regenerates+verifies follow-ups grounded in the citations we
   // already have, so we pass them along. Cached alongside citations by
   // question + history. Returns [] on any error (UI just shows no follow-ups).
-  const fetchFollowups = async (question, history = [], citations = [], excludeSeen = []) => {
+  // `trace` is passed so an UNANSWERABLE refusal can ask for REDIRECTS instead of
+  // follow-ups: there are no citations to build on, so the backend needs to know
+  // the question was refused and why. Body-only fields — no route change.
+  const fetchFollowups = async (question, history = [], citations = [], excludeSeen = [], trace = null) => {
     const cacheKey =
       question + "||" + history.join("|") +
       (excludeSeen.length ? "||ex" + excludeSeen.length : "");
@@ -214,6 +217,8 @@ export default function ChatBox({
           query: question,
           history,
           results: citations,
+          ...(trace?.intent && { intent: trace.intent }),
+          ...(trace?.unanswerable_reason && { unanswerable_reason: trace.unanswerable_reason }),
           ...(excludeSeen.length && { exclude_seen: excludeSeen }),
         }),
       });
@@ -250,7 +255,7 @@ export default function ChatBox({
       // Everything quoted in the thread up to and including this answer — the
       // backend verifies candidates against UNSEEN passages only.
       const seenPairs = collectSeenPairs(messages.slice(0, index + 1));
-      const followUps = await fetchFollowups(target.question, history, citations, seenPairs);
+      const followUps = await fetchFollowups(target.question, history, citations, seenPairs, target.reply?.trace);
       if (!followUps || followUps.length === 0) return; // leave the button for a retry
       const withFollowups = messages.map((q, i) =>
         i === index ? { ...q, reply: { ...q.reply, followUps } } : q
@@ -396,8 +401,17 @@ export default function ChatBox({
         if (newThread.id !== selectedThreadId) {
           setSelectedThreadId(newThread.id);
         }
-        // Follow-ups are now opt-in — the user generates them via a button on the
+        // Follow-ups are opt-in — the user generates them via a button on the
         // answer (handleGenerateFollowups), so nothing is fetched here.
+        //
+        // EXCEPT on a refusal. When the question is one the discourses cannot
+        // answer there are no results on screen, and the redirect questions ARE
+        // the response — making someone press a button to find out what they
+        // could have asked would strand them on a dead end. Fetched immediately
+        // for that case only, so normal answers keep the on-demand behaviour.
+        if ((trace?.reasons || []).some((r) => r.code === "UNANSWERABLE")) {
+          handleGenerateFollowups(newIndex);
+        }
         // navigate(`/thread/${newThread.id}`);
       } catch (error) {
         console.error("Error fetching data in handleSend:", error);

@@ -325,6 +325,11 @@ export default function Reply({
   // some of them when phase 2 lands. Everything downstream renders them as
   // provisional rather than as answers.
   const { citations = [], pending = false } = reply;
+  // A refusal: the question was understood but cannot be answered from the
+  // discourses. Distinct from an empty search — there is a reason to show and
+  // redirect questions to offer, so the follow-up block renders even with zero
+  // citations (it is normally gated on having results).
+  const isUnanswerable = (reply?.trace?.reasons || []).some((r) => r.code === "UNANSWERABLE");
 
   return (
     <div className="w-full mx-2">
@@ -543,13 +548,23 @@ export default function Reply({
           {/* Weak-but-nonempty results → a quiet one-line refinement tip under the
               cards (SearchGuidance renders nothing when the result was strong). */}
           {reply?.citations?.length > 0 && <SearchGuidance trace={reply.trace} />}
-          {reply?.citations?.length > 0 && (
+          {(reply?.citations?.length > 0 || isUnanswerable) && (
             <div className="mx-2 mt-2">
               {followUps && followUps.length > 0 ? (
-                <FollowUpQuestions
-                  questions={followUps}
-                  onQuestionClick={onFollowUpClick}
-                />
+                <>
+                  {/* On a refusal these are not follow-ups to an answer — there
+                      is no answer. They are the questions we CAN answer, so say
+                      so rather than letting them read as continuations. */}
+                  {isUnanswerable && (
+                    <p className="mb-2 text-sm font-medium text-[#BC5B01]">
+                      Try asking instead:
+                    </p>
+                  )}
+                  <FollowUpQuestions
+                    questions={followUps}
+                    onQuestionClick={onFollowUpClick}
+                  />
+                </>
               ) : (
                 <button
                   type="button"
@@ -560,10 +575,12 @@ export default function Reply({
                   {followUpsLoading ? (
                     <>
                       <FaSpinner className="animate-spin text-orange-400" />
-                      Generating…
+                      {isUnanswerable ? "Finding questions I can answer…" : "Generating…"}
                     </>
                   ) : (
-                    "Generate Followup Questions"
+                    isUnanswerable
+                      ? "Suggest questions I can answer"
+                      : "Generate Followup Questions"
                   )}
                 </button>
               )}
