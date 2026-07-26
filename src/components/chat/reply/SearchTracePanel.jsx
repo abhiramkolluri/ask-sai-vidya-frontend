@@ -27,25 +27,78 @@ function buildNarrative(trace) {
   const facets = trace.planning?.facets || [];
   const grading = trace.grading || {};
 
+  const entity = (trace.entities || [])[0];
+
   // Exact-phrase shortcut: a different, shorter path — narrate it directly.
   if (exact.matched && exact.phrase) {
     steps.push(`You asked for the exact phrase "${exact.phrase}", so I looked it up directly in the discourses.`);
     return steps;
   }
 
+  // Router v2 non-semantic routes take a different path than a passage search, so
+  // narrate what actually happened — never claim a search that didn't run.
+  if (trace.route === "structured") {
+    if (trace.kb_gap) {
+      steps.push(
+        entity
+          ? `I recognized this as asking about ${entity}. It isn't covered in the discourse index, so I'm not showing loosely related discourses as if they answered it.`
+          : "I recognized this as a specific factual/named-text question the discourse index doesn't cover, so I abstained rather than show loosely related matches."
+      );
+    } else {
+      steps.push(
+        entity
+          ? `I recognized ${entity} and pulled up the discourse${(trace.results?.discourses || 0) === 1 ? "" : "s"} about it directly, rather than searching by theme.`
+          : "I looked this up directly in the knowledge index rather than searching by theme."
+      );
+    }
+    const totalMs0 = trace.timings_ms?.total;
+    if (totalMs0) steps.push(`That took ${(totalMs0 / 1000).toFixed(1)}s.`);
+    return steps;
+  }
+  if (trace.route === "guidance") {
+    steps.push(
+      trace.intent === "meta"
+        ? "This looked like a request to the app rather than the discourses, so I didn't search the corpus."
+        : "This doesn't match the discourse library, so I didn't return discourses."
+    );
+    return steps;
+  }
+  // Listing route: an ordered enumeration of a collection's chapters, NOT a
+  // relevance search — narrate that honestly so the ordering makes sense.
+  if (trace.route === "listing") {
+    const lst = trace.listing || {};
+    if (lst.not_found) {
+      steps.push(
+        lst.collection
+          ? `You asked for the chapters of "${lst.collection}", but I couldn't find a collection by that name, so I didn't guess with a thematic search.`
+          : "You asked to list a collection's chapters, but I couldn't tell which collection, so I didn't guess with a thematic search."
+      );
+    } else {
+      const order = lst.order === "last" ? "last" : lst.order === "all" ? "all" : "first";
+      const n = lst.count || 0;
+      const where = order === "all" ? "all of them" : `the ${order} ${n}`;
+      steps.push(
+        `You asked for chapters of ${lst.collection || "the collection"}, so I listed ${where} in reading order — not ranked by relevance.`
+      );
+    }
+    return steps;
+  }
+
+  // --- Semantic route (the default passage search) ---
+
   // 0. What kind of question the router judged this to be (only when it's a
   // notable, non-default intent — plain conceptual questions need no preamble).
   const INTENT_PHRASE = {
     scenario: "I read this as a personal-guidance question",
     aspect: "I noticed you asked about a specific aspect of the topic",
-    factual: "I read this as a factual question",
-    named_text: "I read this as a question about a specific text or quote",
-    occasion: "I read this as a request for discourses from a specific occasion",
     comparative: "I read this as a comparison between ideas",
-    org_doctrine: "I read this as a question about the Sathya Sai organization",
   };
   if (INTENT_PHRASE[trace.intent]) {
     steps.push(`${INTENT_PHRASE[trace.intent]}.`);
+  }
+  // Comparison note: we search each side but don't compose a comparison.
+  if (trace.is_comparison) {
+    steps.push("Because you're comparing ideas, I searched for each side and show discourses on both.");
   }
 
   // 1. How the question was rephrased into search terms.
@@ -123,6 +176,19 @@ function TraceDetails({ trace }) {
 
   return (
     <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700">
+      {/* Routing — explains why the facet/score table below may be empty on a
+          structured (knowledge lookup) or guidance route. */}
+      {(trace.intent || trace.route) && (
+        <div className="mb-3">
+          <p className="mb-1 font-semibold text-gray-800">Routing</p>
+          <p className="text-gray-600">
+            intent: {trace.intent || "—"} · route: {trace.route || "—"}
+            {(trace.entities || []).length > 0 && ` · entity: ${trace.entities.join(", ")}`}
+            {trace.is_comparison && " · comparison"}
+          </p>
+        </div>
+      )}
+
       {/* Per-facet retrieval */}
       {facetResults.length > 0 && (
         <div className="mb-3">

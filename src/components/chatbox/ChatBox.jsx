@@ -90,7 +90,37 @@ export default function ChatBox({
   // timings) that powers the "How I searched" panel. `trace` is null when the
   // backend doesn't send one (older backend, or a cached entry from before this
   // feature), and every consumer treats it as optional.
-  const fetchCitations = async (question, history = [], excludeSeen = []) => {
+  // Persist matched passages + best-answer quotes by discourse id so the blog
+  // page can locate/highlight them even if router state is lost (refresh /
+  // direct URL).
+  const rememberPassages = (citations) => {
+    try {
+      const map = JSON.parse(sessionStorage.getItem("asv_matched_passages") || "{}");
+      const quoteMap = JSON.parse(sessionStorage.getItem("asv_best_sentences") || "{}");
+      citations.forEach((c) => {
+        if (c && c._id && c.matched_passage) map[c._id] = c.matched_passage;
+        if (c && c._id && c.best_sentence) quoteMap[c._id] = c.best_sentence;
+      });
+      sessionStorage.setItem("asv_matched_passages", JSON.stringify(map));
+      sessionStorage.setItem("asv_best_sentences", JSON.stringify(quoteMap));
+    } catch (e) {
+      /* sessionStorage unavailable — non-fatal */
+    }
+  };
+
+  // Two-phase search. Grading is ~74% of backend latency, so phase 1 asks for
+  // reranked-but-ungraded candidates (~3x faster) and reports them through
+  // `onProvisional` so the user sees discourses almost immediately; phase 2 then
+  // verifies them and returns the final list.
+  //
+  // Provisional citations carry NO quotes and must be rendered as unverified —
+  // the grader drops roughly half of them, and a card that silently turned into
+  // an answer would be the pipeline claiming something it hasn't checked.
+  //
+  // Only the semantic route defers (`trace.deferred`). Exact-phrase matches,
+  // structured entity lookups, listings and guidance all return final results
+  // from phase 1, so phase 2 is skipped entirely for those.
+  const fetchCitations = async (question, history = [], excludeSeen = [], onProvisional = null) => {
     // Cache by question + history so multi-turn follow-ups aren't served stale
     // single-turn results; the exclusion count keeps an excluded search from
     // being served the unexcluded cache entry (and vice versa).
@@ -102,55 +132,59 @@ export default function ChatBox({
     }
 
     try {
-      console.log("🔍 Making request to:", apiRoute("search"));
+      // --- Phase 1: fast, unverified ---
       const response = await fetch(apiRoute("search"), {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: question,
           history,
           include_trace: true,
+          defer_grading: true,
           ...(excludeSeen.length && { exclude_seen: excludeSeen }),
         }),
       });
-
-      console.log("🔍 Response status:", response.status);
-      console.log("🔍 Response ok:", response.ok);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       // Backward compatible: a trace-aware backend returns { results, trace };
       // an older one returns a bare citations array. Normalize both here so the
       // rest of the app only ever sees { citations, trace }.
       const data = await response.json();
-      const citations = Array.isArray(data) ? data : (data.results || []);
-      const trace = Array.isArray(data) ? null : (data.trace || null);
-      console.log("🔍 Response data:", citations, trace);
+      let citations = Array.isArray(data) ? data : (data.results || []);
+      let trace = Array.isArray(data) ? null : (data.trace || null);
 
-      // Persist matched passages + best-answer quotes by discourse id so the blog
-      // page can locate/highlight them even if router state is lost (refresh /
-      // direct URL).
-      try {
-        const map = JSON.parse(
-          sessionStorage.getItem("asv_matched_passages") || "{}"
-        );
-        const quoteMap = JSON.parse(
-          sessionStorage.getItem("asv_best_sentences") || "{}"
-        );
-        citations.forEach((c) => {
-          if (c && c._id && c.matched_passage) map[c._id] = c.matched_passage;
-          if (c && c._id && c.best_sentence) quoteMap[c._id] = c.best_sentence;
-        });
-        sessionStorage.setItem("asv_matched_passages", JSON.stringify(map));
-        sessionStorage.setItem("asv_best_sentences", JSON.stringify(quoteMap));
-      } catch (e) {
-        /* sessionStorage unavailable — non-fatal */
+      // A backend that doesn't implement deferral just answered in full — take
+      // it as final rather than sending a pointless verify request.
+      if (!trace?.deferred) {
+        rememberPassages(citations);
+        cache[cacheKey] = { ...cache[cacheKey], citations, trace };
+        return { citations, trace };
       }
 
+      if (onProvisional) onProvisional({ citations, trace });
+
+      // --- Phase 2: verify, and swap in real quotes ---
+      const passages = citations
+        .filter((c) => c && c.passage_id)
+        .map((c) => ({ passage_id: c.passage_id, facet: c.facet || question }));
+
+      if (passages.length) {
+        const verifyRes = await fetch(apiRoute("search/verify"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: question, passages }),
+        });
+        if (verifyRes.ok) {
+          const verified = await verifyRes.json();
+          citations = verified.results || [];
+          trace = verified.trace || trace;
+        }
+        // A failed verify leaves the provisional list in place. It is still
+        // marked deferred, so the UI keeps showing them as unverified rather
+        // than promoting unchecked passages to answers.
+      }
+
+      rememberPassages(citations);
       cache[cacheKey] = { ...cache[cacheKey], citations, trace };
       return { citations, trace };
     } catch (error) {
@@ -287,7 +321,30 @@ export default function ChatBox({
         // exclude every passage already quoted in the thread; typed questions
         // don't (deliberately re-asking should return full results).
         const seenPairs = excludeSeen ? collectSeenPairs(messages) : [];
-        const { citations, trace } = await fetchCitations(val, history, seenPairs);
+        // Paint phase 1's unverified discourses as soon as they land (~3x sooner
+        // than the verified list) so the user has something real to read while
+        // the grader works. `pending: true` is what tells Reply to render them
+        // as unverified.
+        const { citations, trace } = await fetchCitations(
+          val, history, seenPairs,
+          ({ citations: provisional, trace: provisionalTrace }) => {
+            setMessages((prev) =>
+              prev.map((q, index) =>
+                index === newIndex
+                  ? {
+                    ...q,
+                    reply: {
+                      primaryResponse: "",
+                      citations: provisional,
+                      trace: provisionalTrace,
+                      pending: true,
+                    },
+                  }
+                  : q,
+              ),
+            );
+          },
+        );
 
         // Update state with citations + the pipeline trace (may be null). The
         // trace is stored on the reply so it persists with the thread and the
@@ -443,8 +500,28 @@ export default function ChatBox({
       // Clear the cache for this question to force a fresh response
       delete cache[question];
 
-      // Only fetch citations from /search endpoint
-      const { citations, trace } = await fetchCitations(question);
+      // Only fetch citations from /search endpoint. Phase 1's unverified list is
+      // painted first (see the callback), then replaced by the verified one.
+      const { citations, trace } = await fetchCitations(
+        question, [], [],
+        ({ citations: provisional, trace: provisionalTrace }) => {
+          setMessages((prev) =>
+            prev.map((q, index) =>
+              index === newIndex
+                ? {
+                  ...q,
+                  reply: {
+                    primaryResponse: "",
+                    citations: provisional,
+                    trace: provisionalTrace,
+                    pending: true,
+                  },
+                }
+                : q
+            )
+          );
+        },
+      );
 
       // Update state with citations + the pipeline trace (may be null)
       const finalMessages = updatedMessages.map((q, index) =>

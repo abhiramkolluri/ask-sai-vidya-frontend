@@ -320,7 +320,11 @@ export default function Reply({
     );
   }
 
-  const { citations = [] } = reply;
+  // `pending` marks phase 1 of a two-phase search: these discourses are real
+  // matches but no quote has been verified yet, and the grader typically drops
+  // some of them when phase 2 lands. Everything downstream renders them as
+  // provisional rather than as answers.
+  const { citations = [], pending = false } = reply;
 
   return (
     <div className="w-full mx-2">
@@ -377,33 +381,61 @@ export default function Reply({
                         </p>
                         <p className="text-lg text-gray-600">
                           {formatCollection(item.collection)}
+                          {/* Listing route passes chapter_index (0-based) so an
+                              ordered enumeration reads like a table of contents. */}
+                          {item.chapter_index != null && (
+                            <span className="text-gray-500">
+                              {" · Chapter "}
+                              {item.chapter_index + 1}
+                            </span>
+                          )}
                         </p>
                         <p className="italic">{item.date}</p>
 
-                        {/* Best-answer quote from the discourse (single sentence,
-                            selected by the backend via Cohere), shown in full */}
-                        <div
-                          className="p-2 ml-3 text-gray-800 text-xl italic"
-                          style={{ fontFamily: "'EB Garamond', serif" }}
-                        >
-                          <span className="text-primary">&ldquo;</span>
-                          <span
-                            ref={(el) => contentRefs.current[item._id] = el}
-                            className="select-text"
-                            onMouseUp={() => handleTextSelection(item._id)}
-                            dangerouslySetInnerHTML={{
-                              __html: renderTextWithHighlights(
-                                item.best_sentence ||
-                                  (item.content && item.content.length > 200
-                                    ? item.content.slice(0, 200) + "..."
-                                    : item.content) ||
-                                  "",
-                                item._id
-                              )
-                            }}
-                          />
-                          <span className="text-primary">&rdquo;</span>
-                        </div>
+                        {/* The answering quote, verified by the grader. While a
+                            two-phase search is still verifying (`pending`), we
+                            show the retrieved passage as a plain excerpt WITHOUT
+                            quotation marks and label it — quote marks here would
+                            present unchecked text as the answering quote, which
+                            is the one thing this pipeline must never do. */}
+                        {pending ? (
+                          <div className="p-2 ml-3">
+                            <div className="text-xs uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-2">
+                              <span className="inline-block w-2 h-2 rounded-full bg-primary/50 animate-pulse" />
+                              Checking whether this answers your question…
+                            </div>
+                            <div
+                              className="text-gray-500 text-lg italic"
+                              style={{ fontFamily: "'EB Garamond', serif" }}
+                            >
+                              {(item.matched_passage || item.content || "").slice(0, 200)}
+                              {(item.matched_passage || item.content || "").length > 200 ? "…" : ""}
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className="p-2 ml-3 text-gray-800 text-xl italic"
+                            style={{ fontFamily: "'EB Garamond', serif" }}
+                          >
+                            <span className="text-primary">&ldquo;</span>
+                            <span
+                              ref={(el) => contentRefs.current[item._id] = el}
+                              className="select-text"
+                              onMouseUp={() => handleTextSelection(item._id)}
+                              dangerouslySetInnerHTML={{
+                                __html: renderTextWithHighlights(
+                                  item.best_sentence ||
+                                    (item.content && item.content.length > 200
+                                      ? item.content.slice(0, 200) + "..."
+                                      : item.content) ||
+                                    "",
+                                  item._id
+                                )
+                              }}
+                            />
+                            <span className="text-primary">&rdquo;</span>
+                          </div>
+                        )}
 
                         {/* Show highlights for this discourse */}
                         {highlights[item._id] && highlights[item._id].length > 0 && (

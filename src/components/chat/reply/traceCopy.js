@@ -42,6 +42,9 @@ export const REASON_COPY = {
   SERVICE_UNAVAILABLE: () =>
     "This was a temporary problem reaching the search service, not an empty result — please try your question again.",
 
+  RERANK_DEGRADED: () =>
+    "My ranking step didn't run for this search, so these discourses are ordered by keyword and meaning overlap alone. They're genuine matches, but the most relevant one may not be first — searching again usually restores the better ordering.",
+
   FACTUAL_QUESTION: () =>
     "I search discourses by theme, not biographical facts — here are related discourses that may touch on it.",
 
@@ -56,6 +59,13 @@ export const REASON_COPY = {
     return entity
       ? `The discourses don't directly cover “${entity}”. I'd rather tell you that than show loosely related discourses as if they answered it.`
       : "The discourses don't directly cover this. I'd rather say so than show loosely related discourses as if they answered it.";
+  },
+
+  LISTING_NOT_FOUND: (reason) => {
+    const collection = reason.data?.collection;
+    return collection
+      ? `I couldn't find a collection called “${collection}” — check the name, or browse the Collections tab to see what's available.`
+      : "I couldn't find the collection you asked to list — check the name, or browse the Collections tab to see what's available.";
   },
 };
 

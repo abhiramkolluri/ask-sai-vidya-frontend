@@ -9,8 +9,12 @@ import LotusLoader from "./LotusLoader";
 // user what the system is actually doing under the hood so an opaque wait becomes
 // a legible one. The last stage holds until results arrive (the loader unmounts).
 const STAGES = [
+  // The first two stages are route-agnostic on purpose: a structured (knowledge
+  // lookup) or guidance (meta/out-of-domain) response returns in ~1-2s and
+  // unmounts the loader before the semantic-specific stages, so nothing false is
+  // ever shown. The later stages describe the semantic passage search.
   { at: 0, message: "Reading your question…" },
-  { at: 1200, message: "Rephrasing it in the language of the discourses…" },
+  { at: 1200, message: "Working out how to search…" },
   { at: 3000, message: "Searching 1,630 discourses…" },
   { at: 5000, message: "Comparing the closest passages…" },
   { at: 7000, message: "Checking which passages truly answer your question…" },

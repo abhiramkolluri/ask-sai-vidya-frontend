@@ -106,7 +106,7 @@ export default function SideNav({
   };
 
   return (
-    <div className="w-full flex flex-col gap-2 p-4 text-sm h-[100vh] z-50 bg-white font-ui">
+    <div className="w-full flex flex-col gap-2 p-4 text-sm h-[100vh] z-50 bg-white">
       <div>
         <Logo />
       </div>

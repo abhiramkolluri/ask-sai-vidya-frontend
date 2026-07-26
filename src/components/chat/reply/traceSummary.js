@@ -26,6 +26,38 @@ export function buildSummaryLine(trace, citations = []) {
     return "I ran into a temporary problem reaching the search service.";
   }
 
+  // Phase 1 of a two-phase search: these discourses matched, but none has been
+  // checked against the question yet. Promise nothing until the grader answers —
+  // some of these will be dropped.
+  if (trace.deferred || trace.quality === "pending") {
+    return count === 1
+      ? "I found 1 discourse that looks related — checking whether it answers your question…"
+      : `I found ${count} discourses that look related — checking which of them answer your question…`;
+  }
+
+  // Structured (knowledge-lookup) route with a canonical hit — a direct answer,
+  // not a thematic search, so say so instead of "I read your question as …".
+  const entity = (trace.entities || [])[0];
+  if (trace.route === "structured" && count > 0 && !trace.kb_gap) {
+    return entity
+      ? `I found the discourse${count === 1 ? "" : "s"} about ${entity}.`
+      : `I found ${pluralizeDiscourses(count)} that directly address this.`;
+  }
+
+  // Listing route: an ordered enumeration of a collection's chapters. State the
+  // outcome as a list, not as "I read your question as …" (it wasn't a search).
+  if (trace.route === "listing") {
+    const lst = trace.listing || {};
+    if (lst.not_found || count === 0) {
+      return lst.collection
+        ? `I couldn't find a collection called "${lst.collection}".`
+        : "I couldn't find the collection you asked to list.";
+    }
+    const order = lst.order === "last" ? "last " : lst.order === "all" ? "" : "first ";
+    const where = lst.order === "all" ? `all ${count} chapters` : `the ${order}${count} chapter${count === 1 ? "" : "s"}`;
+    return `Here ${count === 1 ? "is" : "are"} ${where} of ${lst.collection || "the collection"}, in reading order.`;
+  }
+
   const facets = trace.planning?.facets || [];
   const exact = trace.exact_phrase || {};
 
