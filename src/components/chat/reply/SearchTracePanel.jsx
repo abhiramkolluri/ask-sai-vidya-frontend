@@ -41,13 +41,13 @@ function buildNarrative(trace) {
     if (trace.kb_gap) {
       steps.push(
         entity
-          ? `I recognized this as asking about ${entity}. It isn't covered in the discourse index, so I'm not showing loosely related discourses as if they answered it.`
+          ? `I recognized this as asking about ${entity}. It isn't covered in the discourse index, so I'm not showing loosely related sources as if they answered it.`
           : "I recognized this as a specific factual/named-text question the discourse index doesn't cover, so I abstained rather than show loosely related matches."
       );
     } else {
       steps.push(
         entity
-          ? `I recognized ${entity} and pulled up the discourse${(trace.results?.discourses || 0) === 1 ? "" : "s"} about it directly, rather than searching by theme.`
+          ? `I recognized ${entity} and pulled up the source${(trace.results?.discourses || 0) === 1 ? "" : "s"} about it directly, rather than searching by theme.`
           : "I looked this up directly in the knowledge index rather than searching by theme."
       );
     }
@@ -59,7 +59,7 @@ function buildNarrative(trace) {
     steps.push(
       trace.intent === "meta"
         ? "This looked like a request to the app rather than the discourses, so I didn't search the corpus."
-        : "This doesn't match the discourse library, so I didn't return discourses."
+        : "This doesn't match the discourse library, so I didn't return any sources."
     );
     return steps;
   }
@@ -98,7 +98,7 @@ function buildNarrative(trace) {
   }
   // Comparison note: we search each side but don't compose a comparison.
   if (trace.is_comparison) {
-    steps.push("Because you're comparing ideas, I searched for each side and show discourses on both.");
+    steps.push("Because you're comparing ideas, I searched for each side and show sources on both.");
   }
 
   // 1. How the question was rephrased into search terms.
@@ -156,7 +156,7 @@ function buildNarrative(trace) {
   const totalMs = trace.timings_ms?.total;
   const timing = totalMs ? ` in ${(totalMs / 1000).toFixed(1)}s` : "";
   if (count > 0) {
-    steps.push(`That gave ${count} discourse${count === 1 ? "" : "s"}${timing}.`);
+    steps.push(`That gave ${count} source${count === 1 ? "" : "s"}${timing}.`);
   }
 
   return steps;

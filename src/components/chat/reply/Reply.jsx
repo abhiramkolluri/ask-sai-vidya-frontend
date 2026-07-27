@@ -267,7 +267,7 @@ export default function Reply({
 
   const handleCopyDiscourseLink = (item) => {
     navigator.clipboard.writeText(`${window.location.origin}/blog/${item._id}`);
-    alert("Discourse link copied to clipboard!");
+    alert("Source link copied to clipboard!");
   };
 
   const handleFeedback = async (type, reason, additionalComments = '') => {
@@ -511,19 +511,19 @@ export default function Reply({
                             />
                             <IoLinkOutline
                               size={20}
-                              title="Copy link to this discourse"
+                              title="Copy link to this source"
                               className="cursor-pointer hover:opacity-70 transition-opacity"
                               onClick={() => handleCopyDiscourseLink(item)}
                             />
                             <IoThumbsUpOutline
                               size={20}
-                              title="This discourse was helpful"
+                              title="This source was helpful"
                               className="cursor-pointer hover:opacity-70 transition-opacity"
                               onClick={() => handleFeedbackClick('up', item)}
                             />
                             <IoThumbsDownOutline
                               size={20}
-                              title="This discourse was not helpful"
+                              title="This source was not helpful"
                               className="cursor-pointer hover:opacity-70 transition-opacity"
                               onClick={() => handleFeedbackClick('down', item)}
                             />

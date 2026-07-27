@@ -1,18 +1,32 @@
-// Builds the one-line summary shown above the discourse cards. It replaces the
+// Builds the one-line summary shown above the result cards. It replaces the
 // old hardcoded "Here are some discourses where you can start learning about the
 // topic:" with a line that reflects what the search actually did — so the user
 // sees how their question was interpreted and can refine it if the reading was off.
+//
+// Results are called SOURCES here, not discourses. What comes back is evidence
+// the user is being asked to check for themselves, and "source" says that; it
+// also stays true for the parts of the corpus that are not discourses (chapters
+// of the Vahinis, org documents). The corpus itself is still described as
+// Sai Baba's discourses where that is what is being talked about — see
+// traceCopy.js, which describes the LIBRARY rather than a result set.
 //
 // `trace` is the pipeline transparency trace (may be null: old cached/persisted
 // messages, or an older backend). When it's absent we fall back to the exact
 // legacy line so nothing regresses.
 
 const LEGACY_LINE =
-  "Here are some discourses where you can start learning about the topic:";
+  "Here are some sources where you can start learning about the topic:";
 
-// "discourse" / "discourses" — the counts here are small and user-facing.
-function pluralizeDiscourses(n) {
-  return n === 1 ? "1 discourse" : `${n} discourses`;
+// "source" / "sources" — the counts here are small and user-facing.
+function pluralizeSources(n) {
+  return n === 1 ? "1 source" : `${n} sources`;
+}
+
+// Subject-verb agreement for the sentences below, which all read
+// "<n> source(s) that ... address(es) ...". Without this a single result reads
+// "1 source that directly address it".
+function addressVerb(n) {
+  return n === 1 ? "addresses" : "address";
 }
 
 export function buildSummaryLine(trace, citations = []) {
@@ -26,13 +40,13 @@ export function buildSummaryLine(trace, citations = []) {
     return "I ran into a temporary problem reaching the search service.";
   }
 
-  // Phase 1 of a two-phase search: these discourses matched, but none has been
+  // Phase 1 of a two-phase search: these sources matched, but none has been
   // checked against the question yet. Promise nothing until the grader answers —
   // some of these will be dropped.
   if (trace.deferred || trace.quality === "pending") {
     return count === 1
-      ? "I found 1 discourse that looks related — checking whether it answers your question…"
-      : `I found ${count} discourses that look related — checking which of them answer your question…`;
+      ? "I found 1 source that looks related — checking whether it answers your question…"
+      : `I found ${count} sources that look related — checking which of them answer your question…`;
   }
 
   // Structured (knowledge-lookup) route with a canonical hit — a direct answer,
@@ -40,8 +54,8 @@ export function buildSummaryLine(trace, citations = []) {
   const entity = (trace.entities || [])[0];
   if (trace.route === "structured" && count > 0 && !trace.kb_gap) {
     return entity
-      ? `I found the discourse${count === 1 ? "" : "s"} about ${entity}.`
-      : `I found ${pluralizeDiscourses(count)} that directly address this.`;
+      ? `I found the source${count === 1 ? "" : "s"} about ${entity}.`
+      : `I found ${pluralizeSources(count)} that directly ${addressVerb(count)} this.`;
   }
 
   // Listing route: an ordered enumeration of a collection's chapters. State the
@@ -64,19 +78,19 @@ export function buildSummaryLine(trace, citations = []) {
   // Nothing directly answered the question. The guidance callout below carries
   // the "how to refine" tips; this line just states the outcome plainly.
   if (count === 0) {
-    return "I searched but couldn't find discourses that directly answer this.";
+    return "I searched but couldn't find sources that directly answer this.";
   }
 
   // Exact-phrase shortcut succeeded.
   if (exact.matched && exact.phrase) {
-    return `I found your exact phrase "${exact.phrase}" in ${pluralizeDiscourses(count)}.`;
+    return `I found your exact phrase "${exact.phrase}" in ${pluralizeSources(count)}.`;
   }
 
   // Single search angle.
   if (facets.length === 1) {
-    return `I read your question as "${facets[0]}" and found ${pluralizeDiscourses(
+    return `I read your question as "${facets[0]}" and found ${pluralizeSources(
       count
-    )} that directly address it.`;
+    )} that directly ${addressVerb(count)} it.`;
   }
 
   // Multiple search angles — show the first couple so the user sees how their
@@ -84,11 +98,11 @@ export function buildSummaryLine(trace, citations = []) {
   if (facets.length > 1) {
     const shown = facets.slice(0, 2).map((f) => `"${f}"`).join(", ");
     const more = facets.length > 2 ? ", and more" : "";
-    return `I explored ${facets.length} angles of your question — ${shown}${more} — and found ${pluralizeDiscourses(
+    return `I explored ${facets.length} angles of your question — ${shown}${more} — and found ${pluralizeSources(
       count
-    )} that address them.`;
+    )} that ${addressVerb(count)} them.`;
   }
 
   // Trace present but no facets recorded (unusual) → generic but honest.
-  return `I found ${pluralizeDiscourses(count)} that address your question.`;
+  return `I found ${pluralizeSources(count)} that ${addressVerb(count)} your question.`;
 }

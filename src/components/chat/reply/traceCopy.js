@@ -10,14 +10,14 @@
 export const REASON_COPY = {
   MULTI_TOPIC_DILUTION: (reason) => {
     const n = reason.data?.count || (reason.data?.facets || []).length || "several";
-    return `Your question touched ${n} different topics. Asking about one at a time usually finds stronger discourses.`;
+    return `Your question touched ${n} different topics. Asking about one at a time usually finds stronger sources.`;
   },
 
   ALL_REJECTED_BY_GRADER: () =>
     "I found passages that mention these words, but none that directly answer your question. Try rephrasing around the underlying teaching — for example “how to overcome jealousy” rather than a long personal story.",
 
   LOW_RELEVANCE: () =>
-    "These discourses are related to your question but may not answer it directly. A more specific question can help.",
+    "These sources are related to your question but may not answer it directly. A more specific question can help.",
 
   NO_MATCHES: () =>
     "I couldn't find any passages matching this. This library holds Sai Baba's discourses — try asking about a spiritual concept, practice, or teaching. Tip: put double quotes around a phrase to search for it exactly.",
@@ -51,7 +51,7 @@ export const REASON_COPY = {
   UNANSWERABLE: (reason) => {
     const why = reason?.data?.reason;
     const suffix =
-      " I'd rather tell you that than hand you a discourse that only looks like an answer. Try one of the questions below instead.";
+      " I'd rather tell you that than hand you a source that only looks like an answer. Try one of the questions below instead.";
     return why
       ? why.trim() + suffix
       : "This isn't something the discourses can answer — it asks for a judgement, an opinion, or a prediction that none of them state." + suffix;
