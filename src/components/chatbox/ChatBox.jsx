@@ -240,8 +240,12 @@ export default function ChatBox({
   // `reply.followUps` keeps them through the loadMessages reload + thread save.
   const handleGenerateFollowups = async (index) => {
     const target = messages[index];
+    if (!target) return;
+    // NOT gated on having citations. When there are none the backend switches to
+    // redirect mode and rewrites the question into one it CAN answer, which is
+    // exactly the case where the user most needs a next step. Returning early
+    // here made the refusal button render and then do nothing when pressed.
     const citations = target?.reply?.citations || [];
-    if (!target || citations.length === 0) return;
 
     // Recent prior questions in this thread → same multi-turn context handleSend uses.
     const history = messages
@@ -404,12 +408,13 @@ export default function ChatBox({
         // Follow-ups are opt-in — the user generates them via a button on the
         // answer (handleGenerateFollowups), so nothing is fetched here.
         //
-        // EXCEPT on a refusal. When the question is one the discourses cannot
-        // answer there are no results on screen, and the redirect questions ARE
-        // the response — making someone press a button to find out what they
-        // could have asked would strand them on a dead end. Fetched immediately
-        // for that case only, so normal answers keep the on-demand behaviour.
-        if ((trace?.reasons || []).some((r) => r.code === "UNANSWERABLE")) {
+        // EXCEPT when there is no answer on screen. Then the suggested questions
+        // ARE the response, and asking someone to press a button to find out what
+        // they could have asked strands them on an empty page. This covers every
+        // answerless case, not just an explicit refusal: a question outside the
+        // corpus, a known gap, a listing we don't hold, or plain no-matches all
+        // leave the same dead end. Answers keep the on-demand button.
+        if (!citations || citations.length === 0) {
           handleGenerateFollowups(newIndex);
         }
         // navigate(`/thread/${newThread.id}`);

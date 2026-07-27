@@ -325,11 +325,13 @@ export default function Reply({
   // some of them when phase 2 lands. Everything downstream renders them as
   // provisional rather than as answers.
   const { citations = [], pending = false } = reply;
-  // A refusal: the question was understood but cannot be answered from the
-  // discourses. Distinct from an empty search — there is a reason to show and
-  // redirect questions to offer, so the follow-up block renders even with zero
-  // citations (it is normally gated on having results).
-  const isUnanswerable = (reply?.trace?.reasons || []).some((r) => r.code === "UNANSWERABLE");
+  // Any reply with nothing to read. An explicit refusal is one kind, but a
+  // question that matched nothing, fell outside the corpus, or hit a known gap
+  // leaves the same empty screen — and in every one of those cases the suggested
+  // questions ARE the response, so the follow-up block renders (it is normally
+  // gated on having results) and auto-fills rather than hiding behind a button.
+  // `pending` is excluded: phase 1 has results, just unverified ones.
+  const hasNoAnswer = !pending && citations.length === 0;
 
   return (
     <div className="w-full mx-2">
@@ -548,14 +550,14 @@ export default function Reply({
           {/* Weak-but-nonempty results → a quiet one-line refinement tip under the
               cards (SearchGuidance renders nothing when the result was strong). */}
           {reply?.citations?.length > 0 && <SearchGuidance trace={reply.trace} />}
-          {(reply?.citations?.length > 0 || isUnanswerable) && (
+          {(reply?.citations?.length > 0 || hasNoAnswer) && (
             <div className="mx-2 mt-2">
               {followUps && followUps.length > 0 ? (
                 <>
-                  {/* On a refusal these are not follow-ups to an answer — there
-                      is no answer. They are the questions we CAN answer, so say
-                      so rather than letting them read as continuations. */}
-                  {isUnanswerable && (
+                  {/* With no answer on screen these are not follow-ups to
+                      anything — they are the questions we CAN answer, so say so
+                      rather than letting them read as continuations. */}
+                  {hasNoAnswer && (
                     <p className="mb-2 text-sm font-medium text-[#BC5B01]">
                       Try asking instead:
                     </p>
@@ -575,10 +577,10 @@ export default function Reply({
                   {followUpsLoading ? (
                     <>
                       <FaSpinner className="animate-spin text-orange-400" />
-                      {isUnanswerable ? "Finding questions I can answer…" : "Generating…"}
+                      {hasNoAnswer ? "Finding questions I can answer…" : "Generating…"}
                     </>
                   ) : (
-                    isUnanswerable
+                    hasNoAnswer
                       ? "Suggest questions I can answer"
                       : "Generate Followup Questions"
                   )}
