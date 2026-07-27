@@ -414,8 +414,31 @@ export default function ChatBox({
         // answerless case, not just an explicit refusal: a question outside the
         // corpus, a known gap, a listing we don't hold, or plain no-matches all
         // leave the same dead end. Answers keep the on-demand button.
+        //
+        // Deliberately NOT via handleGenerateFollowups: that reads messages[index]
+        // out of the component closure, and inside handleSend `messages` is still
+        // the pre-send array (newIndex === messages.length), so the target is
+        // undefined and the call silently did nothing. Everything below uses the
+        // local finalMessages/newThread instead of state.
+        //
+        // Not awaited: handleSend's finally clears loadingIndex, and blocking here
+        // would keep the loader — and so hide the refusal reason — until the
+        // redirects finished verifying.
         if (!citations || citations.length === 0) {
-          handleGenerateFollowups(newIndex);
+          setFollowupLoadingIndex(newIndex);
+          fetchFollowups(val, history, [], seenPairs, trace)
+            .then((redirects) => {
+              if (!redirects || redirects.length === 0) return;
+              const withRedirects = finalMessages.map((q, i) =>
+                i === newIndex
+                  ? { ...q, reply: { ...q.reply, followUps: redirects } }
+                  : q,
+              );
+              setMessages(withRedirects);
+              addThread({ ...newThread, messages: withRedirects });
+            })
+            .catch((e) => console.error("Redirect follow-up fetch failed:", e))
+            .finally(() => setFollowupLoadingIndex(null));
         }
         // navigate(`/thread/${newThread.id}`);
       } catch (error) {
