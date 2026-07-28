@@ -93,16 +93,31 @@ export default function ChatBox({
   // Persist matched passages + best-answer quotes by discourse id so the blog
   // page can locate/highlight them even if router state is lost (refresh /
   // direct URL).
-  const rememberPassages = (citations) => {
+  const rememberPassages = (citations, trace) => {
     try {
       const map = JSON.parse(sessionStorage.getItem("asv_matched_passages") || "{}");
       const quoteMap = JSON.parse(sessionStorage.getItem("asv_best_sentences") || "{}");
+      const termMap = JSON.parse(sessionStorage.getItem("asv_keyword_terms") || "{}");
+      // Only a keyword-ROUTED search highlights every occurrence on the blog
+      // page. `trace.keyword` is also set when the keyword route was tried and
+      // fell back for want of literal matches — those results took the semantic
+      // route and keep the single best-sentence highlight, so gate on `route`.
+      const keywordTerm =
+        trace?.route === "keyword" ? trace?.keyword?.term || null : null;
       citations.forEach((c) => {
         if (c && c._id && c.matched_passage) map[c._id] = c.matched_passage;
         if (c && c._id && c.best_sentence) quoteMap[c._id] = c.best_sentence;
+        if (!c || !c._id) return;
+        // DELETE rather than skip on a non-keyword search. Searching "karma",
+        // then asking a full question that returns the same discourse, would
+        // otherwise leave the old term behind and highlight a word the user is
+        // no longer searching for.
+        if (keywordTerm) termMap[c._id] = keywordTerm;
+        else delete termMap[c._id];
       });
       sessionStorage.setItem("asv_matched_passages", JSON.stringify(map));
       sessionStorage.setItem("asv_best_sentences", JSON.stringify(quoteMap));
+      sessionStorage.setItem("asv_keyword_terms", JSON.stringify(termMap));
     } catch (e) {
       /* sessionStorage unavailable — non-fatal */
     }
@@ -156,7 +171,7 @@ export default function ChatBox({
       // A backend that doesn't implement deferral just answered in full — take
       // it as final rather than sending a pointless verify request.
       if (!trace?.deferred) {
-        rememberPassages(citations);
+        rememberPassages(citations, trace);
         cache[cacheKey] = { ...cache[cacheKey], citations, trace };
         return { citations, trace };
       }
@@ -184,7 +199,7 @@ export default function ChatBox({
         // than promoting unchecked passages to answers.
       }
 
-      rememberPassages(citations);
+      rememberPassages(citations, trace);
       cache[cacheKey] = { ...cache[cacheKey], citations, trace };
       return { citations, trace };
     } catch (error) {

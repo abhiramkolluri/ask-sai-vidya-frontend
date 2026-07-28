@@ -507,7 +507,18 @@ export default function Reply({
                           <span className="text-primary underline text-lg">
                             <Link
                               to={`/blog/${item._id}`}
-                              state={{ citations, questionContext: question }}
+                              state={{
+                                citations,
+                                questionContext: question,
+                                // Only a keyword-ROUTED search highlights every
+                                // occurrence on the blog page. `trace.keyword` is
+                                // also set when the route fell back to semantic,
+                                // so gate on `route`, not on the field's presence.
+                                keywordTerm:
+                                  reply?.trace?.route === "keyword"
+                                    ? reply.trace.keyword?.term || null
+                                    : null,
+                              }}
                               className="flex"
                             >
                               Read &ldquo;{item.title}&rdquo;

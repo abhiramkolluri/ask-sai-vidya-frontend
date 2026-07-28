@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { LuPencilLine } from "react-icons/lu";
-import { IoCalendar, IoBookOutline } from "react-icons/io5";
+import { IoCalendar, IoBookOutline, IoChevronUp, IoChevronDown } from "react-icons/io5";
 import { useQuery } from "react-query";
 import { IoMdList } from "react-icons/io";
 import { MdClose } from "react-icons/md";
@@ -19,6 +19,35 @@ import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 import { formatCollection } from "../../helpers/formatCollection";
 import { useCollectionChapters } from "../../components/collections/useCollections";
 import ChapterNavBar from "../../components/collections/ChapterNavBar";
+
+// Scroll an element to the middle of the viewport, animating where that works.
+//
+// Smooth scrolling silently NO-OPS in some Chrome configurations — measured in
+// this project's own browser, where behavior:"auto" moved scrollY to 591 while
+// behavior:"smooth" left it at 13, for both scrollIntoView and window.scrollTo.
+// The failure is invisible: no error, the page simply never moves, which reads
+// as "the jump-to-occurrence button is broken". So try the animated scroll, then
+// check whether anything actually moved and repeat it instantly if not.
+let pendingScrollFallback = null;
+
+const scrollIntoViewSafely = (el) => {
+  if (!el) return;
+  // Cancel any fallback still pending from a previous call. Clicking "next"
+  // twice inside 250ms would otherwise let the FIRST call's timer fire after the
+  // second scroll and drag the reader back to the occurrence they just left —
+  // measured jumping to scrollY 4320 while the active mark sat at the top.
+  if (pendingScrollFallback) clearTimeout(pendingScrollFallback);
+  const before = window.scrollY;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  // A smooth scroll starts moving within a frame or two, so if we are still
+  // exactly where we started after this long, it is never going to happen.
+  pendingScrollFallback = setTimeout(() => {
+    pendingScrollFallback = null;
+    if (Math.abs(window.scrollY - before) < 2) {
+      el.scrollIntoView({ behavior: "auto", block: "center" });
+    }
+  }, 250);
+};
 
 export default function Blog() {
   const { slugId } = useParams();
@@ -68,6 +97,18 @@ export default function Blog() {
   const contentRef = useRef(null);
   const matchedRef = useRef(null); // the braces-wrapped matched passage block
 
+  // Keyword-route highlighting: one ref per rendered <mark>, in document order,
+  // plus which occurrence the find-in-page control is currently sitting on.
+  // These live up here with the other hooks because the render body below has
+  // early returns for the loading and error states.
+  const markRefs = useRef([]);
+  const [activeMark, setActiveMark] = useState(0);
+  // Dismissing the find-in-page pill clears the marks for this discourse only,
+  // and resets on navigation (below). Deliberately NOT sticky for the session:
+  // there is no control to switch highlighting back on, so a sticky dismissal
+  // would strand the reader with no way to recover it.
+  const [keywordDismissed, setKeywordDismissed] = useState(false);
+
   const { isLoading, isRefetching, data, isError } = useQuery(
     ["blogPost", slugId],
     () => fetchBlogPost(slugId),
@@ -81,6 +122,11 @@ export default function Blog() {
     setHighlights([]);
     setActiveHighlightId(null);
     setShowHighlightPopover(false);
+    // Without this, jumping between discourses in the citations drawer lands on
+    // the previous document's occurrence index.
+    setActiveMark(0);
+    markRefs.current = [];
+    setKeywordDismissed(false);
   }, [slugId]);
 
   // When a discourse is opened from a citation, scroll the matched passage into
@@ -88,9 +134,7 @@ export default function Blog() {
   useEffect(() => {
     if (!data) return;
     const t = setTimeout(() => {
-      if (matchedRef.current) {
-        matchedRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+      scrollIntoViewSafely(matchedRef.current);
     }, 150);
     return () => clearTimeout(t);
   }, [data, slugId]);
@@ -296,17 +340,23 @@ export default function Blog() {
     }
   };
 
-  // Helper function to render text with active highlight
-  const renderContentWithHighlight = (text) => {
-    if (!activeHighlightId) return text;
+  // Helper function to render text with active highlight.
+  //
+  // `transform` is applied to every plain-text segment this produces, so a
+  // second highlighter can compose with this one instead of replacing it — the
+  // keyword-route marker passes itself in here. Defaults to identity, which is
+  // exactly the previous behaviour. Without this, turning on keyword marking
+  // would silently break clicking a saved highlight in HighlightsSidebar.
+  const renderContentWithHighlight = (text, transform = (t) => t) => {
+    if (!activeHighlightId) return transform(text);
 
     const activeHighlight = highlights.find(h => h.id === activeHighlightId);
-    if (!activeHighlight) return text;
+    if (!activeHighlight) return transform(text);
 
     const highlightText = activeHighlight.text;
     const index = text.indexOf(highlightText);
 
-    if (index === -1) return text;
+    if (index === -1) return transform(text);
 
     // Split text and add animated highlight
     const before = text.substring(0, index);
@@ -315,11 +365,11 @@ export default function Blog() {
 
     return (
       <>
-        {before}
+        {transform(before)}
         <span className="bg-orange-300 animate-pulse px-1 rounded transition-all duration-300">
-          {highlight}
+          {transform(highlight)}
         </span>
-        {after}
+        {transform(after)}
       </>
     );
   };
@@ -427,6 +477,29 @@ export default function Blog() {
       }
     }
 
+    // The searched term, when this discourse was surfaced by the KEYWORD route.
+    // Same precedence as bestSentence above: router state, then sessionStorage
+    // for the refresh / direct-URL case. Absent means every keyword code path
+    // below is skipped and the best-sentence behaviour stands unchanged.
+    let keywordSource = state?.keywordTerm || "";
+    if (!keywordSource) {
+      try {
+        const tmap = JSON.parse(
+          sessionStorage.getItem("asv_keyword_terms") || "{}"
+        );
+        keywordSource = tmap[slugId] || tmap[post._id] || "";
+      } catch (e) {
+        /* sessionStorage unavailable — non-fatal */
+      }
+    }
+    // Two variables, because dismissing the pill must clear the highlighting
+    // WITHOUT falling back to the best-sentence mark — swapping 24 marks for a
+    // different one is not what "end the highlighting" means. `keywordSource`
+    // answers "did this arrive from a keyword search" (so the best-sentence path
+    // stays suppressed either way); `keywordTerm` answers "should we be marking
+    // right now".
+    const keywordTerm = keywordDismissed ? "" : keywordSource;
+
     const contentLines = (post?.content || "").split("\n");
     const normalize = (s) => (s || "").replace(/\s+/g, " ").trim();
     const normMatched = normalize(matchedPassageText);
@@ -480,25 +553,116 @@ export default function Blog() {
       });
     }
 
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // --- Keyword-route highlighting -------------------------------------
+    // When the user searched a bare term, every occurrence of it is marked
+    // rather than the one sentence a reranker liked best. Whole words only:
+    // "karma" marks the Karma in "Karma-Yoga" but not "karmic", which is what
+    // BM25 actually matched (it tokenizes on word boundaries) and avoids
+    // leaving words visually broken mid-way.
+    //
+    // \b rather than lookbehind/lookahead assertions — Safari only gained
+    // lookbehind in 16.4. Tokens are joined by [^\w]+ so "inner peace" also
+    // matches "inner, peace", mirroring retrieval.py::phrase_in_text.
+    const keywordTokens = keywordTerm
+      ? keywordTerm.trim().split(/\s+/).filter(Boolean).map(escapeRegExp)
+      : [];
+    const keywordRe = keywordTokens.length
+      ? new RegExp(`\\b${keywordTokens.join("[^\\w]+")}\\b`, "gi")
+      : null;
+
+    // Counted in a separate pass, before any rendering, because the navigator
+    // pill sits ABOVE the content in the JSX tree and needs the total then.
+    let keywordCount = 0;
+    if (keywordRe) {
+      contentLines.forEach((line) => {
+        keywordCount += (line.match(keywordRe) || []).length;
+      });
+    }
+    // Drop refs left over from a longer previous document so goToMark can never
+    // scroll to a detached node. Safe to do during render: the callback refs
+    // below repopulate this after the commit.
+    markRefs.current.length = keywordCount;
+
+    // Document-order index handed to each mark as it is created. Rendering is
+    // synchronous and in order, so this stays in step with the count above.
+    let markCursor = 0;
+
+    // Split one line into text/<mark>/text React nodes. Never builds an HTML
+    // string — Reply.jsx:238 does an unescaped .replace() into
+    // dangerouslySetInnerHTML, which is not a pattern to copy into a page that
+    // renders arbitrary corpus text.
+    const markKeyword = (text) => {
+      if (!keywordRe || !text) return text;
+      keywordRe.lastIndex = 0; // shared /g regex — reset per segment
+      const nodes = [];
+      let last = 0;
+      let m;
+      while ((m = keywordRe.exec(text)) !== null) {
+        const i = markCursor++;
+        if (m.index > last) nodes.push(text.slice(last, m.index));
+        nodes.push(
+          <mark
+            key={`kw-${i}`}
+            // The first mark also carries matchedRef, which the existing scroll
+            // effect targets — that is what lands the reader on occurrence 1.
+            ref={(el) => {
+              markRefs.current[i] = el;
+              if (i === 0) matchedRef.current = el;
+            }}
+            // The page's own light orange (#FE9F44 — the hero tint and the
+            // citation-card hover) rather than a yellow highlighter. The active
+            // occurrence is the solid brand orange; the rest are the same hue
+            // washed back, so they read as one family and not as two colours.
+            className={
+              i === activeMark
+                ? "bg-[#FE9F44] rounded px-0.5"
+                : "bg-[#FE9F4459] rounded px-0.5"
+            }
+          >
+            {m[0]}
+          </mark>
+        );
+        last = m.index + m[0].length;
+        if (m[0].length === 0) keywordRe.lastIndex++; // guard against zero-width loops
+      }
+      if (!nodes.length) return text;
+      if (last < text.length) nodes.push(text.slice(last));
+      return nodes;
+    };
+
     const renderLine = (text, index) => (
       <React.Fragment key={index}>
         {text.includes(". ") ? (
-          <p className="mb-4">{renderContentWithHighlight(text)}</p>
+          <p className="mb-4">{renderContentWithHighlight(text, markKeyword)}</p>
         ) : (
           <h3 className="text-lg mb-4">
-            <strong>{renderContentWithHighlight(text)}</strong>
+            <strong>{renderContentWithHighlight(text, markKeyword)}</strong>
           </h3>
         )}
       </React.Fragment>
     );
 
+    // Move to another occurrence. `next` is computed before setState because
+    // setActiveMark is async — reading activeMark back after the call would
+    // scroll to the occurrence we just left. Wraps in both directions.
+    const goToMark = (delta) => {
+      if (!keywordCount) return;
+      const next = (activeMark + delta + keywordCount) % keywordCount;
+      setActiveMark(next);
+      scrollIntoViewSafely(markRefs.current[next]);
+    };
+
     // Locate the best-answer quote within the matched paragraph range so we can
     // highlight just those sentences (and scroll to them) instead of the whole
     // paragraph. Whitespace-tolerant, mirroring the backend's verbatim check.
-    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Skipped entirely on the keyword route: it competes for matchedRef and
+    // re-introduces exactly the single-sentence emphasis being replaced. Keyed on
+    // keywordSource so dismissing the pill does not resurrect it.
     let quoteLineIndex = -1;
     let quoteParts = null;
-    if (bestSentence && matchStart !== -1) {
+    if (!keywordSource && bestSentence && matchStart !== -1) {
       const tokens = bestSentence.trim().split(/\s+/).filter(Boolean).map(escapeRegExp);
       if (tokens.length) {
         const re = new RegExp(tokens.join("\\s+"));
@@ -519,6 +683,47 @@ export default function Blog() {
 
     return (
       <div className="w-full">
+        {/* Find-in-page control for a keyword search. Fixed rather than placed in
+            the page header: the header is a 375px hero that scrolls away, and a
+            "next" button you have to scroll back up to reach is no use. */}
+        {keywordTerm && keywordCount > 0 && (
+          <div className="fixed top-4 right-4 z-40 flex items-center gap-3 rounded-full border border-orange-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur">
+            <span className="text-sm text-gray-700">
+              &ldquo;{keywordTerm}&rdquo;
+            </span>
+            <span className="text-sm tabular-nums text-gray-500">
+              {activeMark + 1} of {keywordCount}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => goToMark(-1)}
+                aria-label="Previous occurrence"
+                className="rounded-full p-1 text-gray-600 hover:bg-orange-100 hover:text-orange-600"
+              >
+                <IoChevronUp size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => goToMark(1)}
+                aria-label="Next occurrence"
+                className="rounded-full p-1 text-gray-600 hover:bg-orange-100 hover:text-orange-600"
+              >
+                <IoChevronDown size={18} />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setKeywordDismissed(true)}
+              aria-label="Stop highlighting"
+              title="Stop highlighting"
+              className="rounded-full p-1 text-red-500 hover:bg-red-50 hover:text-red-700 border-l border-gray-200 pl-2 ml-1"
+            >
+              <MdClose size={16} />
+            </button>
+          </div>
+        )}
+
         {/* Text Highlight Popover */}
         <TextHighlightPopover
           visible={showHighlightPopover}
@@ -615,8 +820,9 @@ export default function Blog() {
                     );
                   }
                   // Fallback: quote not locatable, but we know the matched paragraph —
-                  // gently highlight it and anchor the scroll there.
-                  if (quoteLineIndex === -1 && index === matchStart) {
+                  // gently highlight it and anchor the scroll there. Not on the
+                  // keyword route, where matchedRef belongs to the first occurrence.
+                  if (!keywordSource && quoteLineIndex === -1 && index === matchStart) {
                     return (
                       <p key={index} ref={matchedRef} className="mb-4 bg-yellow-100 rounded px-0.5">
                         {renderContentWithHighlight(text)}
@@ -749,7 +955,14 @@ export default function Blog() {
                     <Link
                       key={i}
                       to={`/blog/${c._id}`}
-                      state={{ citations, questionContext: state?.questionContext }}
+                      state={{
+                        citations,
+                        questionContext: state?.questionContext,
+                        // Rebuilt state drops anything it doesn't name, so the
+                        // keyword term has to be carried explicitly or jumping
+                        // between citations loses the highlighting.
+                        keywordTerm: state?.keywordTerm,
+                      }}
                       onClick={() => setCitationsOpen(false)}
                     >
                       <div className={`rounded-xl border p-4 flex flex-col gap-3 transition-colors ${
