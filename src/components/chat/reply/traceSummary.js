@@ -72,6 +72,21 @@ export function buildSummaryLine(trace, citations = []) {
     return `Here ${count === 1 ? "is" : "are"} ${where} of ${lst.collection || "the collection"}, in reading order.`;
   }
 
+  // Keyword route: the user typed a bare topic word, so we matched the WORD
+  // rather than searching for its meaning. Say which word — it's the whole
+  // difference between this and every other route, and it's what tells the user
+  // that asking a full question would search differently. Placed above the facet
+  // branches because a keyword trace has no facets and would otherwise fall
+  // through to the generic line.
+  if (trace.route === "keyword" && count > 0) {
+    const term = trace.keyword?.term;
+    return term
+      ? `You searched a single term, so I looked for the word "${term}" itself — here ${
+          count === 1 ? "is" : "are"
+        } ${pluralizeSources(count)} that use it.`
+      : `I matched your search term literally in ${pluralizeSources(count)}.`;
+  }
+
   const facets = trace.planning?.facets || [];
   const exact = trace.exact_phrase || {};
 

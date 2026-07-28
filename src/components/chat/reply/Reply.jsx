@@ -23,6 +23,29 @@ import SearchTracePanel from "./SearchTracePanel";
 import SearchGuidance from "./SearchGuidance";
 import { buildSummaryLine } from "./traceSummary";
 
+// Question words that keep a short query on the semantic route — a subset of the
+// backend's list (search/query_planning.py::is_keyword_query), enough for the
+// 1-2 token strings this is ever asked about.
+const QUESTION_WORDS = new Set([
+  "what", "why", "how", "when", "where", "who", "whom", "which", "whose",
+  "is", "are", "was", "were", "am", "be", "do", "does", "did",
+  "can", "could", "should", "would", "will", "shall", "may", "might", "must",
+  "tell", "give", "show", "list", "find", "explain", "define", "describe",
+  "compare", "summarize", "vs", "versus",
+]);
+
+// Mirrors the backend's keyword-route gate closely enough to pick loader copy
+// BEFORE the response arrives. The backend is authoritative — this only decides
+// which caption shows during the ~1s wait, so a disagreement costs a slightly
+// off caption, never a wrong result.
+function isBareTerm(question) {
+  const q = (question || "").trim();
+  if (!q || q.includes("?") || q.includes('"')) return false;
+  const tokens = q.split(/\s+/).map((t) => t.replace(/^[^\w]+|[^\w]+$/g, "")).filter(Boolean);
+  if (tokens.length === 0 || tokens.length > 2) return false;
+  return !tokens.some((t) => QUESTION_WORDS.has(t.toLowerCase()));
+}
+
 export default function Reply({
   question = "What the user asked?",
   reply,
@@ -303,8 +326,12 @@ export default function Reply({
         </div>
         <div className="mx-auto mt-6">
           {/* Narrate the pipeline stages while the query runs. Detect a quoted
-              phrase so the loader can say "looking for your exact phrase". */}
-          <StagedLotusLoader hasExactPhrase={question.includes('"')} />
+              phrase so the loader can say "looking for your exact phrase", and a
+              bare term so it doesn't narrate planning/grading that won't run. */}
+          <StagedLotusLoader
+            hasExactPhrase={question.includes('"')}
+            isKeyword={isBareTerm(question)}
+          />
         </div>
       </div>
     );

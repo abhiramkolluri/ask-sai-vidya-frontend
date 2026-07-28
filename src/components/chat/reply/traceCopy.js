@@ -82,6 +82,23 @@ export const REASON_COPY = {
       ? `I couldn't find a collection called “${collection}” — check the name, or browse the Collections tab to see what's available.`
       : "I couldn't find the collection you asked to list — check the name, or browse the Collections tab to see what's available.";
   },
+
+  // Both keyword codes end by telling the user what a full question would do
+  // differently. A single word is often typed out of habit rather than choice,
+  // and the search they'd have preferred is one sentence away.
+  KEYWORD_MATCH: (reason) => {
+    const term = reason.data?.term;
+    return term
+      ? `You searched a single term, so I matched the word “${term}” itself rather than searching for its meaning — these are the discourses that use it most. Ask a full question to search by meaning instead.`
+      : "You searched a single term, so I matched the word itself rather than searching for its meaning. Ask a full question to search by meaning instead.";
+  },
+
+  KEYWORD_FELL_BACK: (reason) => {
+    const term = reason.data?.term;
+    return term
+      ? `Very few discourses use the word “${term}” literally, so I searched for its meaning instead. The corpus may use a different word for the same idea.`
+      : "Very few discourses use your term literally, so I searched for its meaning instead. The corpus may use a different word for the same idea.";
+  },
 };
 
 // Generic fallback for any code we don't have specific copy for.

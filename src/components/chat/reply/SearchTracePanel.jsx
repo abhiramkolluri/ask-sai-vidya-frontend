@@ -83,8 +83,39 @@ function buildNarrative(trace) {
     }
     return steps;
   }
+  // Keyword route: a bare topic word got a literal, lexical search — no planner,
+  // no AI grading. Narrate that, and be explicit that meaning was NOT searched,
+  // since that's the trade the user unknowingly made by typing one word.
+  if (trace.route === "keyword") {
+    const kw = trace.keyword || {};
+    const n = trace.results?.discourses || 0;
+    steps.push(
+      kw.term
+        ? `You searched a single term, so instead of interpreting it as a question I looked for discourses that literally use the word "${kw.term}".`
+        : "You searched a single term, so I looked for discourses that literally use it rather than searching by meaning."
+    );
+    if (kw.literal_passages) {
+      steps.push(
+        `${kw.literal_passages} passage${kw.literal_passages === 1 ? "" : "s"} across the discourses contain it; I kept the ${n} discourse${n === 1 ? "" : "s"} that use it most, with any whose title names it first.`
+      );
+    }
+    const totalMsKw = trace.timings_ms?.total;
+    if (totalMsKw) steps.push(`That took ${(totalMsKw / 1000).toFixed(1)}s — no AI step was needed.`);
+    return steps;
+  }
 
   // --- Semantic route (the default passage search) ---
+
+  // 0a. A bare term that the keyword route tried and handed back: too few
+  // discourses use the word literally. Lead with that, or the semantic steps
+  // below read as though a one-word search was always going to be interpreted.
+  if (trace.keyword?.fell_back) {
+    steps.push(
+      trace.keyword.term
+        ? `Very few discourses use the word "${trace.keyword.term}" literally, so I searched for its meaning instead.`
+        : "Very few discourses use your term literally, so I searched for its meaning instead."
+    );
+  }
 
   // 0. What kind of question the router judged this to be (only when it's a
   // notable, non-default intent — plain conceptual questions need no preamble).

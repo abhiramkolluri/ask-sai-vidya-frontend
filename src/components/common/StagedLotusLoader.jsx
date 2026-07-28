@@ -24,23 +24,34 @@ const STAGES = [
 // exact-match shortcut, so narrate that instead of the semantic-search step.
 const EXACT_PHRASE_STAGE_MESSAGE = "Looking for your exact phrase…";
 
+// A bare 1-2 word query takes the keyword route: no planner, no grading, ~1s.
+// Its own two stages, because the shared ones would describe work that is not
+// happening — "Working out how to search…" at 1200ms is a planner call this
+// route deliberately skips. The second stage holds until results arrive.
+const KEYWORD_STAGES = [
+  { at: 0, message: "Reading your search…" },
+  { at: 1200, message: "Looking for discourses that use that word…" },
+];
+
 // Staged version of LotusLoader: keeps the blooming-lotus animation but steps the
-// caption through STAGES on timers. `hasExactPhrase` swaps the search-stage copy.
-export default function StagedLotusLoader({ hasExactPhrase = false }) {
+// caption through STAGES on timers. `hasExactPhrase` swaps the search-stage copy;
+// `isKeyword` swaps the whole sequence for the lexical route's shorter one.
+export default function StagedLotusLoader({ hasExactPhrase = false, isKeyword = false }) {
   const [stageIndex, setStageIndex] = useState(0);
+  const stages = isKeyword ? KEYWORD_STAGES : STAGES;
 
   useEffect(() => {
     // Schedule each stage after the first (stage 0 shows immediately). Timers are
     // relative to mount; the final stage simply never advances, so it holds until
     // this component unmounts when the answer replaces it.
-    const timers = STAGES.slice(1).map((stage, i) =>
+    const timers = stages.slice(1).map((stage, i) =>
       setTimeout(() => setStageIndex(i + 1), stage.at)
     );
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [stages]);
 
-  let message = STAGES[stageIndex].message;
-  if (hasExactPhrase && stageIndex === 2) {
+  let message = stages[stageIndex].message;
+  if (!isKeyword && hasExactPhrase && stageIndex === 2) {
     message = EXACT_PHRASE_STAGE_MESSAGE;
   }
 
