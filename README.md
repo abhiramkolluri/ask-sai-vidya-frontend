@@ -71,3 +71,41 @@ Safari only gained lookbehind in 16.4.
 error and `prefers-reduced-motion` off). `scrollIntoViewSafely` animates, then
 checks whether anything actually moved and repeats the scroll instantly if not.
 Use it for any scroll the user is waiting on.
+
+## Discourse page header
+
+The discourse page (`/blog/:slugId`, `pages/blog/Blog.jsx`) has three pill
+controls that are deliberately one visual system — same box, border, and type:
+
+| Pill | Lives in | Position |
+|---|---|---|
+| Highlights & Comments | `components/highlights/HighlightsSidebar.jsx` | under the Logo, top left |
+| Other Search Results | `components/citations/OtherSearchResultsMenu.jsx` | under the Navbar, top right — the mirror |
+| Return to Search | inline in `Blog.jsx` | centred, under the title |
+
+`OtherSearchResultsMenu` is a deliberate twin of `HighlightsSidebar`: same
+trigger classes, same cream dropdown shell, same open/close behaviour
+(outside-click + Escape). **Restyle one and you must restyle the other** — the
+only intended differences are the dropdown anchor (`right-0` vs `left-0`) and
+its slightly greater width. It replaced an inline right-hand column and a
+right-edge slide-over drawer; the discourse column is centred by `justify-center`
+on the body row, so nothing may be re-introduced beside it without breaking that.
+
+**"Other Search Results" is the UI name; `citations` is the data name.** The
+router-state key, the `sessionStorage` key (`blog-citations`) and every prop are
+still `citations`. Don't rename one without the other.
+
+### Layout traps
+
+- **`Navbar`'s root is `w-full`** (`components/Navbar/index.jsx`). In a flex row
+  it claims the whole line, and inside a `flex-wrap` container it forces its
+  siblings onto a line of their own — it needs a `min-w-0` wrapper. Its
+  horizontal padding is variant-conditional (`px-0` for `variant="blog"`,
+  `px-12` otherwise) so the blog header's right edge lines up with the pills
+  rather than sitting 48px inside them.
+- **The hero is a fixed `h-[375px]` and the discourse card is pulled up by
+  `-top-20`**, so the card's top edge sits at a constant 295px *regardless of how
+  tall the header grows*. Anything added to the header pushes "Return to Search"
+  down toward that fixed edge — enlarging the header means taking the space back
+  above the button (currently the title's `mb-4`). Growing the pills from 30px to
+  38px was enough to make the button collide with the card.

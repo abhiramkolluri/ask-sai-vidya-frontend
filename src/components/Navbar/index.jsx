@@ -27,8 +27,8 @@ export default function Navbar({ variant, tabs }) {
 
   return (
     <div
-      className={`w-full ${isBlogVariant ? "bg-transparent" : "bg-white"
-        }  px-12 text-[14px] flex items-center ${tabs ? "justify-between" : "justify-end"} py-6 relative`}>
+      className={`w-full ${isBlogVariant ? "bg-transparent px-0" : "bg-white px-12"
+        }  text-[14px] flex items-center ${tabs ? "justify-between" : "justify-end"} py-6 relative`}>
       {isBlogVariant ? null : (
         <div className=" w-full h-[72px] bg-gradient-to-r from-primary to-orange-50 absolute -z-10"></div>
       )}

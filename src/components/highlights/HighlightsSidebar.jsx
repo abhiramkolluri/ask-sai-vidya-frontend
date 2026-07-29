@@ -21,7 +21,7 @@ function HighlightCard({
 
   return (
     <div
-      className={`font-ui bg-white p-3.5 rounded-lg border transition-all duration-200 ${
+      className={`bg-white p-3.5 rounded-lg border transition-all duration-200 ${
         isClickable ? "cursor-pointer" : ""
       } ${
         isActive
@@ -197,7 +197,7 @@ function HighlightsToggleButton({ isOpen, onClick, totalCount }) {
     <button
       type="button"
       onClick={onClick}
-      className={`font-ui relative flex items-center gap-2 px-3 py-1.5 rounded-lg shadow-sm transition-all border text-left ${
+      className={`relative flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm transition-all border-[1.5px] text-left ${
         isOpen
           ? "bg-orange-50 border-orange-300"
           : "bg-white border-orange-200/80 hover:bg-orange-50"
@@ -206,7 +206,7 @@ function HighlightsToggleButton({ isOpen, onClick, totalCount }) {
       aria-expanded={isOpen}
     >
       <svg
-        className="w-4 h-4 text-orange-500 flex-shrink-0"
+        className="w-[18px] h-[18px] text-orange-500 flex-shrink-0"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -218,17 +218,17 @@ function HighlightsToggleButton({ isOpen, onClick, totalCount }) {
           d="M4 6h16M4 12h16M4 18h16"
         />
       </svg>
-      <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+      <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
         Highlights & Comments
       </span>
       <IoChevronDown
-        size={14}
+        size={16}
         className={`text-orange-400 transition-transform duration-200 flex-shrink-0 ${
           isOpen ? "rotate-180" : ""
         }`}
       />
       {!isOpen && totalCount > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 bg-orange-400 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
+        <span className="absolute -top-1.5 -right-1.5 bg-orange-400 text-white text-[11px] font-bold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center">
           {totalCount}
         </span>
       )}
@@ -302,7 +302,7 @@ export default function HighlightsSidebar({
         }`}
         aria-hidden={!isOpen}
       >
-        <div className="font-ui flex flex-col bg-[#FEF4EB] border border-orange-200/60 rounded-xl shadow-lg overflow-hidden max-h-[min(70vh,520px)]">
+        <div className="flex flex-col bg-[#FEF4EB] border border-orange-200/60 rounded-xl shadow-lg overflow-hidden max-h-[min(70vh,520px)]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-orange-200/50 bg-gradient-to-r from-orange-50 to-[#FEF4EB] flex-shrink-0">
             <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
               <MdOutlineAutoStories size={18} className="text-orange-400" />
