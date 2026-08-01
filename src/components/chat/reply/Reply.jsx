@@ -17,6 +17,15 @@ import Feedback from "../../feedback/Feedback";
 import TextHighlightPopover from "../TextHighlightPopover";
 import { useSavedDiscourses } from "../../../contexts/SavedDiscoursesContext";
 import FollowUpQuestions from "../../followups/FollowUpQuestions";
+import StagedLotusLoader from "../../common/StagedLotusLoader";
+import SearchGuidance from "./SearchGuidance";
+
+/** 1–2 word queries take the keyword route (no planner/grading narration). */
+function isBareTerm(question) {
+  const text = (question || "").trim();
+  if (!text || text.includes('"')) return false;
+  return text.split(/\s+/).filter(Boolean).length <= 2;
+}
 
 export default function Reply({
   question = "What the user asked?",
@@ -335,7 +344,7 @@ export default function Reply({
 
   const handleCopyDiscourseLink = (item) => {
     navigator.clipboard.writeText(`${window.location.origin}/blog/${item._id}`);
-    alert("Discourse link copied to clipboard!");
+    alert("Source link copied to clipboard!");
   };
 
   const handleFeedback = async (type, reason, additionalComments = '') => {
@@ -369,11 +378,14 @@ export default function Reply({
             <span className="text-[#252525] text-lg">{question}</span>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center mx-auto mt-6">
-          <FaSpinner size={40} className="animate-spin text-orange-400" />
-          <p className="mt-4 text-base text-gray-600">
-            Searching for discourses to answer your question…
-          </p>
+        <div className="mx-auto mt-6">
+          {/* Narrate the pipeline stages while the query runs. Detect a quoted
+              phrase so the loader can say "looking for your exact phrase", and a
+              bare term so it doesn't narrate planning/grading that won't run. */}
+          <StagedLotusLoader
+            hasExactPhrase={question.includes('"')}
+            isKeyword={isBareTerm(question)}
+          />
         </div>
       </div>
     );
@@ -389,7 +401,18 @@ export default function Reply({
     );
   }
 
-  const { citations = [] } = reply;
+  // `pending` marks phase 1 of a two-phase search: these discourses are real
+  // matches but no quote has been verified yet, and the grader typically drops
+  // some of them when phase 2 lands. Everything downstream renders them as
+  // provisional rather than as answers.
+  const { citations = [], pending = false } = reply;
+  // Any reply with nothing to read. An explicit refusal is one kind, but a
+  // question that matched nothing, fell outside the corpus, or hit a known gap
+  // leaves the same empty screen — and in every one of those cases the suggested
+  // questions ARE the response, so the follow-up block renders (it is normally
+  // gated on having results) and auto-fills rather than hiding behind a button.
+  // `pending` is excluded: phase 1 has results, just unverified ones.
+  const hasNoAnswer = !pending && citations.length === 0;
 
   return (
     <div className="w-full mx-2">
@@ -547,6 +570,10 @@ export default function Reply({
                       </div>
                     );
                   })
+                ) : reply.trace ? (
+                  // Empty result WITH a trace → show the refinement guidance
+                  // callout (derived from the pipeline's reason codes).
+                  <SearchGuidance trace={reply.trace} />
                 ) : (
                   <p>
                     No citations found. This is usually because the search engine
@@ -583,6 +610,47 @@ export default function Reply({
             </div>
           )}
           </div>
+          {/* Weak-but-nonempty results → a quiet one-line refinement tip under the
+              cards (SearchGuidance renders nothing when the result was strong). */}
+          {reply?.citations?.length > 0 && <SearchGuidance trace={reply.trace} />}
+          {(reply?.citations?.length > 0 || hasNoAnswer) && (
+            <div className="mx-2 mt-2">
+              {followUps && followUps.length > 0 ? (
+                <>
+                  {/* With no answer on screen these are not follow-ups to
+                      anything — they are the questions we CAN answer, so say so
+                      rather than letting them read as continuations. */}
+                  {hasNoAnswer && (
+                    <p className="mb-2 text-sm font-medium text-[#BC5B01]">
+                      Try asking instead:
+                    </p>
+                  )}
+                  <FollowUpQuestions
+                    questions={followUps}
+                    onQuestionClick={onFollowUpClick}
+                  />
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onGenerateFollowups()}
+                  disabled={followUpsLoading}
+                  className="border border-gray-300 rounded hover:border-orange-500 hover:bg-orange-100 px-4 py-2 text-gray-800 transition-all ease-linear cursor-pointer flex items-center gap-2 disabled:opacity-60"
+                >
+                  {followUpsLoading ? (
+                    <>
+                      <FaSpinner className="animate-spin text-orange-400" />
+                      {hasNoAnswer ? "Finding questions I can answer…" : "Generating…"}
+                    </>
+                  ) : (
+                    hasNoAnswer
+                      ? "Suggest questions I can answer"
+                      : "Generate Followup Questions"
+                  )}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {showFeedbackModal && createPortal(

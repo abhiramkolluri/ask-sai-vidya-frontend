@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import SideNav from "../../components/sidenav/SideNav";
 import ChatBox from "../../components/chatbox/ChatBox";
 import BrowseTab from "../../components/browse/BrowseTab";
+import CollectionsTab from "../../components/collections/CollectionsTab";
 import HowToTab from "../../components/howto/HowToTab";
 import Navbar from "../../components/Navbar";
 import { useAuth } from "../../contexts/AuthContext";
@@ -21,8 +23,14 @@ const Chatpage = () => {
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
 
+  const handleTabSelect = (key) => {
+    // Switching tabs drops collection params — they only apply within Collections.
+    setSearchParams(key === "chat" ? {} : { tab: key }, { replace: true });
+  };
+
   // Use saved discourses from context
   const {
+    savedDiscourses,
     saveDiscourse,
     removeBookmark,
     loadSavedDiscourses
@@ -528,6 +536,11 @@ const Chatpage = () => {
             onSaveDiscourse={handleSaveDiscourse}
             onUnsaveDiscourse={handleUnsaveDiscourse}
           />
+        )}
+        {activeTab === "collections" && (
+          <div className="flex-grow overflow-hidden pt-16">
+            <CollectionsTab />
+          </div>
         )}
         {activeTab === "browse" && (
           <div className="flex-grow overflow-hidden pt-[4.5rem] sm:pt-16">

@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { LuPencilLine } from "react-icons/lu";
-import { IoCalendar } from "react-icons/io5";
+import { IoCalendar, IoBookOutline, IoChevronUp, IoChevronDown } from "react-icons/io5";
 import { useQuery } from "react-query";
 import { IoMdList } from "react-icons/io";
 import { MdClose } from "react-icons/md";
 import { TbLayoutSidebarRightExpand } from "react-icons/tb";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 
 import bgflower from "../../images/bgflower.png";
 import Logo from "../../components/logo/Logo";
@@ -14,6 +14,9 @@ import ErrorPage from "../../components/error/ErrorPage";
 import Navbar from "../../components/Navbar";
 import TextHighlightPopover from "../../components/chat/TextHighlightPopover";
 import HighlightsSidebar from "../../components/highlights/HighlightsSidebar";
+import OtherSearchResultsMenu from "../../components/citations/OtherSearchResultsMenu";
+import ChapterNavBar from "../../components/collections/ChapterNavBar";
+import { useCollectionChapters } from "../../components/collections/useCollections";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 import { formatCollection } from "../../helpers/formatCollection";
@@ -24,11 +27,24 @@ import {
   findSavedDiscourseForPost,
   serializeHighlightsForSave,
 } from "../../helpers/highlightUtils";
+import { scrollIntoViewSafely } from "../../helpers/scrollIntoViewSafely";
 
 export default function Blog() {
   const { slugId } = useParams();
   const { state } = useLocation();
   const { user } = useAuth();
+
+  // Collections context (?book=...&volume=...&year=...): present only when the
+  // discourse was opened from the Collections tab. Everything it drives is
+  // gated on `navBook`, so the citation flow (router state + sessionStorage)
+  // is untouched when the params are absent. Query params — not router state —
+  // so chapter navigation survives refresh.
+  const [searchParams] = useSearchParams();
+  const navBook = searchParams.get("book");
+  const navVolume = searchParams.get("volume");
+  const navYear = searchParams.get("year");
+  const navUndated = searchParams.get("undated") === "1";
+  const { data: chaptersData } = useCollectionChapters(navBook, navVolume, navYear, navUndated);
 
   // Use saved discourses from context
   const {
@@ -41,7 +57,7 @@ export default function Blog() {
     loadingSaved,
   } = useSavedDiscourses();
 
-  // Citations drawer
+  // Citations side drawer
   const [citationsOpen, setCitationsOpen] = useState(false);
 
   const citations = state?.citations?.length
@@ -67,6 +83,18 @@ export default function Blog() {
   const selectionFrozenRef = useRef(false);
   const showPopoverRef = useRef(false);
   const highlightsHydratedRef = useRef(false);
+
+  // Keyword-route highlighting: one ref per rendered <mark>, in document order,
+  // plus which occurrence the find-in-page control is currently sitting on.
+  // These live up here with the other hooks because the render body below has
+  // early returns for the loading and error states.
+  const markRefs = useRef([]);
+  const [activeMark, setActiveMark] = useState(0);
+  // Dismissing the find-in-page pill clears the marks for this discourse only,
+  // and resets on navigation (below). Deliberately NOT sticky for the session:
+  // there is no control to switch highlighting back on, so a sticky dismissal
+  // would strand the reader with no way to recover it.
+  const [keywordDismissed, setKeywordDismissed] = useState(false);
 
   const { isLoading, isRefetching, data, isError } = useQuery(
     ["blogPost", slugId],
@@ -139,9 +167,7 @@ export default function Blog() {
   useEffect(() => {
     if (!data) return;
     const t = setTimeout(() => {
-      if (matchedRef.current) {
-        matchedRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+      scrollIntoViewSafely(matchedRef.current);
     }, 150);
     return () => clearTimeout(t);
   }, [data, slugId]);
@@ -235,14 +261,11 @@ export default function Blog() {
       timestamp: new Date().toISOString(),
     };
 
-    let updatedHighlights;
-    const previousHighlights = highlights;
-    setHighlights((prev) => {
-      updatedHighlights = [...prev, newHighlight];
-      return updatedHighlights;
-    });
-
+    const previousHighlights = Array.isArray(highlights) ? highlights : [];
+    const updatedHighlights = [...previousHighlights, newHighlight];
     pendingLocalHighlightsRef.current = true;
+    setHighlights(updatedHighlights);
+
     const saved = await saveDiscourseWithHighlights(updatedHighlights);
     pendingLocalHighlightsRef.current = false;
 
@@ -276,14 +299,11 @@ export default function Blog() {
       timestamp: new Date().toISOString(),
     };
 
-    let updatedHighlights;
-    const previousHighlights = highlights;
-    setHighlights((prev) => {
-      updatedHighlights = [...prev, newHighlight];
-      return updatedHighlights;
-    });
-
+    const previousHighlights = Array.isArray(highlights) ? highlights : [];
+    const updatedHighlights = [...previousHighlights, newHighlight];
     pendingLocalHighlightsRef.current = true;
+    setHighlights(updatedHighlights);
+
     const saved = await saveDiscourseWithHighlights(updatedHighlights);
     pendingLocalHighlightsRef.current = false;
 
@@ -308,6 +328,8 @@ export default function Blog() {
   const saveDiscourseWithHighlights = async (highlightsArray) => {
     if (!user || !user.token || !data) return { ok: false };
 
+    const nextHighlights = Array.isArray(highlightsArray) ? highlightsArray : [];
+
     const discourseTitle = buildDiscourseTitle(data.title, data.collection);
     const existingSaved = findDiscourseForSave({
       title: discourseTitle,
@@ -319,10 +341,10 @@ export default function Blog() {
       content: data.content,
       source_url: `/blog/${data._id}`,
       source_citation: `${data.date} - ${data.collection}`,
-      highlights: highlightsArray,
+      highlights: nextHighlights,
     };
 
-    if (highlightsArray.length === 0) {
+    if (nextHighlights.length === 0) {
       if (!existingSaved) return { ok: true, highlights: [] };
       if (existingSaved.bookmarked) {
         const result = await clearAnnotations(existingSaved.id);
@@ -332,10 +354,10 @@ export default function Blog() {
       return { ok: Boolean(deleted), highlights: [] };
     }
 
-    const result = await saveHighlights(discourseData, serializeHighlightsForSave(highlightsArray));
+    const result = await saveHighlights(discourseData, serializeHighlightsForSave(nextHighlights));
     return {
       ok: Boolean(result),
-      highlights: result?.discourse?.highlights || highlightsArray,
+      highlights: result?.discourse?.highlights || nextHighlights,
     };
   };
 
@@ -410,17 +432,23 @@ export default function Blog() {
     }
   };
 
-  // Helper function to render text with active highlight
-  const renderContentWithHighlight = (text) => {
-    if (!activeHighlightId) return text;
+  // Helper function to render text with active highlight.
+  //
+  // `transform` is applied to every plain-text segment this produces, so a
+  // second highlighter can compose with this one instead of replacing it — the
+  // keyword-route marker passes itself in here. Defaults to identity, which is
+  // exactly the previous behaviour. Without this, turning on keyword marking
+  // would silently break clicking a saved highlight in HighlightsSidebar.
+  const renderContentWithHighlight = (text, transform = (t) => t) => {
+    if (!activeHighlightId) return transform(text);
 
     const activeHighlight = highlights.find(h => h.id === activeHighlightId);
-    if (!activeHighlight) return text;
+    if (!activeHighlight) return transform(text);
 
     const highlightText = activeHighlight.text;
     const index = text.indexOf(highlightText);
 
-    if (index === -1) return text;
+    if (index === -1) return transform(text);
 
     // Split text and add animated highlight
     const before = text.substring(0, index);
@@ -429,11 +457,11 @@ export default function Blog() {
 
     return (
       <>
-        {before}
+        {transform(before)}
         <span className="bg-orange-300 animate-pulse px-1 rounded transition-all duration-300">
-          {highlight}
+          {transform(highlight)}
         </span>
-        {after}
+        {transform(after)}
       </>
     );
   };
@@ -461,6 +489,50 @@ export default function Blog() {
     // console.log("🚀 ~ Blog ~ data:", data);
     // return <div>{JSON.stringify(data)}</div>;
     const post = data;
+
+    // Positional prev/next within the collection's chapter list (positional so
+    // gaps/duplicates in chapter_index are harmless). idx === -1 (e.g. stale
+    // list) degrades to breadcrumb-only.
+    const chapterList = navBook ? chaptersData?.chapters || [] : [];
+    const chapterIdx = chapterList.findIndex(
+      (c) => c.id === post._id || c.id === slugId
+    );
+    const prevChapter = chapterIdx > 0 ? chapterList[chapterIdx - 1] : null;
+    const nextChapter =
+      chapterIdx !== -1 && chapterIdx < chapterList.length - 1
+        ? chapterList[chapterIdx + 1]
+        : null;
+    // Position-within-book line for the metadata row: "Vol 14 · Discourse 10"
+    // for Sathya Sai Speaks, "Chapter 3" for vahinis, "Discourse N" for the
+    // year-based series. Omitted when the corpus has no position data.
+    const isVahini = (post.book || post.collection || "")
+      .toLowerCase()
+      .includes("vahini");
+    const positionWord = isVahini ? "Chapter" : "Discourse";
+    // Old SSS collection_names already carry "Vol N, Disc. M" (rendered by
+    // formatCollection) — don't repeat it on a second line.
+    const chapterLabel = /vol\s*\d/i.test(post.collection || "")
+      ? ""
+      : [
+          post.volume != null ? `Vol ${post.volume}` : null,
+          post.chapter_index != null
+            ? `${positionWord} ${post.chapter_index + 1}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+    const chapterNav = navBook ? (
+      <ChapterNavBar
+        book={navBook}
+        volume={navVolume}
+        year={navYear}
+        undated={navUndated}
+        prevChapter={prevChapter}
+        nextChapter={nextChapter}
+        chaptersQS={searchParams.toString()}
+      />
+    ) : null;
 
     // If we arrived here from a chat/search citation, find the matched passage
     // for THIS discourse and locate the contiguous block of paragraphs it covers,
@@ -496,6 +568,29 @@ export default function Blog() {
         /* sessionStorage unavailable — non-fatal */
       }
     }
+
+    // The searched term, when this discourse was surfaced by the KEYWORD route.
+    // Same precedence as bestSentence above: router state, then sessionStorage
+    // for the refresh / direct-URL case. Absent means every keyword code path
+    // below is skipped and the best-sentence behaviour stands unchanged.
+    let keywordSource = state?.keywordTerm || "";
+    if (!keywordSource) {
+      try {
+        const tmap = JSON.parse(
+          sessionStorage.getItem("asv_keyword_terms") || "{}"
+        );
+        keywordSource = tmap[slugId] || tmap[post._id] || "";
+      } catch (e) {
+        /* sessionStorage unavailable — non-fatal */
+      }
+    }
+    // Two variables, because dismissing the pill must clear the highlighting
+    // WITHOUT falling back to the best-sentence mark — swapping 24 marks for a
+    // different one is not what "end the highlighting" means. `keywordSource`
+    // answers "did this arrive from a keyword search" (so the best-sentence path
+    // stays suppressed either way); `keywordTerm` answers "should we be marking
+    // right now".
+    const keywordTerm = keywordDismissed ? "" : keywordSource;
 
     const contentLines = (post?.content || "").split("\n");
     const normalize = (s) => (s || "").replace(/\s+/g, " ").trim();
@@ -550,25 +645,116 @@ export default function Blog() {
       });
     }
 
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // --- Keyword-route highlighting -------------------------------------
+    // When the user searched a bare term, every occurrence of it is marked
+    // rather than the one sentence a reranker liked best. Whole words only:
+    // "karma" marks the Karma in "Karma-Yoga" but not "karmic", which is what
+    // BM25 actually matched (it tokenizes on word boundaries) and avoids
+    // leaving words visually broken mid-way.
+    //
+    // \b rather than lookbehind/lookahead assertions — Safari only gained
+    // lookbehind in 16.4. Tokens are joined by [^\w]+ so "inner peace" also
+    // matches "inner, peace", mirroring retrieval.py::phrase_in_text.
+    const keywordTokens = keywordTerm
+      ? keywordTerm.trim().split(/\s+/).filter(Boolean).map(escapeRegExp)
+      : [];
+    const keywordRe = keywordTokens.length
+      ? new RegExp(`\\b${keywordTokens.join("[^\\w]+")}\\b`, "gi")
+      : null;
+
+    // Counted in a separate pass, before any rendering, because the navigator
+    // pill sits ABOVE the content in the JSX tree and needs the total then.
+    let keywordCount = 0;
+    if (keywordRe) {
+      contentLines.forEach((line) => {
+        keywordCount += (line.match(keywordRe) || []).length;
+      });
+    }
+    // Drop refs left over from a longer previous document so goToMark can never
+    // scroll to a detached node. Safe to do during render: the callback refs
+    // below repopulate this after the commit.
+    markRefs.current.length = keywordCount;
+
+    // Document-order index handed to each mark as it is created. Rendering is
+    // synchronous and in order, so this stays in step with the count above.
+    let markCursor = 0;
+
+    // Split one line into text/<mark>/text React nodes. Never builds an HTML
+    // string — Reply.jsx:238 does an unescaped .replace() into
+    // dangerouslySetInnerHTML, which is not a pattern to copy into a page that
+    // renders arbitrary corpus text.
+    const markKeyword = (text) => {
+      if (!keywordRe || !text) return text;
+      keywordRe.lastIndex = 0; // shared /g regex — reset per segment
+      const nodes = [];
+      let last = 0;
+      let m;
+      while ((m = keywordRe.exec(text)) !== null) {
+        const i = markCursor++;
+        if (m.index > last) nodes.push(text.slice(last, m.index));
+        nodes.push(
+          <mark
+            key={`kw-${i}`}
+            // The first mark also carries matchedRef, which the existing scroll
+            // effect targets — that is what lands the reader on occurrence 1.
+            ref={(el) => {
+              markRefs.current[i] = el;
+              if (i === 0) matchedRef.current = el;
+            }}
+            // The page's own light orange (#FE9F44 — the hero tint and the
+            // citation-card hover) rather than a yellow highlighter. The active
+            // occurrence is the solid brand orange; the rest are the same hue
+            // washed back, so they read as one family and not as two colours.
+            className={
+              i === activeMark
+                ? "bg-[#FE9F44] rounded px-0.5"
+                : "bg-[#FE9F4459] rounded px-0.5"
+            }
+          >
+            {m[0]}
+          </mark>
+        );
+        last = m.index + m[0].length;
+        if (m[0].length === 0) keywordRe.lastIndex++; // guard against zero-width loops
+      }
+      if (!nodes.length) return text;
+      if (last < text.length) nodes.push(text.slice(last));
+      return nodes;
+    };
+
     const renderLine = (text, index) => (
       <React.Fragment key={index}>
         {text.includes(". ") ? (
-          <p className="mb-4">{renderContentWithHighlight(text)}</p>
+          <p className="mb-4">{renderContentWithHighlight(text, markKeyword)}</p>
         ) : (
           <h3 className="text-lg mb-4">
-            <strong>{renderContentWithHighlight(text)}</strong>
+            <strong>{renderContentWithHighlight(text, markKeyword)}</strong>
           </h3>
         )}
       </React.Fragment>
     );
 
+    // Move to another occurrence. `next` is computed before setState because
+    // setActiveMark is async — reading activeMark back after the call would
+    // scroll to the occurrence we just left. Wraps in both directions.
+    const goToMark = (delta) => {
+      if (!keywordCount) return;
+      const next = (activeMark + delta + keywordCount) % keywordCount;
+      setActiveMark(next);
+      scrollIntoViewSafely(markRefs.current[next]);
+    };
+
     // Locate the best-answer quote within the matched paragraph range so we can
     // highlight just those sentences (and scroll to them) instead of the whole
     // paragraph. Whitespace-tolerant, mirroring the backend's verbatim check.
-    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Skipped entirely on the keyword route: it competes for matchedRef and
+    // re-introduces exactly the single-sentence emphasis being replaced. Keyed on
+    // keywordSource so dismissing the pill does not resurrect it.
     let quoteLineIndex = -1;
     let quoteParts = null;
-    if (bestSentence && matchStart !== -1) {
+    if (!keywordSource && bestSentence && matchStart !== -1) {
       const tokens = bestSentence.trim().split(/\s+/).filter(Boolean).map(escapeRegExp);
       if (tokens.length) {
         const re = new RegExp(tokens.join("\\s+"));
@@ -650,6 +836,13 @@ export default function Blog() {
                 </div>
               )}
 
+              {chapterLabel && (
+                <div className="flex gap-2 text-sm items-center">
+                  <IoBookOutline size={18} className="text-orange-400" />
+                  <p className="text-gray-500">{chapterLabel}</p>
+                </div>
+              )}
+
               {post.date && (
                 <div className="flex gap-2 text-sm items-center ">
                   <IoCalendar size={18} className="text-orange-400" />
@@ -682,8 +875,9 @@ export default function Blog() {
                     );
                   }
                   // Fallback: quote not locatable, but we know the matched paragraph —
-                  // gently highlight it and anchor the scroll there.
-                  if (quoteLineIndex === -1 && index === matchStart) {
+                  // gently highlight it and anchor the scroll there. Not on the
+                  // keyword route, where matchedRef belongs to the first occurrence.
+                  if (!keywordSource && quoteLineIndex === -1 && index === matchStart) {
                     return (
                       <p key={index} ref={matchedRef} className="mb-4 bg-yellow-100 rounded px-0.5">
                         {renderContentWithHighlight(text)}
@@ -694,6 +888,11 @@ export default function Blog() {
                 })}
               </div>
             </div>
+            {chapterNav && (
+              <div className="flex justify-center border-t border-orange-100 pt-4">
+                {chapterNav}
+              </div>
+            )}
           </div>
         </div>
 

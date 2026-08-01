@@ -12,7 +12,17 @@ export const useSavedDiscourses = () => {
 export const SavedDiscoursesProvider = ({ children }) => {
     const [savedDiscourses, setSavedDiscourses] = useState([]);
     const [loadingSaved, setLoadingSaved] = useState(false);
-    const { user } = useAuth();
+    const { user, handleSessionExpired } = useAuth();
+
+    // A 401 means the stored JWT expired mid-session; clear the dead session
+    // so the user is prompted to sign in again instead of saves failing silently.
+    const checkSessionExpired = (response) => {
+        if (response.status === 401) {
+            handleSessionExpired();
+            return true;
+        }
+        return false;
+    };
     // Timestamp of the last local write. Mobile fires focus/visibilitychange on
     // tap, which would otherwise trigger an immediate re-fetch before Weaviate
     // has indexed the write — returning stale data and reverting the change
@@ -124,6 +134,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
                     });
                 });
             } else {
+                checkSessionExpired(response);
                 console.error("Failed to load saved discourses:", response.statusText);
             }
         } catch (error) {
@@ -241,6 +252,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
 
             if (!response.ok) {
                 setSavedDiscourses(previous);
+                checkSessionExpired(response);
                 console.error("Failed to update saved discourse:", response.status, response.statusText);
                 return null;
             }
@@ -277,6 +289,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
 
             if (!response.ok) {
                 setSavedDiscourses(previous);
+                checkSessionExpired(response);
                 console.error("Failed to delete saved discourse:", response.statusText);
                 return null;
             }
@@ -329,6 +342,10 @@ export const SavedDiscoursesProvider = ({ children }) => {
                 return upsertMappedDiscourse(mapSavedDiscourseFromApi(data));
             }
 
+            if (checkSessionExpired(response)) {
+                alert('Your session has expired. Please sign in again.');
+                return null;
+            }
             console.error("Failed to save discourse:", response.statusText);
             alert('Failed to save discourse. Please try again.');
         } catch (error) {
@@ -388,6 +405,10 @@ export const SavedDiscoursesProvider = ({ children }) => {
                 return upsertMappedDiscourse(mapSavedDiscourseFromApi(data));
             }
 
+            if (checkSessionExpired(response)) {
+                alert('Your session has expired. Please sign in again to save highlights.');
+                return null;
+            }
             const errBody = await response.text().catch(() => "");
             console.error("Failed to save highlights:", response.status, response.statusText, errBody);
         } catch (error) {

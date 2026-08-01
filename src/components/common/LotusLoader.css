@@ -1,0 +1,65 @@
+/* Blooming-lotus loading animation. All motion uses long, eased, alternating
+   keyframes so the loop breathes (bloom -> gently close -> bloom) with no
+   sudden resets or jumps. */
+
+.asv-fade-in {
+  animation: asv-fade-in 0.7s ease-out both;
+}
+
+@keyframes asv-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.lotus-petal {
+  transform-origin: 60px 100px;
+  transform-box: view-box;
+  /* Starts as a closed bud (--open * 0.12, scaled down), blooms fully open,
+     then eases back — alternate keeps every cycle continuous. */
+  animation: lotus-bloom 3.2s cubic-bezier(0.45, 0, 0.25, 1) infinite alternate;
+}
+
+@keyframes lotus-bloom {
+  from {
+    transform: rotate(calc(var(--open) * 0.12)) scale(0.68);
+  }
+  to {
+    transform: rotate(var(--open)) scale(1);
+  }
+}
+
+.lotus-glow {
+  transform-origin: 60px 88px;
+  transform-box: view-box;
+  animation: lotus-glow 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes lotus-glow {
+  from {
+    opacity: 0.06;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 0.16;
+    transform: scale(1.1);
+  }
+}
+
+.lotus-message {
+  animation: lotus-message 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes lotus-message {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}

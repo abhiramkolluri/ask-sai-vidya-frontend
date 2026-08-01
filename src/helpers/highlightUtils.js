@@ -87,7 +87,7 @@ export function findSavedDiscourseForPost(data, savedDiscourses, getByTitle) {
 
 /** Strip non-JSON-safe fields (e.g. DOM range snapshots) before persisting. */
 export function serializeHighlightsForSave(highlights = []) {
-  return highlights.map((item) => ({
+  return (Array.isArray(highlights) ? highlights : []).map((item) => ({
     id: item.id,
     text: normalizeSelectionText(item.text),
     comment:

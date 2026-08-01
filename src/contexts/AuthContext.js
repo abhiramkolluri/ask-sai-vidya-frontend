@@ -9,8 +9,44 @@ export const useAuth = () => {
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
+// Backend-issued JWTs expire after 7 days. If we keep using an expired token
+// every API call silently 401s (saves fail with generic errors), so treat an
+// expired token the same as no token and force a fresh login.
+const isTokenExpired = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' && payload.exp * 1000 <= Date.now();
+  } catch {
+    return false;
+  }
+};
+
+// Read the persisted session synchronously so the very first render already
+// knows the user. Loading it in an effect (the previous approach) left `user`
+// null for one render, which bounced /home?tab=...&book=... through /signin
+// and back to /home — stripping the query string and breaking deep links.
+const loadStoredUser = () => {
+  const savedUser = localStorage.getItem('user');
+  const savedToken = localStorage.getItem('token');
+  if (savedUser && savedToken) {
+    if (isTokenExpired(savedToken)) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      return null;
+    }
+    try {
+      return { ...JSON.parse(savedUser), token: savedToken, isAuth0: false };
+    } catch (error) {
+      console.error('Error parsing saved user:', error);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+    }
+  }
+  return null;
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(loadStoredUser);
   const [error, setError] = useState();
   const [success, setSuccess] = useState(null);
   const [loggingIn, setLoggingIn] = useState(false);
@@ -24,27 +60,6 @@ export const AuthProvider = ({ children }) => {
     loginWithRedirect,
     logout: auth0Logout
   } = useAuth0();
-
-  // Load user from localStorage on app start
-  useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const savedToken = localStorage.getItem('token');
-
-    if (savedUser && savedToken) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser({
-          ...parsedUser,
-          token: savedToken,
-          isAuth0: false
-        });
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-      }
-    }
-  }, []);
 
   // Custom login function
   const login = async (credentials) => {
@@ -123,7 +138,9 @@ export const AuthProvider = ({ children }) => {
         }, 1000); // Small delay to show success message
 
       } else {
-        setError(data.error || 'Registration failed');
+        // Backend returns `message` for conflicts (e.g. "User already exists")
+        // and `error` for other failures — surface whichever is present.
+        setError(data.message || data.error || 'Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -200,11 +217,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Called when an API request comes back 401 mid-session (token expired
+  // while the tab was open). Clears the dead session so the user is sent
+  // back to sign-in instead of every save silently failing.
+  const handleSessionExpired = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    setError('Your session has expired. Please sign in again.');
+  };
+
   const value = {
     user,
     login,
     register,
     logout,
+    handleSessionExpired,
     loginWithAuth0,
     loggingIn,
     registering,
