@@ -32,6 +32,32 @@ Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
 
+## The Questions tab has two layouts
+
+`ChatBox.jsx` renders a different composition depending on `messages.length`,
+and the split is load-bearing:
+
+| | New thread (`isEmpty`) | After the first question |
+|---|---|---|
+| Swami | centred focal illustration | back to the faded left background |
+| Left background | outline dove | swami |
+| Search bar | static, `max-w-2xl`, under the swami | `sticky bottom-2`, `max-w-4xl` |
+| Suggestions | `<SampleQuestions compact />`, 2×2 grid | not shown |
+
+**There is only one search bar, and it must stay that way.** Its textarea owns
+`inputRef` and `handleKeyPress`; a second copy for the empty state would split
+focus and keystroke handling between two elements. So the empty state is
+rendered as *two blocks either side of the single bar* — swami and heading
+above, compact cards below — each `flex-1` so the bar itself lands vertically
+centred. Only the bar's wrapper classes are conditional. If you find yourself
+duplicating the bar to move it, that is the trap.
+
+`DecorativeBackground`'s `doveVariant` and `SampleQuestions`' `compact` are both
+**opt-in** for the same reason: `HowToTab` is the other `showDove` caller and
+keeps the filled dove, and `FollowUpQuestions` deliberately mirrors the default
+sample-question styling, so changing either default silently restyles a surface
+you weren't looking at.
+
 ## Discourse highlighting
 
 Opening a discourse from a search result highlights the part that matched. Which
@@ -51,15 +77,17 @@ and must keep the single-sentence highlight.
 **Getting the term to the page.** `Blog.jsx` re-fetches the article by id and is
 told nothing about the search, so the term is carried explicitly:
 
-- `Reply.jsx` puts `keywordTerm` in the `<Link>` router state.
+- `Reply.jsx` puts `keywordTerm` in the router state it passes to `navigate()`
+  (the result card is a clickable `div` with an `onClick`/`onKeyDown` pair, not a
+  `<Link>` — both handlers build the state object, so both must carry the term).
 - `ChatBox.jsx::rememberPassages` mirrors it into `sessionStorage.asv_keyword_terms`
   (keyed by discourse id) for refresh / direct-URL, alongside the existing
   `asv_matched_passages` and `asv_best_sentences`. A non-keyword search **deletes**
   each returned discourse's entry rather than skipping it — otherwise searching
   `karma` and later asking a full question that returns the same discourse would
   leave the stale term behind and highlight a word the user is no longer searching.
-- Any `<Link>` that rebuilds router state by naming fields must carry `keywordTerm`
-  too, or navigating there drops the highlighting.
+- Any `<Link>` or `navigate()` that rebuilds router state by naming fields must
+  carry `keywordTerm` too, or navigating there drops the highlighting.
 
 **Matching** is whole-word and case-insensitive, tokens joined by `[^\w]+` so
 `inner peace` also matches `inner, peace`. `karma` marks the `Karma` in
@@ -87,7 +115,12 @@ controls that are deliberately one visual system — same box, border, and type:
 trigger classes, same cream dropdown shell, same open/close behaviour
 (outside-click + Escape). **Restyle one and you must restyle the other** — the
 only intended differences are the dropdown anchor (`right-0` vs `left-0`) and
-its slightly greater width. It replaced an inline right-hand column and a
+its slightly greater width. This drifted once and the drift was invisible in
+review: the Highlights trigger ended up smaller than its twin across six
+properties at once (padding, border width, icon, label size, chevron, badge)
+before being realigned. The two triggers now carry identical sizing classes, and
+`HighlightsSidebar` has a comment pointing at the other file, since nothing in
+the code links them. It replaced an inline right-hand column and a
 right-edge slide-over drawer; the discourse column is centred by `justify-center`
 on the body row, so nothing may be re-introduced beside it without breaking that.
 
