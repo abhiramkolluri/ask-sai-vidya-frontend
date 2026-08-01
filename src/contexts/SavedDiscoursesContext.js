@@ -397,16 +397,25 @@ export const SavedDiscoursesProvider = ({ children }) => {
         return null;
     };
 
+    // Toggle off the bookmark flag only. Used by the discourse bookmark icon.
+    // Highlight/comment auto-saves are stored with bookmarked:false, so this
+    // must not be used as "remove from Saved library" — use deleteDiscourseRecord
+    // (or unsaveDiscourse below) for that.
     const removeBookmark = async (discourseId) => {
         const discourse = savedDiscourses.find((item) => item.id === discourseId);
         if (!discourse) return false;
 
         const hasHighlights = discourse.discourse.highlights?.length > 0;
-        if (hasHighlights) {
+        if (discourse.bookmarked && hasHighlights) {
             const result = await updateSavedDiscourse(discourseId, { bookmarked: false });
             return Boolean(result);
         }
 
+        return deleteDiscourseRecord(discourseId);
+    };
+
+    // Remove from the Saved Discourses library entirely (Browse tab trash).
+    const unsaveDiscourse = async (discourseId) => {
         return deleteDiscourseRecord(discourseId);
     };
 
@@ -432,6 +441,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
         saveHighlights,
         updateSavedDiscourse,
         removeBookmark,
+        unsaveDiscourse,
         clearAnnotations,
         deleteDiscourseRecord,
         getDiscourseByTitle,
@@ -439,7 +449,6 @@ export const SavedDiscoursesProvider = ({ children }) => {
         findDiscourseForSave,
         isDiscourseBookmarked,
         getSavedDiscourseByTitle: getDiscourseByTitle,
-        unsaveDiscourse: removeBookmark,
     };
 
     return (

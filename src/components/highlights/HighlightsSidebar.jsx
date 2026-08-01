@@ -36,26 +36,31 @@ function HighlightCard({
         <div className="flex-1 min-w-0">
           {variant === "comment" ? (
             <>
-              <p className="text-[13px] text-gray-600 leading-relaxed break-words flex items-start gap-1.5 mb-2">
-                <IoChatbubbleEllipsesOutline
-                  size={15}
-                  className="text-orange-400 flex-shrink-0 mt-0.5"
-                />
-                <span className="min-w-0 break-words">{commentText}</span>
+              <p
+                className="text-[15px] text-gray-800 leading-relaxed break-words mb-2"
+                style={{ fontFamily: "'EB Garamond', serif" }}
+              >
+                {commentText}
               </p>
               {preview ? (
-                <blockquote className="border-l-2 border-orange-200 bg-orange-50/50 pl-2.5 py-1.5 rounded-r-md">
-                  <p className="text-[11px] leading-relaxed text-gray-500 break-words italic">
+                <blockquote className="border-l-2 border-orange-300 pl-2.5 py-0.5">
+                  <p
+                    className="text-[13px] leading-relaxed text-gray-500 break-words"
+                    style={{ fontFamily: "'EB Garamond', serif" }}
+                  >
                     "{preview}"
                   </p>
                 </blockquote>
               ) : (
-                <p className="text-[11px] text-gray-400 italic">Selected passage unavailable</p>
+                <p className="text-[12px] text-gray-400">Selected passage unavailable</p>
               )}
             </>
           ) : (
-            <blockquote className="border-l-[3px] border-orange-400 bg-orange-50/70 pl-3 py-2 rounded-r-md">
-              <p className="text-[13px] leading-relaxed text-gray-700 break-words">
+            <blockquote className="border-l-2 border-orange-300 pl-3 py-0.5">
+              <p
+                className="text-[15px] leading-relaxed text-gray-700 break-words"
+                style={{ fontFamily: "'EB Garamond', serif" }}
+              >
                 {preview || "Selected passage unavailable"}
               </p>
             </blockquote>

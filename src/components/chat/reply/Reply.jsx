@@ -390,9 +390,9 @@ export default function Reply({
   if (loading) {
     return (
       <div className="w-full text-gray-500 text-sm">
-        <div className="flex justify-end">
-          <div className="bg-[#f5f5f5] px-6 py-4 md:w-3/4 rounded">
-            <span className="text-[#252525] text-lg">{question}</span>
+        <div className="flex justify-end px-1 sm:px-0">
+          <div className="bg-[#f5f5f5] px-5 py-3.5 sm:px-6 sm:py-4 w-full sm:w-auto sm:max-w-[85%] md:max-w-3/4 rounded-2xl">
+            <span className="text-[#252525] text-base sm:text-lg leading-relaxed">{question}</span>
           </div>
         </div>
         <div className="mx-auto mt-6">
@@ -410,9 +410,9 @@ export default function Reply({
 
   if (!reply) {
     return (
-      <div className="flex justify-end">
-        <div className="bg-[#f5f5f5] px-6 py-4 md:w-3/4 rounded">
-          <span className="text-[#252525] text-lg">{question}</span>
+      <div className="flex justify-end px-1 sm:px-0">
+        <div className="bg-[#f5f5f5] px-5 py-3.5 sm:px-6 sm:py-4 w-full sm:w-auto sm:max-w-[85%] md:max-w-3/4 rounded-2xl">
+          <span className="text-[#252525] text-base sm:text-lg leading-relaxed">{question}</span>
         </div>
       </div>
     );
@@ -432,7 +432,7 @@ export default function Reply({
   const hasNoAnswer = !pending && citations.length === 0;
 
   return (
-    <div className="w-full mx-2">
+    <div className="w-full mx-2 mb-6 last:mb-0">
       {/* Text Highlight Popover */}
       <TextHighlightPopover
         visible={showHighlightPopover}
@@ -449,18 +449,20 @@ export default function Reply({
       />
 
       <div className="flex justify-end px-1 sm:px-0">
-        <div className="bg-[#f5f5f5] px-4 py-3 sm:px-6 sm:py-4 w-full sm:w-auto sm:max-w-[85%] md:max-w-3/4 rounded-lg">
-          <span className="text-[#252525] text-base sm:text-lg">{question}</span>
+        <div className="bg-[#f5f5f5] px-5 py-3.5 sm:px-6 sm:py-4 w-full sm:w-auto sm:max-w-[85%] md:max-w-3/4 rounded-2xl">
+          <span className="text-[#252525] text-base sm:text-lg leading-relaxed">
+            {question}
+          </span>
         </div>
       </div>
 
       {/* Assistant reply — left-aligned bubble (mobile + desktop) */}
-      <div className="flex justify-start mt-3 md:mt-4 px-1 sm:px-0">
+      <div className="flex justify-start mt-4 md:mt-5 px-1 sm:px-0">
         <div className="w-full sm:max-w-[94%] md:max-w-3/4">
-          <div className="rounded-2xl rounded-tl-sm bg-[#FEF4EB]/65 border border-orange-100/50 px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-4">
+          <div className="rounded-2xl rounded-tl-sm bg-[#FEF4EB]/65 border border-orange-100/50 px-5 pt-5 pb-4 md:px-6 md:pt-6 md:pb-5">
             {/* Trace-aware summary of how the question was interpreted; falls
                 back to the legacy line when no trace is present (old messages). */}
-            <p className="text-base sm:text-lg text-[#252525] leading-snug mb-3">
+            <p className="text-base sm:text-lg text-[#252525] leading-relaxed mb-4">
               {buildSummaryLine(reply.trace, citations)}
             </p>
 
@@ -658,14 +660,14 @@ export default function Reply({
               cards (SearchGuidance renders nothing when the result was strong). */}
           {reply?.citations?.length > 0 && <SearchGuidance trace={reply.trace} />}
           {(reply?.citations?.length > 0 || hasNoAnswer) && (
-            <div className="mt-3 pt-3 border-t border-orange-100/60">
+            <div className="mt-4 pt-4 border-t border-orange-100/60">
               {followUps && followUps.length > 0 ? (
                 <>
                   {/* With no answer on screen these are not follow-ups to
                       anything — they are the questions we CAN answer, so say so
                       rather than letting them read as continuations. */}
                   {hasNoAnswer && (
-                    <p className="mb-2 text-sm font-medium text-[#BC5B01]">
+                    <p className="mb-3 text-sm font-medium text-[#BC5B01]">
                       Try asking instead:
                     </p>
                   )}
@@ -679,7 +681,7 @@ export default function Reply({
                   type="button"
                   onClick={() => onGenerateFollowups()}
                   disabled={followUpsLoading}
-                  className="border border-gray-300 rounded hover:border-orange-500 hover:bg-orange-100 px-4 py-2 text-gray-800 transition-all ease-linear cursor-pointer flex items-center gap-2 disabled:opacity-60"
+                  className="border border-orange-200/80 bg-white rounded-lg hover:border-orange-500 hover:bg-orange-50 px-4 py-2.5 text-sm text-gray-800 transition-all ease-linear cursor-pointer flex items-center gap-2 disabled:opacity-60"
                 >
                   {followUpsLoading ? (
                     <>

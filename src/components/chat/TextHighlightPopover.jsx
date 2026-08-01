@@ -129,8 +129,17 @@ export default function TextHighlightPopover({
   }, [selectedTextPreview]);
 
   useEffect(() => {
-    if (visible && selectedTextPreview) {
+    if (!visible) return;
+    if (selectedTextPreview) {
       passageSnapshotRef.current = selectedTextPreview;
+      return;
+    }
+    // Fallback: if the parent forgot to pass selectedTextPreview (a merge
+    // regression that has bitten us twice), grab the live browser selection
+    // before the click that opened comment mode clears it.
+    if (!passageSnapshotRef.current) {
+      const live = window.getSelection()?.toString()?.trim() || "";
+      if (live) passageSnapshotRef.current = live;
     }
   }, [visible, selectedTextPreview]);
 
@@ -177,7 +186,9 @@ export default function TextHighlightPopover({
 
   const handleHighlightClick = async () => {
     if (saving) return;
-    const passage = passageSnapshotRef.current || selectedTextPreview;
+    const live = window.getSelection()?.toString()?.trim() || "";
+    const passage = passageSnapshotRef.current || selectedTextPreview || live;
+    if (passage) passageSnapshotRef.current = passage;
     if (!passage?.trim()) {
       setSaveError("No text selected. Drag the handles to select a passage first.");
       return;
@@ -198,7 +209,9 @@ export default function TextHighlightPopover({
   };
 
   const handleCommentButtonClick = () => {
-    passageSnapshotRef.current = selectedTextPreview || passageSnapshotRef.current;
+    const live = window.getSelection()?.toString()?.trim() || "";
+    passageSnapshotRef.current =
+      selectedTextPreview || live || passageSnapshotRef.current;
     onCommentModeChange(true);
     setSaveError('');
     setIsCommentMode(true);
@@ -206,7 +219,9 @@ export default function TextHighlightPopover({
 
   const handleCommentSubmit = async () => {
     if (!comment.trim() || saving) return;
-    const passage = passageSnapshotRef.current || selectedTextPreview;
+    const live = window.getSelection()?.toString()?.trim() || "";
+    const passage = passageSnapshotRef.current || selectedTextPreview || live;
+    if (passage) passageSnapshotRef.current = passage;
     if (!passage?.trim()) {
       setSaveError("No text selected. Close and re-select the passage first.");
       return;

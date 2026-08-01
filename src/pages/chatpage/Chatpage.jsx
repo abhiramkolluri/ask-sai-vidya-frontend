@@ -342,6 +342,10 @@ const Chatpage = () => {
   };
 
   const handleNewChat = async () => {
+    // Always return to the Questions tab so ChatBox is mounted and the
+    // empty chat window is visible (sidebar can be used from any tab).
+    handleTabSelect("chat");
+
     // Check if there's already an empty chat
     const emptyChat = threads.find(thread => !thread.messages || thread.messages.length === 0);
 
@@ -478,25 +482,42 @@ const Chatpage = () => {
 
       {/* Main Content */}
       <div className="flex flex-col flex-grow min-w-0 relative overflow-x-hidden">
-        {/* Hamburger — mobile opens drawer; desktop toggles docked sidebar */}
+        {/* Sidebar toggle — hamburger on mobile; chevron on desktop (< collapse / > expand) */}
         <button
           type="button"
           onClick={toggleSidebar}
-          aria-label={sidebarVisible ? "Close menu" : "Open menu"}
+          aria-label={sidebarVisible ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={sidebarVisible}
           className="absolute top-3 left-3 z-40 p-2.5 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors md:top-4 md:left-4"
         >
+          {/* Mobile: hamburger */}
           <svg
-            className="w-6 h-6 text-gray-600"
+            className="w-6 h-6 text-gray-600 md:hidden"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
               d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+          {/* Desktop: chevron */}
+          <svg
+            className="hidden md:block w-6 h-6 text-gray-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={sidebarVisible ? "M15 19l-7-7 7-7" : "M9 5l7 7-7 7"}
             />
           </svg>
         </button>

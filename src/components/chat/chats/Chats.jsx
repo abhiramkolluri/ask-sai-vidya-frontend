@@ -32,28 +32,27 @@ export default function Chats({
 	return (
 		<>
 			<div
-				className="w-full p-2.5 flex flex-col gap-1 transition-all ease-in-out cursor-pointer border border-transparent rounded-lg hover:bg-orange-50/70 hover:border-orange-200/60 relative group"
+				className="w-full p-3 flex flex-col gap-1.5 transition-all ease-in-out cursor-pointer border border-transparent rounded-xl hover:bg-orange-50/70 hover:border-orange-200/50 relative group"
 				onClick={() => onChatSelect(id)}
 			>
-				<div className={`flex gap-2 text-gray-900 text-sm font-medium items-center justify-between`}>
-					<div className="flex gap-2 items-center flex-1 min-w-0">
-						<span className="text-orange-400">
-							<BsChatLeftDots size={16} />
+				<div className="flex gap-2 text-gray-900 text-[15px] font-medium items-center justify-between">
+					<div className="flex gap-2.5 items-center flex-1 min-w-0">
+						<span className="text-orange-400 shrink-0">
+							<BsChatLeftDots size={15} />
 						</span>
-						<p className="truncate" title={displayTitle}>{displayTitle}</p>
+						<p className="truncate leading-snug" title={displayTitle}>{displayTitle}</p>
 					</div>
 
-					{/* Trash icon - similar to saved discourses */}
 					<button
 						onClick={handleDeleteClick}
-						className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+						className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-50 rounded-lg"
 						title="Delete chat"
 					>
-						<BsTrash size={14} className="text-red-600" />
+						<BsTrash size={14} className="text-red-500" />
 					</button>
 				</div>
 
-				<div className="flex text-xs text-gray-500">
+				<div className="flex text-[13px] text-gray-400 pl-[26px]">
 					<div className="flex-grow">
 						<p>{messageCount + " "} Questions</p>
 					</div>

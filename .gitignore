@@ -27,3 +27,4 @@ yarn-error.log*
 # build & deploy artifacts
 *.zip
 *.log
+.env

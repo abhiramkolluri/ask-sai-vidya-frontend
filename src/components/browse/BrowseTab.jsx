@@ -19,35 +19,42 @@ function isRealContext(ctx) {
   return ctx && !HIDDEN_CONTEXTS.has(ctx.trim());
 }
 
-// ─── Highlights & annotations (expanded by default) ─────────────────────────────
+// ─── Highlights & annotations ───────────────────────────────────────────────────
 
 function Highlights({ highlights }) {
   if (!highlights || highlights.length === 0) return null;
   return (
-    <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-base font-bold text-gray-800">
-        <span className="text-yellow-600">✨</span>
+    <div className="mt-4 rounded-xl border border-orange-100 bg-[#FFFBF8] p-4">
+      <h3
+        className="mb-3 text-base font-semibold text-gray-800"
+        style={{ fontFamily: "'EB Garamond', serif" }}
+      >
         Your Highlights &amp; Comments ({highlights.length})
       </h3>
       <div className="space-y-3">
         {highlights.map((highlight, idx) => (
           <div
             key={highlight.id || idx}
-            className="rounded border border-yellow-300 bg-white p-3"
+            className="rounded-lg border border-orange-100/80 bg-white p-3.5"
           >
-            <div className="mb-2 inline-block rounded bg-yellow-200 px-2 py-1">
-              <p className="text-base text-gray-800">"{highlight.text}"</p>
-            </div>
             {highlight.comment && (
-              <div className="mt-2 border-l-2 border-blue-400 pl-3">
-                <p className="text-sm font-medium text-gray-800">Your comment:</p>
-                <p className="mt-1 text-base italic text-blue-700">
-                  💬 {highlight.comment}
-                </p>
-              </div>
+              <p
+                className="text-base text-gray-800 leading-relaxed mb-2.5"
+                style={{ fontFamily: "'EB Garamond', serif" }}
+              >
+                {highlight.comment}
+              </p>
             )}
+            <blockquote className="border-l-2 border-orange-300 pl-3 py-0.5">
+              <p
+                className="text-[15px] leading-relaxed text-gray-600"
+                style={{ fontFamily: "'EB Garamond', serif" }}
+              >
+                "{highlight.text}"
+              </p>
+            </blockquote>
             {highlight.timestamp && (
-              <p className="mt-2 text-sm text-gray-800">
+              <p className="mt-2 text-xs text-gray-400">
                 {new Date(highlight.timestamp).toLocaleString()}
               </p>
             )}
