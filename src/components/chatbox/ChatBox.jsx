@@ -3,6 +3,7 @@ import { RiSendPlane2Fill, RiSendPlane2Line } from "react-icons/ri";
 import SampleQuestions from "../sample/SampleQuestions";
 import Reply from "../chat/reply/Reply";
 import DecorativeBackground from "../common/DecorativeBackground";
+import swamiIllustration from "../../assets/illustrations/swami.svg";
 import { apiRoute } from "../../helpers/apiRoute";
 
 const cache = {};
@@ -625,10 +626,20 @@ export default function ChatBox({
 
   const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
+  // The new-thread empty state is a different composition from the conversation
+  // view: swami centred, search bar directly under him, compact question cards,
+  // and an outline dove where the background swami normally sits. Everything
+  // gated on this flag reverts the moment the first question is asked.
+  const isEmpty = messages.length === 0;
+
   return (
     <div className="w-full flex flex-col h-[100dvh] mt-[4.5rem] sm:mt-16 bg-white overflow-x-hidden">
       <div className="flex-1 flex flex-col relative min-h-0 isolate">
-        <DecorativeBackground />
+        <DecorativeBackground
+          hideSwami={isEmpty}
+          showDove={isEmpty}
+          doveVariant="outline"
+        />
         {messages.length > 0 ? (
           <div
             ref={containerRef}
@@ -658,19 +669,30 @@ export default function ChatBox({
             <div aria-hidden="true" className="shrink-0 h-20 sm:h-24" />
           </div>
         ) : (
-          <div className="flex-grow overflow-y-scroll flex justify-center items-center px-3 sm:px-4">
-            <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4">
-              <p className="p-2 text-gray-800 text-center sm:text-justify text-lg sm:text-xl max-w-full">
-                Ask a question to&nbsp;<b>Sai Vidya</b> and get discourses that you can explore.
-              </p>
-              <div>
-                <SampleQuestions onQuestionClick={handleSampleQuestionClick} />
-              </div>
-            </div>
+          /* Top half of the new-thread view: swami + heading, bottom-aligned so
+             they sit immediately above the search bar that follows. The cards
+             render as a separate block AFTER the bar — splitting the empty state
+             around it is what lets the bar move without being duplicated. */
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-end gap-3 px-3 sm:px-4 pb-3">
+            <img
+              src={swamiIllustration}
+              alt=""
+              aria-hidden="true"
+              className="w-20 sm:w-24 md:w-28 opacity-90"
+            />
+            <p className="text-gray-800 text-center text-base sm:text-lg max-w-xl">
+              Ask a question to&nbsp;<b>Sai Vidya</b> and get discourses that you can explore.
+            </p>
           </div>
         )}
 
-        <div className="sticky bottom-2 sm:bottom-4 w-full max-w-4xl mx-auto px-2 sm:px-4 safe-area-pb">
+        <div
+          className={
+            isEmpty
+              ? "w-full max-w-2xl mx-auto px-3 sm:px-4"
+              : "sticky bottom-2 sm:bottom-4 w-full max-w-4xl mx-auto px-2 sm:px-4 safe-area-pb"
+          }
+        >
           <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 backdrop-blur-sm pl-4 pr-1.5 py-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all duration-200 focus-within:border-primary/60 focus-within:shadow-[0_5px_22px_rgba(188,91,1,0.15)]">
             <textarea
               ref={inputRef}
@@ -690,6 +712,17 @@ export default function ChatBox({
             </button>
           </div>
         </div>
+
+        {/* Bottom half of the new-thread view. flex-1 here and on the block
+            above the bar is what keeps the bar itself vertically centred, with
+            swami above and the compact cards below. */}
+        {isEmpty && (
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-start px-3 sm:px-4 pt-3">
+            <div className="w-full max-w-2xl">
+              <SampleQuestions onQuestionClick={handleSampleQuestionClick} compact />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
