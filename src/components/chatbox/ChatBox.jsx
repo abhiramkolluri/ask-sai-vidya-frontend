@@ -622,13 +622,13 @@ export default function ChatBox({
   const SendIcon = askQuestion.length ? RiSendPlane2Fill : RiSendPlane2Line;
 
   return (
-    <div className="w-full flex flex-col h-[100vh] mt-16 bg-white">
+    <div className="w-full flex flex-col h-[100dvh] mt-[4.5rem] sm:mt-16 bg-white overflow-x-hidden">
       <div className="flex-1 flex flex-col relative min-h-0 isolate">
         <DecorativeBackground />
         {messages.length > 0 ? (
           <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto flex flex-col no-scrollbar mx-4 p-3 md:p-4 w-full max-w-4xl mx-auto mb-16">
+            className="flex-1 overflow-y-auto flex flex-col no-scrollbar px-3 py-2 sm:p-3 md:p-4 w-full max-w-4xl mx-auto mb-2">
             {messages.map((msg, index) => (
               <Reply
                 key={index}
@@ -649,13 +649,14 @@ export default function ChatBox({
             ))}
             {/* Spacer so the last reply / loading indicator clears the sticky
                 search bar (padding-bottom on a flex scroll container is ignored
-                for scroll space in Chrome/Safari). */}
-            <div aria-hidden="true" className="shrink-0 h-48" />
+                for scroll space in Chrome/Safari). Sized to roughly the bar
+                height so answers sit close to it without a big dead zone. */}
+            <div aria-hidden="true" className="shrink-0 h-20 sm:h-24" />
           </div>
         ) : (
-          <div className="flex-grow overflow-y-scroll flex justify-center items-center">
-            <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4 px-4">
-              <p className="p-2 text-gray-800 text-justify min-w-[350px] text-xl">
+          <div className="flex-grow overflow-y-scroll flex justify-center items-center px-3 sm:px-4">
+            <div className="flex flex-col w-full max-w-2xl items-center justify-center gap-4">
+              <p className="p-2 text-gray-800 text-center sm:text-justify text-lg sm:text-xl max-w-full">
                 Ask a question to&nbsp;<b>Sai Vidya</b> and get discourses that you can explore.
               </p>
               <div>
@@ -665,25 +666,24 @@ export default function ChatBox({
           </div>
         )}
 
-        <div className="sticky bottom-4 mx-4 md:mx-auto w-full max-w-4xl mx-auto bg-white p-4">
-          <div className="flex justify-center items-center border border-[#C2C2C2] gap-2 rounded h-[84px] p-4 bg-white">
+        <div className="sticky bottom-2 sm:bottom-4 w-full max-w-4xl mx-auto px-2 sm:px-4 safe-area-pb">
+          <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white/95 backdrop-blur-sm pl-4 pr-1.5 py-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all duration-200 focus-within:border-primary/60 focus-within:shadow-[0_5px_22px_rgba(188,91,1,0.15)]">
             <textarea
               ref={inputRef}
-              className="flex-grow rounded pt-3 resize-none outline-none text-xl min-h-[72px] bg-transparent text-gray-800 placeholder:text-gray-800"
+              className="flex-grow resize-none outline-none bg-transparent text-gray-800 placeholder:text-gray-400 text-base leading-snug min-h-[24px] max-h-28 py-1 no-scrollbar"
               id="textBox"
-              cols="10"
-              rows="2"
+              rows="1"
               placeholder="Ask a question"
               onKeyDown={handleKeyPress}
             />
-            <div className="text-gray-300 p-2">
-              <SendIcon
-                className="cursor-pointer hover:shadow-lg"
-                onClick={() => handleSend()}
-                size={24}
-                color="#BC5B01"
-              />
-            </div>
+            <button
+              type="button"
+              onClick={() => handleSend()}
+              aria-label="Send question"
+              className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-primary text-white flex items-center justify-center shadow-md hover:bg-orange-600 active:scale-95 transition-all duration-150"
+            >
+              <SendIcon size={18} color="#ffffff" />
+            </button>
           </div>
         </div>
       </div>

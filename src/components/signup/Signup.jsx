@@ -85,16 +85,16 @@ export default function Signup({ callback = () => { }, inModal = true }) {
   };
 
   return (
-    <div className="w-[400px] bg-white rounded overflow-hidden text-[15px] flex flex-col gap-2 justify-between text-gray-600">
+    <div className="w-full max-w-[400px] bg-white rounded overflow-hidden text-[15px] flex flex-col gap-2 justify-between text-gray-600">
       {inModal ? (
         <div>
-          <img src={Chat} height={"140px"} width={"400px"} alt="" />
+          <img src={Chat} className="w-full h-auto max-h-[140px] object-cover" alt="" />
         </div>
       ) : (
         <></>
       )}
 
-      <div className="bg-white z-10 py-8 px-4">
+      <div className="bg-white z-10 py-6 sm:py-8 px-4 sm:px-4">
         <div className=" flex flex-col gap-4">
           <form
             className="flex flex-col gap-4 "

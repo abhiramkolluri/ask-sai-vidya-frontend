@@ -1,5 +1,6 @@
-import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from "react";
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo, useRef } from "react";
 import { apiRoute } from "../helpers/apiRoute";
+import { mergeHighlightsArrays, serializeHighlightsForSave } from "../helpers/highlightUtils";
 import { useAuth } from "./AuthContext";
 
 const SavedDiscoursesContext = createContext();
@@ -12,6 +13,13 @@ export const SavedDiscoursesProvider = ({ children }) => {
     const [savedDiscourses, setSavedDiscourses] = useState([]);
     const [loadingSaved, setLoadingSaved] = useState(false);
     const { user } = useAuth();
+    // Timestamp of the last local write. Mobile fires focus/visibilitychange on
+    // tap, which would otherwise trigger an immediate re-fetch before Weaviate
+    // has indexed the write — returning stale data and reverting the change
+    // (e.g. an unsave snapping back to saved). We skip background reloads within
+    // this window so the optimistic state isn't clobbered.
+    const lastMutationRef = useRef(0);
+    const markMutation = () => { lastMutationRef.current = Date.now(); };
 
     const mapSavedDiscourseFromApi = useCallback((item) => {
         const sourceCitation = item.collection_name || item.discourse?.source_citation || "";
@@ -86,7 +94,35 @@ export const SavedDiscoursesProvider = ({ children }) => {
 
             if (response.ok) {
                 const savedDiscoursesData = await response.json();
-                setSavedDiscourses(savedDiscoursesData.map(mapSavedDiscourseFromApi));
+                const RELOAD_SUPPRESS_MS = 8000;
+                const fetched = savedDiscoursesData.map(mapSavedDiscourseFromApi);
+
+                setSavedDiscourses((prev) => {
+                    if (Date.now() - lastMutationRef.current < RELOAD_SUPPRESS_MS) {
+                        return prev;
+                    }
+                    if (prev.length === 0) return fetched;
+
+                    return fetched.map((remote) => {
+                        const local = prev.find(
+                            (item) =>
+                                item.discourse.title === remote.discourse.title ||
+                                (item.discourse.source_url &&
+                                    item.discourse.source_url === remote.discourse.source_url)
+                        );
+                        if (!local) return remote;
+                        return {
+                            ...remote,
+                            discourse: {
+                                ...remote.discourse,
+                                highlights: mergeHighlightsArrays(
+                                    local.discourse.highlights,
+                                    remote.discourse.highlights
+                                ),
+                            },
+                        };
+                    });
+                });
             } else {
                 console.error("Failed to load saved discourses:", response.statusText);
             }
@@ -102,8 +138,11 @@ export const SavedDiscoursesProvider = ({ children }) => {
     }, [loadSavedDiscourses]);
 
     useEffect(() => {
+        const RELOAD_SUPPRESS_MS = 8000;
+        const recentlyMutated = () => Date.now() - lastMutationRef.current < RELOAD_SUPPRESS_MS;
+
         const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible' && user && user.token) {
+            if (document.visibilityState === 'visible' && user && user.token && !recentlyMutated()) {
                 loadSavedDiscourses();
             }
         };
@@ -111,7 +150,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         const handleFocus = () => {
-            if (user && user.token) {
+            if (user && user.token && !recentlyMutated()) {
                 loadSavedDiscourses();
             }
         };
@@ -126,6 +165,29 @@ export const SavedDiscoursesProvider = ({ children }) => {
 
     const getDiscourseByTitle = useCallback((title) => {
         return savedDiscourses.find((saved) => saved.discourse.title === title);
+    }, [savedDiscourses]);
+
+    const getDiscourseBySourceUrl = useCallback((sourceUrl) => {
+        if (!sourceUrl) return null;
+        return savedDiscourses.find((saved) => saved.discourse.source_url === sourceUrl);
+    }, [savedDiscourses]);
+
+    const findDiscourseForSave = useCallback((discourseData) => {
+        const title = discourseData?.title || "";
+        const sourceUrl = discourseData?.source_url || "";
+        const matches = savedDiscourses.filter(
+            (item) =>
+                item.discourse.title === title ||
+                (sourceUrl && item.discourse.source_url === sourceUrl)
+        );
+        if (matches.length === 0) return null;
+        if (matches.length === 1) return matches[0];
+        return [...matches].sort((a, b) => {
+            const aCount = a.discourse?.highlights?.length || 0;
+            const bCount = b.discourse?.highlights?.length || 0;
+            if (bCount !== aCount) return bCount - aCount;
+            return Date.parse(b.saved_at || 0) - Date.parse(a.saved_at || 0);
+        })[0];
     }, [savedDiscourses]);
 
     const isDiscourseBookmarked = useCallback((title) => {
@@ -146,6 +208,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
     const updateSavedDiscourse = async (discourseId, updates) => {
         if (!user || !user.token) return null;
 
+        markMutation();
         const previous = savedDiscourses;
         setSavedDiscourses((prev) =>
             prev.map((item) => {
@@ -196,6 +259,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
     const deleteDiscourseRecord = async (discourseId) => {
         if (!user || !user.token) return false;
 
+        markMutation();
         const previous = savedDiscourses;
         setSavedDiscourses((prev) => prev.filter((item) => item.id !== discourseId));
 
@@ -230,8 +294,9 @@ export const SavedDiscoursesProvider = ({ children }) => {
             return null;
         }
 
+        markMutation();
         const title = discourseData?.title || "Untitled discourse";
-        const existing = getDiscourseByTitle(title);
+        const existing = findDiscourseForSave(discourseData);
 
         if (existing) {
             return updateSavedDiscourse(existing.id, {
@@ -277,10 +342,12 @@ export const SavedDiscoursesProvider = ({ children }) => {
     const saveHighlights = async (discourseData, highlightsArray) => {
         if (!user || !user.token) return null;
 
+        markMutation();
         const title = discourseData?.title || "Untitled discourse";
-        const existing = getDiscourseByTitle(title);
+        const existing = findDiscourseForSave(discourseData);
+        const payload = serializeHighlightsForSave(highlightsArray);
 
-        if (highlightsArray.length === 0) {
+        if (payload.length === 0) {
             if (!existing) return true;
             if (existing.bookmarked) {
                 return updateSavedDiscourse(existing.id, { highlights: [] });
@@ -290,9 +357,11 @@ export const SavedDiscoursesProvider = ({ children }) => {
         }
 
         if (existing) {
-            return updateSavedDiscourse(existing.id, {
-                highlights: highlightsArray,
+            const result = await updateSavedDiscourse(existing.id, {
+                highlights: payload,
             });
+            if (result) return result;
+            console.warn("Highlight update failed for existing record, creating new entry");
         }
 
         try {
@@ -310,7 +379,7 @@ export const SavedDiscoursesProvider = ({ children }) => {
                     collection_name: deriveCollectionName(discourseData),
                     question_context: "",
                     bookmarked: false,
-                    highlights: highlightsArray,
+                    highlights: payload,
                 })
             });
 
@@ -319,7 +388,8 @@ export const SavedDiscoursesProvider = ({ children }) => {
                 return upsertMappedDiscourse(mapSavedDiscourseFromApi(data));
             }
 
-            console.error("Failed to save highlights:", response.statusText);
+            const errBody = await response.text().catch(() => "");
+            console.error("Failed to save highlights:", response.status, response.statusText, errBody);
         } catch (error) {
             console.error("Error saving highlights:", error);
         }
@@ -365,6 +435,8 @@ export const SavedDiscoursesProvider = ({ children }) => {
         clearAnnotations,
         deleteDiscourseRecord,
         getDiscourseByTitle,
+        getDiscourseBySourceUrl,
+        findDiscourseForSave,
         isDiscourseBookmarked,
         getSavedDiscourseByTitle: getDiscourseByTitle,
         unsaveDiscourse: removeBookmark,

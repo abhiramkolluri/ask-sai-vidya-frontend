@@ -36,12 +36,12 @@ const HEADING = "How to use Ask Sai Vidya";
 
 function StepCard({ Icon, title, body }) {
   return (
-    <div className="rounded-xl bg-white p-6 shadow-[0px_10px_20px_0px_rgba(0,0,0,0.1)]">
+    <div className="rounded-xl bg-white p-4 sm:p-6 shadow-[0px_10px_20px_0px_rgba(0,0,0,0.1)]">
       <div className="mb-2 flex items-center gap-2.5">
-        <Icon size={26} className="shrink-0 text-primary" />
-        <h3 className="text-2xl font-bold text-primary">{title}</h3>
+        <Icon size={22} className="shrink-0 text-primary sm:w-[26px] sm:h-[26px]" />
+        <h3 className="text-lg sm:text-2xl font-bold text-primary">{title}</h3>
       </div>
-      {body && <p className="text-lg text-gray-800">{body}</p>}
+      {body && <p className="text-base sm:text-lg text-gray-800 leading-relaxed">{body}</p>}
     </div>
   );
 }
@@ -50,17 +50,17 @@ export default function HowToTab() {
   return (
     <div className="relative isolate h-full overflow-hidden">
       <DecorativeBackground hideSwami showDove />
-      <div className="flex h-full items-center justify-center overflow-y-auto px-6 py-6">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 lg:flex-row lg:items-center lg:justify-center">
+      <div className="flex h-full items-start md:items-center justify-center overflow-y-auto px-3 sm:px-6 py-6">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 sm:gap-10 lg:flex-row lg:items-center lg:justify-center">
           {/* Left: Swami illustration + heading */}
           <div className="flex flex-col items-center text-center lg:w-2/5 lg:items-start lg:text-left">
             <img
               src={swami}
               alt="Sathya Sai Baba"
-              className="w-44 opacity-90 md:w-56"
+              className="w-32 sm:w-44 opacity-90 md:w-56"
             />
             <h1
-              className="mt-6 text-3xl font-semibold text-primary"
+              className="mt-4 sm:mt-6 text-2xl sm:text-3xl font-semibold text-primary"
               style={{ fontFamily: "'EB Garamond', serif" }}
             >
               {HEADING}
@@ -72,7 +72,7 @@ export default function HowToTab() {
             <div className="relative">
               <svg
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 h-full w-full"
+                className="pointer-events-none absolute inset-0 hidden lg:block h-full w-full"
                 viewBox="0 0 200 800"
                 preserveAspectRatio="none"
                 fill="none"
@@ -87,7 +87,7 @@ export default function HowToTab() {
                   vectorEffect="non-scaling-stroke"
                 />
               </svg>
-              <div className="relative flex flex-col gap-12">
+              <div className="relative flex flex-col gap-6 sm:gap-8 lg:gap-12">
                 {STEPS.map((step, i) => (
                   <div
                     key={step.title}

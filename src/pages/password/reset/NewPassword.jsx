@@ -117,25 +117,25 @@ export default function NewPassword() {
   };
 
   return (
-    <div className=" bg-[#fffbf8]  w-full h-[100vh] text-gray-800 text-[14px]">
-      <div className="absolute top-0 left-0">
-        <img src={leaves} alt="" />
+    <div className="bg-[#fffbf8] w-full h-[100dvh] text-gray-800 text-[14px] overflow-hidden">
+      <div className="absolute top-0 left-0 w-full overflow-hidden pointer-events-none">
+        <img src={leaves} alt="" className="w-full max-w-md sm:max-w-none opacity-80" />
       </div>
-      <div className=" flex  h-full ">
-        <div className="hidden md:flex flex-col items-center justify-center  flex-grow">
-          <div className="w-[600px]">
-            <h1 className=" text-2xl font-bold text-orange-400">
+      <div className="flex h-full min-h-0">
+        <div className="hidden md:flex flex-col items-center justify-center flex-grow">
+          <div className="w-[600px] px-4">
+            <h1 className="text-2xl font-bold text-orange-400">
               Connect with Ask Sai Vidya!
             </h1>
-            <p className=" leading-relaxed mt-4 tracking-wide">
+            <p className="leading-relaxed mt-4 tracking-wide">
               Embark on a spiritual journey with Sathya Sai Baba to find deeper
               understanding. Seek answers to your questions and engage directly
               for inner peace.
             </p>
           </div>
         </div>
-        <div className="w-[600px] h-full bg-white flex justify-center items-center px-10">
-          <div className="p-8 w-[400px]">
+        <div className="w-full md:w-[600px] h-full bg-white flex justify-center items-start sm:items-center overflow-y-auto px-4 sm:px-10 py-8">
+          <div className="p-4 sm:p-8 w-full max-w-[400px]">
             {verifying ? (
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-400 mx-auto"></div>

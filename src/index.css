@@ -23,6 +23,25 @@
   src: url("./assets/Amiri-Regular.ttf") format("truetype");
 } */
 
+html,
+body {
+  /* Do NOT put overflow-x here. Any overflow clipping on html/body makes iOS
+     Safari stop repainting position:fixed overlays, so closed backdrops/modals
+     leave ghost/shaded bands until a refresh. We only stop the horizontal
+     rubber-band here and move the actual clipping down to #root (below). */
+  overscroll-behavior-x: none;
+  max-width: 100%;
+}
+
+/* Clip horizontal overflow on the app container instead of html/body. `clip`
+   doesn't create a scroll container and isn't a containing block for fixed
+   descendants, so full-screen fixed overlays still cover the viewport and
+   repaint cleanly — while horizontal panning/overflow is still prevented. */
+#root {
+  overflow-x: hidden; /* fallback for Safari < 16 */
+  overflow-x: clip;
+}
+
 body {
   /* background-color: #f3f4f6; */
   /* font-family: "amiri", sans-serif; */
@@ -47,7 +66,26 @@ body {
   animation: fadeIn 0.2s ease-out;
 }
 
-.font-ui {
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
-  font-optical-sizing: auto;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.25s ease-out;
+}
+
+.safe-area-pb {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+.safe-area-pt {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
 }

@@ -32,10 +32,10 @@ export default function Chats({
 	return (
 		<>
 			<div
-				className={`w-full p-2 flex flex-col text-lg gap-2 transition-all ease-in-out cursor-pointer border border-transparent rounded hover:bg-orange-50 hover:border-orange-400 relative group`}
+				className="w-full p-2.5 flex flex-col gap-1 transition-all ease-in-out cursor-pointer border border-transparent rounded-lg hover:bg-orange-50/70 hover:border-orange-200/60 relative group"
 				onClick={() => onChatSelect(id)}
 			>
-				<div className={`flex gap-2 text-gray-900 font-medium items-center justify-between`}>
+				<div className={`flex gap-2 text-gray-900 text-sm font-medium items-center justify-between`}>
 					<div className="flex gap-2 items-center flex-1 min-w-0">
 						<span className="text-orange-400">
 							<BsChatLeftDots size={16} />
@@ -53,7 +53,7 @@ export default function Chats({
 					</button>
 				</div>
 
-				<div className="flex text-base text-gray-600">
+				<div className="flex text-xs text-gray-500">
 					<div className="flex-grow">
 						<p>{messageCount + " "} Questions</p>
 					</div>
@@ -69,8 +69,14 @@ export default function Chats({
 
 			{/* Confirmation Modal */}
 			{showConfirmation && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-					<div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 animate-fadeIn">
+				<div
+					className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4"
+					onClick={handleCancelDelete}
+				>
+					<div
+						className="bg-white rounded-lg shadow-2xl max-w-md w-full animate-fadeIn"
+						onClick={(e) => e.stopPropagation()}
+					>
 						<div className="p-6">
 							<h3 className="text-lg font-bold text-gray-900 mb-3">
 								Delete Chat?
