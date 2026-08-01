@@ -87,9 +87,12 @@ export default function ChatBox({
 
   // Returns { citations, trace }: the discourse list plus the pipeline
   // transparency trace (how the search ran — planned facets, grader verdicts,
-  // timings) that powers the "How I searched" panel. `trace` is null when the
-  // backend doesn't send one (older backend, or a cached entry from before this
-  // feature), and every consumer treats it as optional.
+  // timings). The trace is no longer shown to the user, but it still drives
+  // behaviour: `deferred` gates the two-phase render, `route`/`keyword.term`
+  // drive keyword highlighting in the reader, and `intent`/`unanswerable_reason`
+  // steer follow-up redirects. `trace` is null when the backend doesn't send one
+  // (older backend, or a cached entry from before this feature), and every
+  // consumer treats it as optional.
   // Persist matched passages + best-answer quotes by discourse id so the blog
   // page can locate/highlight them even if router state is lost (refresh /
   // direct URL).
@@ -372,7 +375,8 @@ export default function ChatBox({
 
         // Update state with citations + the pipeline trace (may be null). The
         // trace is stored on the reply so it persists with the thread and the
-        // "How I searched" panel survives a reload.
+        // behaviour it drives (keyword highlighting, follow-up redirects)
+        // survives a reload.
         const finalMessages = updatedMessages.map((q, index) =>
           index === newIndex
             ? {

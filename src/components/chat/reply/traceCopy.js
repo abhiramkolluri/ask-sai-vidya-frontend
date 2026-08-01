@@ -14,19 +14,19 @@ export const REASON_COPY = {
   },
 
   ALL_REJECTED_BY_GRADER: () =>
-    "I found passages that mention these words, but none that directly answer your question. Try rephrasing around the underlying teaching — for example “how to overcome jealousy” rather than a long personal story.",
+    "Some passages mention these words, but none directly answer your question. Try rephrasing around the underlying teaching — for example “how to overcome jealousy” rather than a long personal story.",
 
   LOW_RELEVANCE: () =>
     "These sources are related to your question but may not answer it directly. A more specific question can help.",
 
   NO_MATCHES: () =>
-    "I couldn't find any passages matching this. This library holds Sai Baba's discourses — try asking about a spiritual concept, practice, or teaching. Tip: put double quotes around a phrase to search for it exactly.",
+    "No passages matched this. This library holds Sai Baba's discourses — try asking about a spiritual concept, practice, or teaching. Tip: put double quotes around a phrase to search for it exactly.",
 
   EXACT_PHRASE_MISS: (reason) => {
     const phrase = reason.data?.phrase;
     return phrase
-      ? `I couldn't find the exact phrase “${phrase}”, so I searched for its meaning instead. Check the wording, or remove the quotes to search more broadly.`
-      : "I couldn't find that exact phrase, so I searched for its meaning instead. Check the wording, or remove the quotes to search more broadly.";
+      ? `The exact phrase “${phrase}” wasn't found, so the search engine matched on meaning instead. Check the wording, or remove the quotes to search more broadly.`
+      : "That exact phrase wasn't found, so the search engine matched on meaning instead. Check the wording, or remove the quotes to search more broadly.";
   },
 
   SPELLING_HINT: (reason) => {
@@ -51,36 +51,36 @@ export const REASON_COPY = {
   UNANSWERABLE: (reason) => {
     const why = reason?.data?.reason;
     const suffix =
-      " I'd rather tell you that than hand you a source that only looks like an answer. Try one of the questions below instead.";
+      " Better to say so than hand you a source that only looks like an answer. Try one of the questions below instead.";
     return why
       ? why.trim() + suffix
       : "This isn't something the discourses can answer — it asks for a judgement, an opinion, or a prediction that none of them state." + suffix;
   },
 
   RERANK_DEGRADED: () =>
-    "My ranking step didn't run for this search, so these discourses are ordered by keyword and meaning overlap alone. They're genuine matches, but the most relevant one may not be first — searching again usually restores the better ordering.",
+    "The search engine's ranking step didn't run for this search, so these discourses are ordered by keyword and meaning overlap alone. They're genuine matches, but the most relevant one may not be first — searching again usually restores the better ordering.",
 
   FACTUAL_QUESTION: () =>
-    "I search discourses by theme, not biographical facts — here are related discourses that may touch on it.",
+    "The search engine matches discourses by theme, not biographical facts — here are related discourses that may touch on it.",
 
   META_REQUEST: () =>
     "This looks like a request to the app rather than the discourses — to get follow-up questions, use the “Generate Follow-ups” button on an answer.",
 
   COMPARISON_BOTH_SIDES: () =>
-    "You're comparing two ideas — I searched for each and show discourses on both, but I don't compose a side-by-side comparison.",
+    "You're comparing two ideas — the search engine looked for each and shows discourses on both, but it doesn't compose a side-by-side comparison.",
 
   KB_KNOWN_GAP: (reason) => {
     const entity = reason.data?.entity;
     return entity
-      ? `The discourses don't directly cover “${entity}”. I'd rather tell you that than show loosely related discourses as if they answered it.`
-      : "The discourses don't directly cover this. I'd rather say so than show loosely related discourses as if they answered it.";
+      ? `The discourses don't directly cover “${entity}” — better to say so than show loosely related discourses as if they answered it.`
+      : "The discourses don't directly cover this — better to say so than show loosely related discourses as if they answered it.";
   },
 
   LISTING_NOT_FOUND: (reason) => {
     const collection = reason.data?.collection;
     return collection
-      ? `I couldn't find a collection called “${collection}” — check the name, or browse the Collections tab to see what's available.`
-      : "I couldn't find the collection you asked to list — check the name, or browse the Collections tab to see what's available.";
+      ? `No collection called “${collection}” was found — check the name, or browse the Collections tab to see what's available.`
+      : "The collection you asked to list wasn't found — check the name, or browse the Collections tab to see what's available.";
   },
 
   // Both keyword codes end by telling the user what a full question would do
@@ -89,15 +89,26 @@ export const REASON_COPY = {
   KEYWORD_MATCH: (reason) => {
     const term = reason.data?.term;
     return term
-      ? `You searched a single term, so I matched the word “${term}” itself rather than searching for its meaning — these are the discourses that use it most. Ask a full question to search by meaning instead.`
-      : "You searched a single term, so I matched the word itself rather than searching for its meaning. Ask a full question to search by meaning instead.";
+      ? `You searched a single term, so the search engine matched the word “${term}” itself rather than its meaning — these are the discourses that use it most. Ask a full question to search by meaning instead.`
+      : "You searched a single term, so the search engine matched the word itself rather than its meaning. Ask a full question to search by meaning instead.";
   },
 
   KEYWORD_FELL_BACK: (reason) => {
     const term = reason.data?.term;
     return term
-      ? `Very few discourses use the word “${term}” literally, so I searched for its meaning instead. The corpus may use a different word for the same idea.`
-      : "Very few discourses use your term literally, so I searched for its meaning instead. The corpus may use a different word for the same idea.";
+      ? `Very few discourses use the word “${term}” literally, so the search engine matched on meaning instead. The corpus may use a different word for the same idea.`
+      : "Very few discourses use your term literally, so the search engine matched on meaning instead. The corpus may use a different word for the same idea.";
+  },
+
+  // The literal matches WERE served, because searching by meaning found nothing.
+  // Distinct from KEYWORD_FELL_BACK, whose copy promises a meaning search that in
+  // this case came back empty — saying that here would describe the opposite of
+  // what the user is looking at.
+  KEYWORD_SERVED_THIN: (reason) => {
+    const term = reason.data?.term;
+    return term
+      ? `Only these discourses use the word “${term}”, and searching by meaning found nothing further. This is everything the corpus has on that term.`
+      : "Only these discourses use your term, and searching by meaning found nothing further. This is everything the corpus has on that term.";
   },
 };
 

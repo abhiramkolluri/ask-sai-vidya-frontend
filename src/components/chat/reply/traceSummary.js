@@ -37,7 +37,7 @@ export function buildSummaryLine(trace, citations = []) {
 
   // Infrastructure failure — not an empty result. Say so before anything else.
   if (trace.service_error || trace.quality === "error") {
-    return "I ran into a temporary problem reaching the search service.";
+    return "The search engine ran into a temporary problem reaching the search service.";
   }
 
   // Phase 1 of a two-phase search: these sources matched, but none has been
@@ -45,27 +45,27 @@ export function buildSummaryLine(trace, citations = []) {
   // some of these will be dropped.
   if (trace.deferred || trace.quality === "pending") {
     return count === 1
-      ? "I found 1 source that looks related — checking whether it answers your question…"
-      : `I found ${count} sources that look related — checking which of them answer your question…`;
+      ? "1 source looks related — checking whether it answers your question…"
+      : `${count} sources look related — checking which of them answer your question…`;
   }
 
   // Structured (knowledge-lookup) route with a canonical hit — a direct answer,
-  // not a thematic search, so say so instead of "I read your question as …".
+  // not a thematic search, so say so instead of reading the question as a topic.
   const entity = (trace.entities || [])[0];
   if (trace.route === "structured" && count > 0 && !trace.kb_gap) {
     return entity
-      ? `I found the source${count === 1 ? "" : "s"} about ${entity}.`
-      : `I found ${pluralizeSources(count)} that directly ${addressVerb(count)} this.`;
+      ? `Here ${count === 1 ? "is the source" : "are the sources"} about ${entity}.`
+      : `${pluralizeSources(count)} directly ${addressVerb(count)} this.`;
   }
 
   // Listing route: an ordered enumeration of a collection's chapters. State the
-  // outcome as a list, not as "I read your question as …" (it wasn't a search).
+  // outcome as a list, not as a reading of the question (it wasn't a search).
   if (trace.route === "listing") {
     const lst = trace.listing || {};
     if (lst.not_found || count === 0) {
       return lst.collection
-        ? `I couldn't find a collection called "${lst.collection}".`
-        : "I couldn't find the collection you asked to list.";
+        ? `No collection called "${lst.collection}" was found.`
+        : "The collection you asked to list wasn't found.";
     }
     const order = lst.order === "last" ? "last " : lst.order === "all" ? "" : "first ";
     const where = lst.order === "all" ? `all ${count} chapters` : `the ${order}${count} chapter${count === 1 ? "" : "s"}`;
@@ -81,10 +81,10 @@ export function buildSummaryLine(trace, citations = []) {
   if (trace.route === "keyword" && count > 0) {
     const term = trace.keyword?.term;
     return term
-      ? `You searched a single term, so I looked for the word "${term}" itself — here ${
+      ? `You searched a single term, so the search engine looked for the word "${term}" itself — here ${
           count === 1 ? "is" : "are"
         } ${pluralizeSources(count)} that use it.`
-      : `I matched your search term literally in ${pluralizeSources(count)}.`;
+      : `Your search term was matched literally in ${pluralizeSources(count)}.`;
   }
 
   const facets = trace.planning?.facets || [];
@@ -93,17 +93,17 @@ export function buildSummaryLine(trace, citations = []) {
   // Nothing directly answered the question. The guidance callout below carries
   // the "how to refine" tips; this line just states the outcome plainly.
   if (count === 0) {
-    return "I searched but couldn't find sources that directly answer this.";
+    return "No sources directly answer this.";
   }
 
   // Exact-phrase shortcut succeeded.
   if (exact.matched && exact.phrase) {
-    return `I found your exact phrase "${exact.phrase}" in ${pluralizeSources(count)}.`;
+    return `Your exact phrase "${exact.phrase}" appears in ${pluralizeSources(count)}.`;
   }
 
   // Single search angle.
   if (facets.length === 1) {
-    return `I read your question as "${facets[0]}" and found ${pluralizeSources(
+    return `The search engine read your question as "${facets[0]}" and found ${pluralizeSources(
       count
     )} that directly ${addressVerb(count)} it.`;
   }
@@ -113,11 +113,11 @@ export function buildSummaryLine(trace, citations = []) {
   if (facets.length > 1) {
     const shown = facets.slice(0, 2).map((f) => `"${f}"`).join(", ");
     const more = facets.length > 2 ? ", and more" : "";
-    return `I explored ${facets.length} angles of your question — ${shown}${more} — and found ${pluralizeSources(
+    return `The search engine explored ${facets.length} angles of your question — ${shown}${more} — and found ${pluralizeSources(
       count
     )} that ${addressVerb(count)} them.`;
   }
 
   // Trace present but no facets recorded (unusual) → generic but honest.
-  return `I found ${pluralizeSources(count)} that ${addressVerb(count)} your question.`;
+  return `${pluralizeSources(count)} ${addressVerb(count)} your question.`;
 }

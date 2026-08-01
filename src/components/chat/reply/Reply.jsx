@@ -18,7 +18,6 @@ import TextHighlightPopover from "../TextHighlightPopover";
 import { useSavedDiscourses } from "../../../contexts/SavedDiscoursesContext";
 import FollowUpQuestions from "../../followups/FollowUpQuestions";
 import StagedLotusLoader from "../../common/StagedLotusLoader";
-import SearchTracePanel from "./SearchTracePanel";
 import SearchGuidance from "./SearchGuidance";
 import { buildSummaryLine } from "./traceSummary";
 
@@ -465,9 +464,6 @@ export default function Reply({
               {buildSummaryLine(reply.trace, citations)}
             </p>
 
-            {/* "How I searched" — the pipeline window (renders only when a trace exists). */}
-            <SearchTracePanel trace={reply.trace} />
-
             <div className="flex flex-col divide-y divide-orange-100/70">
               <div>
                 {citations.length > 0 ? (
@@ -688,11 +684,11 @@ export default function Reply({
                   {followUpsLoading ? (
                     <>
                       <FaSpinner className="animate-spin text-orange-400" />
-                      {hasNoAnswer ? "Finding questions I can answer…" : "Generating…"}
+                      {hasNoAnswer ? "Finding questions the search engine can answer…" : "Generating…"}
                     </>
                   ) : (
                     hasNoAnswer
-                      ? "Suggest questions I can answer"
+                      ? "Suggest questions the search engine can answer"
                       : "Generate Followup Questions"
                   )}
                 </button>
