@@ -36,12 +36,12 @@ const HEADING = "How to use Ask Sai Vidya";
 
 function StepCard({ Icon, title, body }) {
   return (
-    <div className="rounded-xl bg-white p-4 sm:p-6 shadow-[0px_10px_20px_0px_rgba(0,0,0,0.1)]">
-      <div className="mb-2 flex items-center gap-2.5">
-        <Icon size={22} className="shrink-0 text-primary sm:w-[26px] sm:h-[26px]" />
-        <h3 className="text-lg sm:text-2xl font-bold text-primary">{title}</h3>
+    <div className="rounded-xl bg-white p-3 sm:p-4 shadow-[0px_10px_20px_0px_rgba(0,0,0,0.1)]">
+      <div className="mb-1.5 flex items-center gap-2">
+        <Icon size={18} className="shrink-0 text-primary sm:w-[20px] sm:h-[20px]" />
+        <h3 className="text-base sm:text-xl font-bold text-primary">{title}</h3>
       </div>
-      {body && <p className="text-base sm:text-lg text-gray-800 leading-relaxed">{body}</p>}
+      {body && <p className="text-sm sm:text-base text-gray-800 leading-relaxed">{body}</p>}
     </div>
   );
 }
