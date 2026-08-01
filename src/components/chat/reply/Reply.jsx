@@ -17,6 +17,33 @@ import Feedback from "../../feedback/Feedback";
 import TextHighlightPopover from "../TextHighlightPopover";
 import { useSavedDiscourses } from "../../../contexts/SavedDiscoursesContext";
 import FollowUpQuestions from "../../followups/FollowUpQuestions";
+import StagedLotusLoader from "../../common/StagedLotusLoader";
+import SearchTracePanel from "./SearchTracePanel";
+import SearchGuidance from "./SearchGuidance";
+import { buildSummaryLine } from "./traceSummary";
+
+// Question words that keep a short query on the semantic route — a subset of the
+// backend's list (search/query_planning.py::is_keyword_query), enough for the
+// 1-2 token strings this is ever asked about.
+const QUESTION_WORDS = new Set([
+  "what", "why", "how", "when", "where", "who", "whom", "which", "whose",
+  "is", "are", "was", "were", "am", "be", "do", "does", "did",
+  "can", "could", "should", "would", "will", "shall", "may", "might", "must",
+  "tell", "give", "show", "list", "find", "explain", "define", "describe",
+  "compare", "summarize", "vs", "versus",
+]);
+
+// Mirrors the backend's keyword-route gate closely enough to pick loader copy
+// BEFORE the response arrives. The backend is authoritative — this only decides
+// which caption shows during the ~1s wait, so a disagreement costs a slightly
+// off caption, never a wrong result.
+function isBareTerm(question) {
+  const q = (question || "").trim();
+  if (!q || q.includes("?") || q.includes('"')) return false;
+  const tokens = q.split(/\s+/).map((t) => t.replace(/^[^\w]+|[^\w]+$/g, "")).filter(Boolean);
+  if (tokens.length === 0 || tokens.length > 2) return false;
+  return !tokens.some((t) => QUESTION_WORDS.has(t.toLowerCase()));
+}
 
 export default function Reply({
   question = "What the user asked?",
@@ -369,11 +396,14 @@ export default function Reply({
             <span className="text-[#252525] text-lg">{question}</span>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center mx-auto mt-6">
-          <FaSpinner size={40} className="animate-spin text-orange-400" />
-          <p className="mt-4 text-base text-gray-600">
-            Searching for discourses to answer your question…
-          </p>
+        <div className="mx-auto mt-6">
+          {/* Narrate the pipeline stages while the query runs. Detect a quoted
+              phrase so the loader can say "looking for your exact phrase", and a
+              bare term so it doesn't narrate planning/grading that won't run. */}
+          <StagedLotusLoader
+            hasExactPhrase={question.includes('"')}
+            isKeyword={isBareTerm(question)}
+          />
         </div>
       </div>
     );
@@ -389,7 +419,18 @@ export default function Reply({
     );
   }
 
-  const { citations = [] } = reply;
+  // `pending` marks phase 1 of a two-phase search: these discourses are real
+  // matches but no quote has been verified yet, and the grader typically drops
+  // some of them when phase 2 lands. Everything downstream renders them as
+  // provisional rather than as answers.
+  const { citations = [], pending = false } = reply;
+  // Any reply with nothing to read. An explicit refusal is one kind, but a
+  // question that matched nothing, fell outside the corpus, or hit a known gap
+  // leaves the same empty screen — and in every one of those cases the suggested
+  // questions ARE the response, so the follow-up block renders (it is normally
+  // gated on having results) and auto-fills rather than hiding behind a button.
+  // `pending` is excluded: phase 1 has results, just unverified ones.
+  const hasNoAnswer = !pending && citations.length === 0;
 
   return (
     <div className="w-full mx-2">
@@ -418,9 +459,14 @@ export default function Reply({
       <div className="flex justify-start mt-3 md:mt-4 px-1 sm:px-0">
         <div className="w-full sm:max-w-[94%] md:max-w-3/4">
           <div className="rounded-2xl rounded-tl-sm bg-[#FEF4EB]/65 border border-orange-100/50 px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-4">
+            {/* Trace-aware summary of how the question was interpreted; falls
+                back to the legacy line when no trace is present (old messages). */}
             <p className="text-base sm:text-lg text-[#252525] leading-snug mb-3">
-              Here are some discourses where you can start learning about the topic:
+              {buildSummaryLine(reply.trace, citations)}
             </p>
+
+            {/* "How I searched" — the pipeline window (renders only when a trace exists). */}
+            <SearchTracePanel trace={reply.trace} />
 
             <div className="flex flex-col divide-y divide-orange-100/70">
               <div>
@@ -441,14 +487,36 @@ export default function Reply({
                             const selected = window.getSelection()?.toString().trim();
                             if (selected) return;
                             navigate(`/blog/${item._id}`, {
-                              state: { citations, questionContext: question },
+                              state: {
+                                citations,
+                                questionContext: question,
+                                // Only a keyword-ROUTED search highlights every
+                                // occurrence on the blog page. `trace.keyword` is
+                                // also set when the route fell back to semantic,
+                                // so gate on `route`, not on the field's presence.
+                                keywordTerm:
+                                  reply?.trace?.route === "keyword"
+                                    ? reply.trace.keyword?.term || null
+                                    : null,
+                              },
                             });
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
                               navigate(`/blog/${item._id}`, {
-                                state: { citations, questionContext: question },
+                                state: {
+                                citations,
+                                questionContext: question,
+                                // Only a keyword-ROUTED search highlights every
+                                // occurrence on the blog page. `trace.keyword` is
+                                // also set when the route fell back to semantic,
+                                // so gate on `route`, not on the field's presence.
+                                keywordTerm:
+                                  reply?.trace?.route === "keyword"
+                                    ? reply.trace.keyword?.term || null
+                                    : null,
+                              },
                               });
                             }
                           }}
@@ -460,9 +528,38 @@ export default function Reply({
                           </p>
                           <p className="text-sm sm:text-lg text-gray-600 mt-0.5">
                             {formatCollection(item.collection)}
+                            {/* Listing route passes chapter_index (0-based) so an
+                                ordered enumeration reads like a table of contents. */}
+                            {item.chapter_index != null && (
+                              <span className="text-gray-500">
+                                {" · Chapter "}
+                                {item.chapter_index + 1}
+                              </span>
+                            )}
                           </p>
                           <p className="text-sm italic text-gray-500">{item.date}</p>
 
+                          {/* The answering quote, verified by the grader. While a
+                              two-phase search is still verifying (`pending`), we
+                              show the retrieved passage as a plain excerpt WITHOUT
+                              quotation marks and label it — quote marks here would
+                              present unchecked text as the answering quote, which
+                              is the one thing this pipeline must never do. */}
+                          {pending ? (
+                            <div className="mt-2">
+                              <div className="text-xs uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-2">
+                                <span className="inline-block w-2 h-2 rounded-full bg-primary/50 animate-pulse" />
+                                Checking whether this answers your question…
+                              </div>
+                              <div
+                                className="text-gray-500 text-base sm:text-xl italic leading-relaxed"
+                                style={{ fontFamily: "'EB Garamond', serif" }}
+                              >
+                                {(item.matched_passage || item.content || "").slice(0, 200)}
+                                {(item.matched_passage || item.content || "").length > 200 ? "…" : ""}
+                              </div>
+                            </div>
+                          ) : (
                           <div
                             className="mt-2 text-gray-800 text-base sm:text-xl italic leading-relaxed"
                             style={{ fontFamily: "'EB Garamond', serif" }}
@@ -486,6 +583,7 @@ export default function Reply({
                             />
                             <span className="text-primary">&rdquo;</span>
                           </div>
+                          )}
                         </div>
 
                         <div className="flex justify-end -mr-1 sm:mr-0">
@@ -547,6 +645,10 @@ export default function Reply({
                       </div>
                     );
                   })
+                ) : reply.trace ? (
+                  // Empty result WITH a trace → show the refinement guidance
+                  // callout (derived from the pipeline's reason codes).
+                  <SearchGuidance trace={reply.trace} />
                 ) : (
                   <p>
                     No citations found. This is usually because the search engine
@@ -556,13 +658,26 @@ export default function Reply({
                 )}
               </div>
             </div>
-          {reply?.citations?.length > 0 && (
+          {/* Weak-but-nonempty results → a quiet one-line refinement tip under the
+              cards (SearchGuidance renders nothing when the result was strong). */}
+          {reply?.citations?.length > 0 && <SearchGuidance trace={reply.trace} />}
+          {(reply?.citations?.length > 0 || hasNoAnswer) && (
             <div className="mt-3 pt-3 border-t border-orange-100/60">
               {followUps && followUps.length > 0 ? (
-                <FollowUpQuestions
-                  questions={followUps}
-                  onQuestionClick={onFollowUpClick}
-                />
+                <>
+                  {/* With no answer on screen these are not follow-ups to
+                      anything — they are the questions we CAN answer, so say so
+                      rather than letting them read as continuations. */}
+                  {hasNoAnswer && (
+                    <p className="mb-2 text-sm font-medium text-[#BC5B01]">
+                      Try asking instead:
+                    </p>
+                  )}
+                  <FollowUpQuestions
+                    questions={followUps}
+                    onQuestionClick={onFollowUpClick}
+                  />
+                </>
               ) : (
                 <button
                   type="button"
@@ -573,10 +688,12 @@ export default function Reply({
                   {followUpsLoading ? (
                     <>
                       <FaSpinner className="animate-spin text-orange-400" />
-                      Generating…
+                      {hasNoAnswer ? "Finding questions I can answer…" : "Generating…"}
                     </>
                   ) : (
-                    "Generate Followup Questions"
+                    hasNoAnswer
+                      ? "Suggest questions I can answer"
+                      : "Generate Followup Questions"
                   )}
                 </button>
               )}
