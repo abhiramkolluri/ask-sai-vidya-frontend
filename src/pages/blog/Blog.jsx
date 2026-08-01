@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { LuPencilLine } from "react-icons/lu";
 import { IoCalendar, IoBookOutline, IoChevronUp, IoChevronDown } from "react-icons/io5";
 import { useQuery } from "react-query";
@@ -15,19 +15,45 @@ import Navbar from "../../components/Navbar";
 import TextHighlightPopover from "../../components/chat/TextHighlightPopover";
 import HighlightsSidebar from "../../components/highlights/HighlightsSidebar";
 import OtherSearchResultsMenu from "../../components/citations/OtherSearchResultsMenu";
-import ChapterNavBar from "../../components/collections/ChapterNavBar";
-import { useCollectionChapters } from "../../components/collections/useCollections";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 import { formatCollection } from "../../helpers/formatCollection";
+import { useCollectionChapters } from "../../components/collections/useCollections";
+import ChapterNavBar from "../../components/collections/ChapterNavBar";
 import {
-  normalizeSelectionText,
-  getSelectionTextInContainer,
   buildDiscourseTitle,
   findSavedDiscourseForPost,
   serializeHighlightsForSave,
 } from "../../helpers/highlightUtils";
-import { scrollIntoViewSafely } from "../../helpers/scrollIntoViewSafely";
+
+// Scroll an element to the middle of the viewport, animating where that works.
+//
+// Smooth scrolling silently NO-OPS in some Chrome configurations — measured in
+// this project's own browser, where behavior:"auto" moved scrollY to 591 while
+// behavior:"smooth" left it at 13, for both scrollIntoView and window.scrollTo.
+// The failure is invisible: no error, the page simply never moves, which reads
+// as "the jump-to-occurrence button is broken". So try the animated scroll, then
+// check whether anything actually moved and repeat it instantly if not.
+let pendingScrollFallback = null;
+
+const scrollIntoViewSafely = (el) => {
+  if (!el) return;
+  // Cancel any fallback still pending from a previous call. Clicking "next"
+  // twice inside 250ms would otherwise let the FIRST call's timer fire after the
+  // second scroll and drag the reader back to the occurrence they just left —
+  // measured jumping to scrollY 4320 while the active mark sat at the top.
+  if (pendingScrollFallback) clearTimeout(pendingScrollFallback);
+  const before = window.scrollY;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  // A smooth scroll starts moving within a frame or two, so if we are still
+  // exactly where we started after this long, it is never going to happen.
+  pendingScrollFallback = setTimeout(() => {
+    pendingScrollFallback = null;
+    if (Math.abs(window.scrollY - before) < 2) {
+      el.scrollIntoView({ behavior: "auto", block: "center" });
+    }
+  }, 250);
+};
 
 export default function Blog() {
   const { slugId } = useParams();
@@ -51,7 +77,6 @@ export default function Blog() {
     savedDiscourses,
     saveHighlights,
     getSavedDiscourseByTitle,
-    findDiscourseForSave,
     deleteDiscourseRecord,
     clearAnnotations,
     loadingSaved,
@@ -78,11 +103,6 @@ export default function Blog() {
   const [activeHighlightId, setActiveHighlightId] = useState(null);
   const contentRef = useRef(null);
   const matchedRef = useRef(null); // the braces-wrapped matched passage block
-  const pinnedSelectedTextRef = useRef("");
-  const pendingLocalHighlightsRef = useRef(false);
-  const selectionFrozenRef = useRef(false);
-  const showPopoverRef = useRef(false);
-  const highlightsHydratedRef = useRef(false);
 
   // Keyword-route highlighting: one ref per rendered <mark>, in document order,
   // plus which occurrence the find-in-page control is currently sitting on.
@@ -109,58 +129,12 @@ export default function Blog() {
     setHighlights([]);
     setActiveHighlightId(null);
     setShowHighlightPopover(false);
-    pinnedSelectedTextRef.current = "";
-    pendingLocalHighlightsRef.current = false;
-    selectionFrozenRef.current = false;
-    highlightsHydratedRef.current = false;
+    // Without this, jumping between discourses in the citations drawer lands on
+    // the previous document's occurrence index.
+    setActiveMark(0);
+    markRefs.current = [];
+    setKeywordDismissed(false);
   }, [slugId]);
-
-  const getSavedForCurrentPost = useCallback(() => {
-    return findSavedDiscourseForPost(data, savedDiscourses, getSavedDiscourseByTitle);
-  }, [data, savedDiscourses, getSavedDiscourseByTitle]);
-
-  showPopoverRef.current = showHighlightPopover;
-
-  const handleCommentModeChange = useCallback((frozen) => {
-    selectionFrozenRef.current = frozen;
-    if (frozen && contentRef.current) {
-      const text =
-        getSelectionTextInContainer(contentRef.current) ||
-        pinnedSelectedTextRef.current;
-      if (text) {
-        pinnedSelectedTextRef.current = text;
-        setSelectedText(text);
-      }
-    }
-  }, []);
-
-  const resolveSelectedText = useCallback(() => {
-    return (
-      pinnedSelectedTextRef.current ||
-      getSelectionTextInContainer(contentRef.current) ||
-      normalizeSelectionText(selectedText)
-    );
-  }, [selectedText]);
-
-  // Hydrate highlights when the discourse loads. Local state is authoritative
-  // after that — background reloads must not wipe freshly-saved comments.
-  useEffect(() => {
-    if (!data || data._id !== slugId || loadingSaved) return;
-    if (pendingLocalHighlightsRef.current) return;
-
-    const savedHighlights = getSavedForCurrentPost()?.discourse?.highlights || [];
-
-    if (!highlightsHydratedRef.current) {
-      setHighlights(savedHighlights);
-      highlightsHydratedRef.current = true;
-      return;
-    }
-
-    // Server data arrived after the first empty hydrate (slow network).
-    if (highlights.length === 0 && savedHighlights.length > 0) {
-      setHighlights(savedHighlights);
-    }
-  }, [slugId, data, loadingSaved, getSavedForCurrentPost, highlights.length]);
 
   // When a discourse is opened from a citation, scroll the matched passage into
   // view once it has rendered, so the answer is shown immediately.
@@ -172,71 +146,51 @@ export default function Blog() {
     return () => clearTimeout(t);
   }, [data, slugId]);
 
-  // Desktop text selection: fired on mouseup, positions the floating popover
-  // in the right margin.
+  // Load saved discourse highlights for this blog post
+  useEffect(() => {
+    if (!data || data._id !== slugId || loadingSaved) return;
+
+    // Resolves duplicate saved rows by preferring the most-annotated record,
+    // rather than trusting a single title lookup.
+    const savedDiscourse = findSavedDiscourseForPost(
+      data,
+      savedDiscourses,
+      getSavedDiscourseByTitle
+    );
+    setHighlights(savedDiscourse?.discourse?.highlights || []);
+  }, [slugId, data, loadingSaved, savedDiscourses, getSavedDiscourseByTitle]);
+
+  // Handle text selection
   const handleTextSelection = () => {
     const selection = window.getSelection();
-    const selected = selection.toString().trim();
+    const selectedText = selection.toString().trim();
 
-    if (selected.length > 0 && user && user.token) {
+    if (selectedText.length > 0 && user && user.token) {
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
 
+      // Get content container to position popover in the right margin
       const contentContainer = contentRef.current;
       if (!contentContainer) return;
 
       const containerRect = contentContainer.getBoundingClientRect();
 
+      // Position the popover in the right margin, aligned with the selection
+      // Place it to the right of the content area
       setPopoverPosition({
-        x: containerRect.right + 20,
-        y: rect.top,
+        x: containerRect.right + 20, // 20px margin from the right edge of content
+        y: rect.top, // Align with the top of the selection (no need for scrollY, using fixed positioning)
       });
 
-      setSelectedText(selected);
-      pinnedSelectedTextRef.current = normalizeSelectionText(selected);
+      setSelectedText(selectedText);
       setShowHighlightPopover(true);
     } else {
       setShowHighlightPopover(false);
     }
   };
 
-  // Mobile text selection: keep syncing while the action sheet is open so
-  // handle-drag adjustments update the preview. Only freeze once comment mode
-  // starts (keyboard would collapse the selection).
+  // Hide popover on scroll
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.matchMedia("(min-width: 1024px)").matches) return;
-    if (!user || !user.token) return;
-
-    let timer = null;
-    const onSelectionChange = () => {
-      if (selectionFrozenRef.current) return;
-
-      if (timer) clearTimeout(timer);
-      const delay = showPopoverRef.current ? 120 : 450;
-      timer = setTimeout(() => {
-        const text = getSelectionTextInContainer(contentRef.current);
-        if (text.length > 0) {
-          setSelectedText(text);
-          pinnedSelectedTextRef.current = text;
-          setShowHighlightPopover(true);
-        }
-      }, delay);
-    };
-
-    document.addEventListener("selectionchange", onSelectionChange);
-    return () => {
-      document.removeEventListener("selectionchange", onSelectionChange);
-      if (timer) clearTimeout(timer);
-    };
-  }, [user]);
-
-  // Hide popover on scroll (desktop only — on mobile the bottom sheet is
-  // dismissed via its backdrop, and scroll events fire during touch selection).
-  useEffect(() => {
-    if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
-      return;
-    }
     const handleScroll = () => {
       if (showHighlightPopover) {
         setShowHighlightPopover(false);
@@ -249,92 +203,69 @@ export default function Blog() {
   }, [showHighlightPopover]);
 
   // Handle highlight action
-  const handleHighlight = async (passageText) => {
-    const text = normalizeSelectionText(passageText) || resolveSelectedText();
-    if (!text || !user || !data) return false;
+  const handleHighlight = async () => {
+    if (!selectedText || !user || !data) return;
 
     const highlightId = Date.now().toString();
     const newHighlight = {
       id: highlightId,
-      text,
+      text: selectedText,
       comment: null,
       timestamp: new Date().toISOString(),
     };
 
     const previousHighlights = Array.isArray(highlights) ? highlights : [];
     const updatedHighlights = [...previousHighlights, newHighlight];
-    pendingLocalHighlightsRef.current = true;
     setHighlights(updatedHighlights);
 
     const saved = await saveDiscourseWithHighlights(updatedHighlights);
-    pendingLocalHighlightsRef.current = false;
-
-    if (!saved.ok) {
+    if (!saved) {
       setHighlights(previousHighlights);
-      return false;
-    }
-
-    if (saved.highlights) {
-      setHighlights(saved.highlights);
     }
 
     window.getSelection().removeAllRanges();
     setShowHighlightPopover(false);
     setSelectedText("");
-    pinnedSelectedTextRef.current = "";
-    selectionFrozenRef.current = false;
-    return true;
   };
 
-  // Handle comment action — passageText is the snapshot shown in the sheet
-  const handleComment = async (commentText, passageText) => {
-    const text = normalizeSelectionText(passageText) || resolveSelectedText();
-    if (!text || !user || !data) return false;
+  // Handle comment action
+  const handleComment = async (commentText) => {
+    if (!selectedText || !user || !data) return;
 
     const highlightId = Date.now().toString();
     const newHighlight = {
       id: highlightId,
-      text,
+      text: selectedText,
       comment: commentText,
       timestamp: new Date().toISOString(),
     };
 
     const previousHighlights = Array.isArray(highlights) ? highlights : [];
     const updatedHighlights = [...previousHighlights, newHighlight];
-    pendingLocalHighlightsRef.current = true;
     setHighlights(updatedHighlights);
 
     const saved = await saveDiscourseWithHighlights(updatedHighlights);
-    pendingLocalHighlightsRef.current = false;
-
-    if (!saved.ok) {
+    if (!saved) {
       setHighlights(previousHighlights);
-      return false;
-    }
-
-    if (saved.highlights) {
-      setHighlights(saved.highlights);
     }
 
     window.getSelection().removeAllRanges();
     setShowHighlightPopover(false);
     setSelectedText("");
-    pinnedSelectedTextRef.current = "";
-    selectionFrozenRef.current = false;
-    return true;
   };
 
   // Save or update discourse with highlights
   const saveDiscourseWithHighlights = async (highlightsArray) => {
-    if (!user || !user.token || !data) return { ok: false };
+    if (!user || !user.token || !data) return false;
 
     const nextHighlights = Array.isArray(highlightsArray) ? highlightsArray : [];
 
     const discourseTitle = buildDiscourseTitle(data.title, data.collection);
-    const existingSaved = findDiscourseForSave({
-      title: discourseTitle,
-      source_url: `/blog/${data._id}`,
-    });
+    const existingSaved = findSavedDiscourseForPost(
+      data,
+      savedDiscourses,
+      getSavedDiscourseByTitle
+    );
 
     const discourseData = {
       title: discourseTitle,
@@ -345,20 +276,21 @@ export default function Blog() {
     };
 
     if (nextHighlights.length === 0) {
-      if (!existingSaved) return { ok: true, highlights: [] };
+      if (!existingSaved) return true;
       if (existingSaved.bookmarked) {
         const result = await clearAnnotations(existingSaved.id);
-        return { ok: Boolean(result), highlights: result?.discourse?.highlights || [] };
+        return Boolean(result);
       }
       const deleted = await deleteDiscourseRecord(existingSaved.id);
-      return { ok: Boolean(deleted), highlights: [] };
+      return Boolean(deleted);
     }
 
-    const result = await saveHighlights(discourseData, serializeHighlightsForSave(nextHighlights));
-    return {
-      ok: Boolean(result),
-      highlights: result?.discourse?.highlights || nextHighlights,
-    };
+    // Strip DOM range snapshots and other non-JSON-safe fields before persisting.
+    const result = await saveHighlights(
+      discourseData,
+      serializeHighlightsForSave(nextHighlights)
+    );
+    return Boolean(result);
   };
 
   // Remove highlight
@@ -368,10 +300,8 @@ export default function Blog() {
     setHighlights(updatedHighlights);
 
     const saved = await saveDiscourseWithHighlights(updatedHighlights);
-    if (!saved.ok) {
+    if (!saved) {
       setHighlights(previousHighlights);
-    } else if (saved.highlights) {
-      setHighlights(saved.highlights);
     }
   };
 
@@ -774,25 +704,63 @@ export default function Blog() {
     }
 
     return (
-      <div className="w-full min-h-[100dvh] overflow-x-hidden">
+      <div className="w-full">
+        {/* Find-in-page control for a keyword search. Fixed rather than placed in
+            the page header: the header is a 375px hero that scrolls away, and a
+            "next" button you have to scroll back up to reach is no use. */}
+        {keywordTerm && keywordCount > 0 && (
+          <div className="fixed top-4 right-4 z-40 flex items-center gap-3 rounded-full border border-orange-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur">
+            <span className="text-sm text-gray-700">
+              &ldquo;{keywordTerm}&rdquo;
+            </span>
+            <span className="text-sm tabular-nums text-gray-500">
+              {activeMark + 1} of {keywordCount}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => goToMark(-1)}
+                aria-label="Previous occurrence"
+                className="rounded-full p-1 text-gray-600 hover:bg-orange-100 hover:text-orange-600"
+              >
+                <IoChevronUp size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => goToMark(1)}
+                aria-label="Next occurrence"
+                className="rounded-full p-1 text-gray-600 hover:bg-orange-100 hover:text-orange-600"
+              >
+                <IoChevronDown size={18} />
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setKeywordDismissed(true)}
+              aria-label="Stop highlighting"
+              title="Stop highlighting"
+              className="rounded-full p-1 text-red-500 hover:bg-red-50 hover:text-red-700 border-l border-gray-200 pl-2 ml-1"
+            >
+              <MdClose size={16} />
+            </button>
+          </div>
+        )}
+
         {/* Text Highlight Popover */}
         <TextHighlightPopover
           visible={showHighlightPopover}
           position={popoverPosition}
-          selectedTextPreview={selectedText}
           onHighlight={handleHighlight}
           onComment={handleComment}
-          onCommentModeChange={handleCommentModeChange}
           onClose={() => {
-            selectionFrozenRef.current = false;
             setShowHighlightPopover(false);
             window.getSelection().removeAllRanges();
           }}
         />
 
         <div className="w-full min-h-[240px] sm:min-h-[320px] md:h-[375px] flex flex-col bg-[#FE9F440A] items-center">
-          <div className="p-4 sm:p-6 md:p-9 flex flex-col sm:flex-row justify-between w-full max-w-[1400px] items-start gap-3 sm:gap-4">
-            <div className="flex flex-col gap-2 w-full sm:w-auto">
+          <div className="p-4 sm:p-6 md:p-9 flex flex-wrap justify-between w-full max-w-[1400px] items-start gap-3 sm:gap-4">
+            <div className="flex flex-col gap-2">
               <Logo />
               {user?.token && (
                 <HighlightsSidebar
@@ -803,32 +771,50 @@ export default function Blog() {
                 />
               )}
             </div>
-            <div className="self-end sm:self-auto w-full sm:w-auto">
-              <Navbar variant="blog" />
+            {/* Mirror of the Logo + Highlights stack on the left. Navbar's root
+                carries w-full, so it needs a min-w-0 box or it claims the whole
+                line and stretches this column on narrow screens. */}
+            <div className="flex flex-col gap-2 items-end min-w-0">
+              <div className="min-w-0">
+                <Navbar variant="blog" />
+              </div>
+              <OtherSearchResultsMenu
+                citations={citations}
+                activeId={slugId}
+                linkState={state}
+                getSavedDiscourseByTitle={getSavedDiscourseByTitle}
+                user={user}
+              />
             </div>
           </div>
-          <h1 className="text-lg sm:text-xl md:text-[22px] text-center font-bold mb-6 sm:mb-10 px-4 max-w-3xl">
+          <h1 className="text-lg sm:text-xl md:text-[22px] text-center font-bold mb-4 px-4 max-w-3xl">
             {post?.title}
           </h1>
 
-          <Link to="/">
-            <button className="gap-1 shadow px-4 py-2 bg-orange-400 text-white flex items-center rounded mb-2 text-sm sm:text-base">
-              <LuPencilLine size={18} />
-              {state?.citations?.length
-                ? "Go back to chat"
-                : "Ask your question"}
+          <Link to="/home">
+            {/* Styled as a twin of the header pills rather than a filled CTA. */}
+            <button className="flex items-center gap-2 px-4 py-2 mb-2 rounded-lg shadow-sm transition-all border-[1.5px] bg-white border-orange-200/80 hover:bg-orange-50">
+              <LuPencilLine size={18} className="text-orange-500 flex-shrink-0" />
+              <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
+                Return to Search
+              </span>
             </button>
           </Link>
-          <div className="w-full overflow-hidden">
-            <img src={bgflower} alt="" className="w-full" />
+          <div>
+            <img src={bgflower} alt="" className="w-full " />
           </div>
         </div>
-        <div className="flex flex-wrap md:flex-nowrap justify-center items-start w-full max-w-[1400px] mx-auto md:gap-4 gap-4 leading-8 px-3 sm:px-4">
+        <div className="flex flex-wrap md:flex-nowrap justify-center items-start w-[96vw] max-w-[1400px] mx-auto md:gap-4 gap-4 leading-8 px-3 sm:px-4">
           <div className="flex flex-col w-full md:w-[800px] md:flex-shrink-0 border border-gray-300 rounded shadow p-4 sm:p-6 md:p-8 gap-6 sm:gap-8 relative -top-12 sm:-top-16 md:-top-20 bg-white">
+            {chapterNav && (
+              <div className="flex justify-center border-b border-orange-100 pb-2 -mb-4">
+                {chapterNav}
+              </div>
+            )}
             <h2 className="text-lg sm:text-[20px] mt-2 sm:mt-4 text-center font-bold text-[#4D4D4D]">
               {post?.occasion}
             </h2>
-            <div className="w-full flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
+            <div className="w-full flex flex-wrap gap-x-6 gap-y-2 justify-between">
               {post.collection && (
                 <div className="flex gap-2 text-sm items-center">
                   <IoMdList size={18} className="text-orange-400" />
@@ -851,12 +837,8 @@ export default function Blog() {
               )}
             </div>
             <div className="p-2 sm:p-4 md:p-8 flex flex-col gap-6 sm:gap-8" ref={contentRef}>
-              {/* Content with text selection enabled */}
-              <div
-                onMouseUp={handleTextSelection}
-                className="select-text cursor-text pb-[30vh] sm:pb-[40vh] md:pb-[50vh]"
-                style={{ WebkitUserSelect: "text", WebkitTouchCallout: "default" }}
-              >
+              {/* Content with text selection enabled - Added padding bottom for scroll space */}
+              <div onMouseUp={handleTextSelection} className="select-text cursor-text pb-[30vh] sm:pb-[40vh] md:pb-[50vh]">
                 {contentLines.map((text, index) => {
                   // The paragraph holding the quote: highlight just the quote span
                   // and anchor the scroll ref to it.

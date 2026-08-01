@@ -19,7 +19,10 @@ const Chatpage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches
   );
-  const [activeTab, setActiveTab] = useState("chat"); // "chat" | "browse"
+  // Tab state lives in the URL (?tab=...) so Collections deep links
+  // (/home?tab=collections&book=...) and the browser back button work.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "chat"; // "chat" | "browse" | "collections" | "howto"
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
 
@@ -416,6 +419,7 @@ const Chatpage = () => {
 
   const navTabs = [
     { key: "chat", label: "Questions", shortLabel: "Questions" },
+    { key: "collections", label: "Collections", shortLabel: "Collections" },
     { key: "browse", label: "Saved Discourses", shortLabel: "Saved" },
     { key: "howto", label: "How to Use", shortLabel: "How to" },
   ];
@@ -506,7 +510,7 @@ const Chatpage = () => {
                   <button
                     key={tab.key}
                     type="button"
-                    onClick={() => setActiveTab(tab.key)}
+                    onClick={() => handleTabSelect(tab.key)}
                     className={`rounded-md px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                       activeTab === tab.key
                         ? "bg-[#BC5B01] text-white shadow-sm"
@@ -538,7 +542,7 @@ const Chatpage = () => {
           />
         )}
         {activeTab === "collections" && (
-          <div className="flex-grow overflow-hidden pt-16">
+          <div className="flex-grow overflow-hidden pt-[4.5rem] sm:pt-16">
             <CollectionsTab />
           </div>
         )}
