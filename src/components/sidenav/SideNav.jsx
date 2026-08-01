@@ -25,6 +25,7 @@ export default function SideNav({
   onChatSelect = () => { },
   onDeleteChat = () => { },
   loading = false,
+  onClose = () => { },
 }) {
   const {
     bookmarkedDiscourses,
@@ -36,14 +37,12 @@ export default function SideNav({
 
   const [sectionData, setSectionData] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
-  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(false);
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(true); // Expanded by default
+  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(true); // Expanded by default
   const [annotationsOpen, setAnnotationsOpen] = useState(false);
   const [selectedSavedDiscourse, setSelectedSavedDiscourse] = useState(null);
   const [selectedAnnotatedDiscourse, setSelectedAnnotatedDiscourse] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
-  const [chatHistoryOpen, setChatHistoryOpen] = useState(true); // Expanded by default
-  const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(true); // Expanded by default
   const [selectedDiscourse, setSelectedDiscourse] = useState(null);
   const [discourseToDelete, setDiscourseToDelete] = useState(null); // For delete confirmation modal
 
@@ -107,33 +106,42 @@ export default function SideNav({
     setPendingAction(null);
   };
 
+  const handleChatSelect = (threadId) => {
+    onChatSelect(threadId);
+    onClose();
+  };
+
+  const handleStartNewChat = () => {
+    startNewChatCallback();
+    onClose();
+  };
+
   return (
-    <div className="w-full flex flex-col gap-2 p-4 text-sm h-[100vh] z-50 bg-white font-ui">
-      <div>
+    <div className="w-full flex flex-col gap-3 p-4 sm:p-5 text-sm h-full min-h-0 z-50 bg-[#FFFBF8] md:bg-[#FFFBF8]">
+      <div className="mb-1">
         <Logo />
       </div>
-      <div className="w-full border rounded border-[#BC5B01] flex gap-2 justify-center items-center bg-white">
-        <div className="ml-2 text-[#BC5B01]">
-          <IoMdSearch size={20} />
-        </div>
+
+      <div className="w-full rounded-full border border-orange-200/70 bg-white flex items-center gap-2 pl-3 pr-3 py-0.5 shadow-sm focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+        <IoMdSearch size={18} className="text-primary shrink-0" />
         <input
           type="text"
           placeholder="Find past questions and saved discourses"
-          className="w-full p-2 outline-none -ml-2 bg-transparent text-base font-semibold placeholder:font-semibold"
+          className="w-full py-2.5 outline-none bg-transparent text-sm text-gray-800 placeholder:text-gray-400"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
-      <div className="mt-4 flex flex-col gap-2 flex-grow overflow-y-scroll no-scrollbar">
+      <div className="mt-2 flex flex-col gap-1 flex-grow overflow-y-scroll no-scrollbar">
         {/* Chat History Accordion */}
-        <div className="border-b-2 border-gray-400">
+        <div className="border-b border-orange-100/80">
           <button
             onClick={() => setChatHistoryOpen(!chatHistoryOpen)}
-            className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
+            className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-orange-50/60 rounded-lg transition-colors"
           >
-            <span className="font-semibold text-lg text-gray-800 flex items-center gap-2">
-              <IoChatbubbleEllipsesOutline size={20} className="text-primary" />
+            <span className="font-semibold text-sm text-gray-800 flex items-center gap-2">
+              <IoChatbubbleEllipsesOutline size={18} className="text-primary" />
               Question History ({threads.length})
             </span>
             {chatHistoryOpen ? <IoChevronUp size={20} /> : <IoChevronDown size={20} />}
@@ -152,12 +160,12 @@ export default function SideNav({
                     key={key}
                     monthYear={key}
                     threads={filteredThreads(sectionData[key])}
-                    onChatSelect={onChatSelect}
+                    onChatSelect={handleChatSelect}
                     onDeleteChat={onDeleteChat}
                   />
                 ))
               ) : (
-                <div className="flex items-center justify-center py-8 text-gray-800 text-lg">
+                <div className="flex items-center justify-center py-8 text-gray-800 text-sm">
                   <span>No chats yet</span>
                 </div>
               )}
@@ -166,12 +174,12 @@ export default function SideNav({
         </div>
 
         {/* Saved Discourses Accordion */}
-        <div className="border-b-2 border-gray-400">
+        <div className="border-b border-orange-100/80">
           <button
             onClick={() => setSavedDiscoursesOpen(!savedDiscoursesOpen)}
-            className="w-full flex items-center justify-between py-3 px-2 hover:bg-gray-50 rounded transition-colors"
+            className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-orange-50/60 rounded-lg transition-colors"
           >
-            <span className="font-semibold text-lg text-gray-800 flex items-center gap-2">
+            <span className="font-semibold text-sm text-gray-800 flex items-center gap-2">
               <BsBookmarkStarFill size={18} className="text-primary" />
               Saved Discourses ({bookmarkedDiscourses.length})
             </span>
@@ -190,14 +198,14 @@ export default function SideNav({
                   {bookmarkedDiscourses.map((saved) => (
                     <div
                       key={saved.id}
-                      className="p-2 hover:bg-orange-50 rounded cursor-pointer border border-transparent hover:border-orange-300 transition-all group"
+                      className="p-2.5 hover:bg-orange-50/70 rounded-lg cursor-pointer border border-transparent hover:border-orange-200/60 transition-all group"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div
                           className="flex-1 min-w-0"
                           onClick={() => setSelectedSavedDiscourse(saved)}
                         >
-                          <p className="font-bold text-gray-900 text-base truncate flex items-center gap-2">
+                          <p className="font-bold text-gray-900 text-sm truncate flex items-center gap-2">
                             {splitSavedTitle(saved.discourse.title).title}
                             {saved.discourse.highlights && saved.discourse.highlights.length > 0 && (
                               <span className="inline-flex items-center justify-center bg-yellow-200 text-yellow-800 text-xs font-bold px-2 py-0.5 rounded-full">
@@ -234,46 +242,26 @@ export default function SideNav({
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-800 text-center px-2">
                   <BsBookmarkFill size={32} className="text-primary/40 mb-2" />
-                  <span className="text-lg">No saved discourses yet</span>
-                  <span className="text-base mt-1">Click the bookmark icon on any discourse to save it</span>
+                  <span className="text-sm">No saved discourses yet</span>
+                  <span className="text-xs mt-1">Click the bookmark icon on any discourse to save it</span>
                 </div>
               )}
             </div>
           )}
         </div>
 
-      {/* Modal for viewing saved discourse */}
-      {selectedDiscourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-800">
-                {formatCollection(selectedDiscourse.discourse.title)}
-              </h2>
-              <button
-                onClick={handleCloseDiscourseModal}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="p-6">
-              {/* Show question context only if it's valid */}
-              {selectedDiscourse.question_context &&
-                selectedDiscourse.question_context.trim() !== "" &&
-                selectedDiscourse.question_context !== "No question provided" &&
-                selectedDiscourse.question_context !== "From blog page" &&
-                selectedDiscourse.question_context !== "Browsing discourses" && (
-                  <div className="mb-4 bg-orange-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">
-                      <strong>You discovered this while asking:</strong>
-                    </p>
-                    <p className="text-sm text-gray-800 italic mt-1">
-                      "{selectedDiscourse.question_context}"
-                    </p>
-                  </div>
-                )}
+        {/* Annotations Accordion */}
+        <div className="border-b border-orange-100/80">
+          <button
+            onClick={() => setAnnotationsOpen(!annotationsOpen)}
+            className="w-full flex items-center justify-between py-2.5 px-1 hover:bg-orange-50/60 rounded-lg transition-colors"
+          >
+            <span className="font-semibold text-sm text-gray-800 flex items-center gap-2">
+              <MdOutlineAutoStories size={18} className="text-primary" />
+              Highlights & Notes ({annotatedDiscourses.length})
+            </span>
+            {annotationsOpen ? <IoChevronUp size={20} /> : <IoChevronDown size={20} />}
+          </button>
 
           {annotationsOpen && (
             <div className="py-2">
@@ -285,44 +273,45 @@ export default function SideNav({
               ) : annotatedDiscourses.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   {annotatedDiscourses.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-2 hover:bg-orange-50 rounded border border-transparent hover:border-orange-300 transition-all group"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-800 text-sm truncate">
-                              {item.discourse.title}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              {item.discourse.source_url && (
-                                <Link
-                                  to={item.discourse.source_url}
-                                  className="inline-flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600"
-                                >
-                                  Open discourse
-                                  <GoArrowUpRight size={12} />
-                                </Link>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setSelectedAnnotatedDiscourse(item)}
-                                className="text-xs font-medium text-gray-500 hover:text-gray-700"
+                    <div
+                      key={item.id}
+                      className="p-2.5 hover:bg-orange-50/70 rounded-lg cursor-pointer border border-transparent hover:border-orange-200/60 transition-all group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-800 text-sm truncate">
+                            {item.discourse.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {item.discourse.source_url && (
+                              <Link
+                                to={item.discourse.source_url}
+                                onClick={onClose}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600"
                               >
-                                Quick view
-                              </button>
-                            </div>
+                                Open discourse
+                                <GoArrowUpRight size={12} />
+                              </Link>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAnnotatedDiscourse(item)}
+                              className="text-xs font-medium text-gray-500 hover:text-gray-700"
+                            >
+                              Quick view
+                            </button>
                           </div>
-                          <button
-                            onClick={() => setPendingAction({ type: "annotations", id: item.id })}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
-                            title="Remove all annotations"
-                          >
-                            <BsTrash size={14} className="text-red-600" />
-                          </button>
                         </div>
+                        <button
+                          onClick={() => setPendingAction({ type: "annotations", id: item.id })}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 rounded"
+                          title="Remove all annotations"
+                        >
+                          <BsTrash size={14} className="text-red-600" />
+                        </button>
                       </div>
-                    ))}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-500 text-center px-2">
@@ -336,12 +325,14 @@ export default function SideNav({
         </div>
       </div>
 
-      <div>
-        <div
-          onClick={() => startNewChatCallback()}
-          className="bg-[#BC5B01] text-white flex items-center justify-center font-bold text-lg w-full py-4 px-2 rounded cursor-pointer hover:bg-orange-600 transition-colors">
-          <p className="ml-2 text-base">Ask a new question</p>
-        </div>
+      <div className="pt-2">
+        <button
+          type="button"
+          onClick={handleStartNewChat}
+          className="w-full rounded-full bg-primary text-white flex items-center justify-center py-3 px-4 text-sm font-semibold shadow-md hover:bg-orange-600 active:scale-[0.98] transition-all"
+        >
+          Ask a new question
+        </button>
       </div>
 
       <SavedDiscourseModal
@@ -359,8 +350,14 @@ export default function SideNav({
       />
 
       {pendingAction && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-[60] font-ui">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-fadeIn border border-orange-100 overflow-hidden">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4"
+          onClick={() => setPendingAction(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-fadeIn border border-orange-100 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="px-6 py-5 border-b border-orange-100 bg-gradient-to-r from-orange-50 to-white">
               <h3 className="text-base font-semibold text-gray-800">
                 {pendingAction.type === "bookmark"

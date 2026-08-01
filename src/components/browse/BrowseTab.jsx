@@ -70,12 +70,12 @@ function SavedDiscourseCard({ saved, onRemove }) {
   const discSource = titleMatch ? titleMatch[2] : "";
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-orange-200 hover:shadow-md">
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6 shadow-sm transition hover:border-orange-200 hover:shadow-md">
+      <div className="flex items-start justify-between gap-3 sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-bold text-gray-900">{discTitle}</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 break-words">{discTitle}</h2>
           {discSource && (
-            <p className="text-lg text-gray-600">{formatCollection(discSource)}</p>
+            <p className="text-base sm:text-lg text-gray-600 break-words">{formatCollection(discSource)}</p>
           )}
           {saved_at && (
             <p className="mt-1 text-sm text-gray-500">
@@ -86,7 +86,7 @@ function SavedDiscourseCard({ saved, onRemove }) {
         <button
           onClick={() => onRemove(saved.id)}
           title="Remove from saved"
-          className="shrink-0 rounded p-2 text-red-600 transition-colors hover:bg-red-100"
+          className="shrink-0 rounded p-2.5 sm:p-2 text-red-600 transition-colors hover:bg-red-100"
         >
           <BsTrash size={18} />
         </button>
@@ -131,15 +131,15 @@ export default function BrowseTab() {
   return (
     <div className="relative isolate h-full overflow-hidden">
       <DecorativeBackground />
-      <div className="h-full overflow-y-auto px-6 py-6">
-      <div className="mb-6 text-center">
+      <div className="h-full overflow-y-auto px-3 sm:px-6 py-4 sm:py-6">
+      <div className="mb-5 sm:mb-6 text-center px-2">
         <h1
-          className="text-3xl font-semibold text-gray-800"
+          className="text-2xl sm:text-3xl font-semibold text-gray-800"
           style={{ fontFamily: "'EB Garamond', serif" }}
         >
           Browse Saved Discourses
         </h1>
-        <p className="mt-1 text-base text-gray-800">
+        <p className="mt-1 text-sm sm:text-base text-gray-800">
           Your saved discourses, with your highlights and comments.
         </p>
       </div>

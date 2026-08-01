@@ -31,8 +31,8 @@ export default function Feedback({
 
   if (isSubmitted) {
     return (
-      <div className="w-[580px] h-[50vh] bg-white flex justify-center items-center flex-col gap-4 p-10 text-[14px]">
-        <div className="text-[#252525] text-2xl font-semibold text-center">
+      <div className="w-full max-w-[92vw] sm:max-w-lg min-h-[40vh] bg-white flex justify-center items-center flex-col gap-4 p-6 sm:p-10 text-[14px] rounded-xl">
+        <div className="text-[#252525] text-xl sm:text-2xl font-semibold text-center">
           Thank You for your Feedback!
         </div>
       </div>
@@ -40,12 +40,15 @@ export default function Feedback({
   }
 
   return (
-    <div className="w-[640px] max-w-[92vw] max-h-[88vh] overflow-y-auto rounded-xl shadow-2xl bg-white flex justify-start items-center flex-col gap-5 p-10 text-[14px]">
-      <div className="w-full flex justify-end px-2">
+    <div className="w-full max-w-[92vw] sm:max-w-2xl max-h-[88vh] overflow-y-auto rounded-xl shadow-2xl bg-white flex justify-start items-center flex-col gap-4 sm:gap-5 p-6 sm:p-10 text-[14px]">
+      <div className="w-full flex justify-end">
         <button
-          className="text-orange-400"
-          onClick={() => closeModalCallback()}>
-          <IoMdClose size={18} />{" "}
+          type="button"
+          className="p-2 -mr-2 text-orange-400 hover:text-orange-600"
+          onClick={() => closeModalCallback()}
+          aria-label="Close"
+        >
+          <IoMdClose size={22} />
         </button>
       </div>
       {title && (
@@ -65,11 +68,11 @@ export default function Feedback({
           return (
             <div
               key={index}
-              className={`px-2 py-1 border ${
+              className={`px-3 py-2 min-h-[44px] flex items-center border ${
                 selectedOption === option
                   ? "bg-[#B6C4AB]"
                   : "bg-[#E0E6DB] hover:bg-[#B6C4AB]"
-              } border-gray-300 rounded cursor-pointer font-medium text-lg`}
+              } border-gray-300 rounded cursor-pointer font-medium text-base sm:text-lg`}
               onClick={() => setSelectedOption(option)}>
               {option}
             </div>

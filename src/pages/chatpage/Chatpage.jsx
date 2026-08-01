@@ -14,7 +14,9 @@ const Chatpage = () => {
   const [selectedThreadId, setSelectedThreadId] = useState(null);
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [sidebarVisible, setSidebarVisible] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches
+  );
   const [activeTab, setActiveTab] = useState("chat"); // "chat" | "browse"
   const initialChatCreatedRef = useRef(false);
   const { user } = useAuth();
@@ -28,6 +30,10 @@ const Chatpage = () => {
 
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible);
+  };
+
+  const closeSidebar = () => {
+    setSidebarVisible(false);
   };
 
   // Reload saved discourses when component mounts or comes into view
@@ -400,27 +406,73 @@ const Chatpage = () => {
     };
   }, [selectedThreadId]);
 
+  const navTabs = [
+    { key: "chat", label: "Questions", shortLabel: "Questions" },
+    { key: "browse", label: "Saved Discourses", shortLabel: "Saved" },
+    { key: "howto", label: "How to Use", shortLabel: "How to" },
+  ];
+
+  const sideNavProps = {
+    startNewChatCallback: handleNewChat,
+    onChatSelect: handleChatSelect,
+    onDeleteChat: handleDeleteChat,
+    threads,
+    loading,
+    onClose: closeSidebar,
+  };
+
   return (
-    <div className="w-full h-[100vh] flex overflow-hidden bg-white">
-      {/* Sidebar */}
-      <div className={`bg-white shadow-lg flex-col overflow-hidden transition-all duration-300 ${sidebarVisible ? 'w-[340px] border-r-2 border-primary/40' : 'w-0'
-        } hidden md:flex`}>
-        <SideNav
-          startNewChatCallback={handleNewChat}
-          onChatSelect={handleChatSelect}
-          onDeleteChat={handleDeleteChat}
-          threads={threads}
-          loading={loading}
-        />
+    <div className="relative w-full h-[100dvh] flex overflow-hidden bg-white">
+      {/* Mobile sidebar backdrop. Positioned `absolute` inside this
+          non-scrolling 100dvh root (not `fixed`) — iOS Safari fails to repaint
+          position:fixed overlays when the root has overflow clipping, leaving
+          ghost/shaded bands. Absolute within a static container avoids that. */}
+      <button
+        type="button"
+        aria-label="Close menu"
+        tabIndex={sidebarVisible ? 0 : -1}
+        className={`absolute inset-0 z-40 bg-black/40 md:hidden transition-opacity duration-300 ${
+          sidebarVisible ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={closeSidebar}
+      />
+
+      {/* Mobile slide-in drawer */}
+      <div
+        className={`absolute inset-y-0 left-0 z-50 w-[min(340px,88vw)] bg-[#FFFBF8] shadow-xl transform transition-transform duration-300 ease-out md:hidden ${
+          sidebarVisible ? "translate-x-0" : "-translate-x-full pointer-events-none"
+        }`}
+        aria-hidden={!sidebarVisible}
+      >
+        <SideNav {...sideNavProps} />
       </div>
 
+      {/* Desktop docked sidebar */}
+      <div
+        className={`hidden md:flex flex-col overflow-hidden transition-all duration-300 flex-shrink-0 bg-[#FFFBF8] ${
+          sidebarVisible ? "w-[340px]" : "w-0"
+        }`}
+      >
+        <SideNav {...sideNavProps} />
+      </div>
+
+      {/* Desktop sidebar edge — soft gradient instead of a hard border */}
+      {sidebarVisible && (
+        <div
+          className="hidden md:block w-px shrink-0 self-stretch bg-gradient-to-b from-transparent via-orange-200/50 to-transparent shadow-[2px_0_12px_-4px_rgba(188,91,1,0.08)]"
+          aria-hidden="true"
+        />
+      )}
+
       {/* Main Content */}
-      <div className={`flex flex-col flex-grow mt-2 relative transition-all duration-300 ${sidebarVisible ? 'ml-0' : 'ml-0'
-        }`}>
-        {/* Hamburger Button */}
+      <div className="flex flex-col flex-grow min-w-0 relative overflow-x-hidden">
+        {/* Hamburger — mobile opens drawer; desktop toggles docked sidebar */}
         <button
+          type="button"
           onClick={toggleSidebar}
-          className="absolute top-4 left-4 z-40 p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+          aria-label={sidebarVisible ? "Close menu" : "Open menu"}
+          aria-expanded={sidebarVisible}
+          className="absolute top-3 left-3 z-40 p-2.5 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors md:top-4 md:left-4"
         >
           <svg
             className="w-6 h-6 text-gray-600"
@@ -441,21 +493,20 @@ const Chatpage = () => {
         <div className="absolute top-0 left-0 right-0 z-30">
           <Navbar
             tabs={
-              <div className="flex items-center gap-1 rounded-lg bg-white/90 p-1 shadow-md backdrop-blur-sm">
-                {[
-                  { key: "chat", label: "Questions" },
-                  { key: "browse", label: "Saved Discourses" },
-                  { key: "howto", label: "How to Use" },
-                ].map((tab) => (
+              <div className="flex items-center gap-0.5 sm:gap-1 rounded-lg bg-white/90 p-0.5 sm:p-1 shadow-md backdrop-blur-sm overflow-x-auto max-w-[calc(100vw-7rem)] sm:max-w-none no-scrollbar">
+                {navTabs.map((tab) => (
                   <button
                     key={tab.key}
+                    type="button"
                     onClick={() => setActiveTab(tab.key)}
-                    className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${activeTab === tab.key
-                      ? "bg-[#BC5B01] text-white shadow-sm"
-                      : "text-gray-600 hover:bg-orange-50 hover:text-[#BC5B01]"
-                      }`}
+                    className={`rounded-md px-2.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                      activeTab === tab.key
+                        ? "bg-[#BC5B01] text-white shadow-sm"
+                        : "text-gray-600 hover:bg-orange-50 hover:text-[#BC5B01]"
+                    }`}
                   >
-                    {tab.label}
+                    <span className="sm:hidden">{tab.shortLabel}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
                   </button>
                 ))}
               </div>
@@ -479,12 +530,12 @@ const Chatpage = () => {
           />
         )}
         {activeTab === "browse" && (
-          <div className="flex-grow overflow-hidden pt-16">
+          <div className="flex-grow overflow-hidden pt-[4.5rem] sm:pt-16">
             <BrowseTab />
           </div>
         )}
         {activeTab === "howto" && (
-          <div className="flex-grow overflow-hidden pt-16">
+          <div className="flex-grow overflow-hidden pt-[4.5rem] sm:pt-16">
             <HowToTab />
           </div>
         )}

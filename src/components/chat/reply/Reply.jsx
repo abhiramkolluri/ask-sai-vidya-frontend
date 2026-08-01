@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   IoCopyOutline,
@@ -7,15 +7,16 @@ import {
   IoThumbsUpOutline,
 } from "react-icons/io5";
 import { BsBookmark, BsBookmarkFill } from "react-icons/bs";
-import { GoArrowUpRight } from "react-icons/go";
 import { FaSpinner } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { apiRoute, submitFeedback } from "../../../helpers/apiRoute";
 import { formatCollection } from "../../../helpers/formatCollection";
+import { normalizeSelectionText, getSelectionTextInContainer } from "../../../helpers/highlightUtils";
 
 import Feedback from "../../feedback/Feedback";
 import TextHighlightPopover from "../TextHighlightPopover";
 import { useSavedDiscourses } from "../../../contexts/SavedDiscoursesContext";
+import FollowUpQuestions from "../../followups/FollowUpQuestions";
 
 export default function Reply({
   question = "What the user asked?",
@@ -28,12 +29,17 @@ export default function Reply({
   onUnsaveDiscourse,
   user = null,
   onHighlightChange = () => { },
+  followUps = [],
+  onFollowUpClick = () => { },
+  onGenerateFollowups = () => { },
+  followUpsLoading = false,
 }) {
   const {
     isDiscourseBookmarked,
     saveHighlights,
     getDiscourseByTitle,
   } = useSavedDiscourses();
+  const navigate = useNavigate();
   const [showFeedbackModal, setshowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState(null); // 'up' or 'down'
   const [feedbackItem, setFeedbackItem] = useState(null); // the discourse feedback is for
@@ -46,6 +52,38 @@ export default function Reply({
   const [currentDiscourseId, setCurrentDiscourseId] = useState(null);
   const [highlights, setHighlights] = useState({}); // { discourseId: [{ id, text, comment, ... }] }
   const contentRefs = useRef({}); // Store refs for each discourse content
+  const pinnedSelectedTextRef = useRef("");
+  const selectionFrozenRef = useRef(false);
+  const showPopoverRef = useRef(false);
+  showPopoverRef.current = showHighlightPopover;
+
+  const resolveSelectedText = useCallback(() => {
+    const container = currentDiscourseId
+      ? contentRefs.current[currentDiscourseId]
+      : null;
+    return (
+      pinnedSelectedTextRef.current ||
+      getSelectionTextInContainer(container) ||
+      normalizeSelectionText(selectedText)
+    );
+  }, [currentDiscourseId, selectedText]);
+
+  const handleCommentModeChange = useCallback(
+    (frozen) => {
+      selectionFrozenRef.current = frozen;
+      if (frozen && currentDiscourseId) {
+        const container = contentRefs.current[currentDiscourseId];
+        const text =
+          getSelectionTextInContainer(container) ||
+          pinnedSelectedTextRef.current;
+        if (text) {
+          pinnedSelectedTextRef.current = text;
+          setSelectedText(text);
+        }
+      }
+    },
+    [currentDiscourseId]
+  );
 
   // Handle text selection in discourse content
   const handleTextSelection = (discourseId) => {
@@ -56,20 +94,21 @@ export default function Reply({
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
 
-      // Get the discourse content container to position popover in the right margin
       const contentContainer = contentRefs.current[discourseId];
       if (!contentContainer) return;
 
       const containerRect = contentContainer.getBoundingClientRect();
+      const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
 
-      // Position the popover in the right margin, aligned with the selection
-      // Place it to the right of the content area
-      setPopoverPosition({
-        x: containerRect.right + 20, // 20px margin from the right edge of content
-        y: rect.top, // Align with the top of the selection (using fixed positioning)
-      });
+      if (isDesktop) {
+        setPopoverPosition({
+          x: containerRect.right + 20,
+          y: rect.top,
+        });
+      }
 
       setSelectedText(selectedText);
+      pinnedSelectedTextRef.current = normalizeSelectionText(selectedText);
       setSelectionRange({
         startContainer: range.startContainer,
         startOffset: range.startOffset,
@@ -84,8 +123,61 @@ export default function Reply({
     }
   };
 
-  // Hide popover on scroll - using useEffect at the component level
+  // Mobile text selection: keep syncing while the sheet is open so handle
+  // adjustments update the preview; freeze only in comment mode.
   React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(min-width: 1024px)").matches) return;
+    if (!user || !user.token) return;
+
+    let timer = null;
+    const onSelectionChange = () => {
+      if (selectionFrozenRef.current) return;
+
+      if (timer) clearTimeout(timer);
+      const delay = showPopoverRef.current ? 120 : 450;
+      timer = setTimeout(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+
+        const entry = Object.entries(contentRefs.current).find(([, el]) => {
+          if (!el) return false;
+          return el.contains(selection.getRangeAt(0).commonAncestorContainer);
+        });
+        if (!entry) return;
+
+        const [discourseId, el] = entry;
+        const text = getSelectionTextInContainer(el);
+        if (!text) return;
+
+        const range = selection.getRangeAt(0);
+        setSelectedText(text);
+        pinnedSelectedTextRef.current = text;
+        setSelectionRange({
+          startContainer: range.startContainer,
+          startOffset: range.startOffset,
+          endContainer: range.endContainer,
+          endOffset: range.endOffset,
+          text,
+        });
+        setCurrentDiscourseId(discourseId);
+        setShowHighlightPopover(true);
+      }, delay);
+    };
+
+    document.addEventListener("selectionchange", onSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", onSelectionChange);
+      if (timer) clearTimeout(timer);
+    };
+  }, [user]);
+
+  // Hide popover on scroll (desktop only — on mobile the bottom sheet is
+  // dismissed via its backdrop, and scroll fires during touch selection).
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
+      return;
+    }
     const handleScroll = () => {
       if (showHighlightPopover) {
         setShowHighlightPopover(false);
@@ -118,65 +210,69 @@ export default function Reply({
   }, [getDiscourseByTitle, reply]);
 
   // Handle highlight action
-  const handleHighlight = async () => {
-    if (!selectedText || !currentDiscourseId || !user) return;
+  const handleHighlight = async (passageText) => {
+    const text = normalizeSelectionText(passageText) || resolveSelectedText();
+    if (!text || !currentDiscourseId || !user) return false;
 
     const highlightId = Date.now().toString();
     const newHighlight = {
       id: highlightId,
-      text: selectedText,
+      text,
       comment: null,
       timestamp: new Date().toISOString(),
       range: selectionRange,
     };
 
-    // Add highlight to state
+    const updatedForDiscourse = [...(highlights[currentDiscourseId] || []), newHighlight];
     setHighlights(prev => ({
       ...prev,
-      [currentDiscourseId]: [...(prev[currentDiscourseId] || []), newHighlight],
+      [currentDiscourseId]: updatedForDiscourse,
     }));
 
-    // Auto-save discourse with highlight
     const citation = citations.find(c => c._id === currentDiscourseId);
     if (citation) {
-      await autoSaveDiscourseWithHighlights(citation, [...(highlights[currentDiscourseId] || []), newHighlight]);
+      await autoSaveDiscourseWithHighlights(citation, updatedForDiscourse);
     }
 
-    // Clear selection
     window.getSelection().removeAllRanges();
     setShowHighlightPopover(false);
     setSelectedText("");
+    pinnedSelectedTextRef.current = "";
+    selectionFrozenRef.current = false;
+    return true;
   };
 
   // Handle comment action
-  const handleComment = async (commentText) => {
-    if (!selectedText || !currentDiscourseId || !user) return;
+  const handleComment = async (commentText, passageText) => {
+    const text = normalizeSelectionText(passageText) || resolveSelectedText();
+    if (!text || !currentDiscourseId || !user) return false;
 
     const highlightId = Date.now().toString();
     const newHighlight = {
       id: highlightId,
-      text: selectedText,
+      text,
       comment: commentText,
       timestamp: new Date().toISOString(),
       range: selectionRange,
     };
 
-    // Add highlight with comment to state
+    const updatedForDiscourse = [...(highlights[currentDiscourseId] || []), newHighlight];
     setHighlights(prev => ({
       ...prev,
-      [currentDiscourseId]: [...(prev[currentDiscourseId] || []), newHighlight],
+      [currentDiscourseId]: updatedForDiscourse,
     }));
 
-    // Auto-save discourse with highlight and comment
     const citation = citations.find(c => c._id === currentDiscourseId);
     if (citation) {
-      await autoSaveDiscourseWithHighlights(citation, [...(highlights[currentDiscourseId] || []), newHighlight]);
+      await autoSaveDiscourseWithHighlights(citation, updatedForDiscourse);
     }
 
-    // Clear selection
     window.getSelection().removeAllRanges();
     setShowHighlightPopover(false);
     setSelectedText("");
+    pinnedSelectedTextRef.current = "";
+    selectionFrozenRef.current = false;
+    return true;
   };
 
   const autoSaveDiscourseWithHighlights = async (citation, highlightsArray) => {
@@ -192,6 +288,11 @@ export default function Reply({
 
     await saveHighlights(discourseData, highlightsArray);
   };
+
+  // The main-screen quote preview intentionally renders as plain text — we do
+  // not paint the yellow highlight/comment marks here even if the discourse has
+  // saved annotations. (Annotations still show inside the full discourse view.)
+  const renderTextWithHighlights = (text) => text;
 
   const isDiscourseSaved = (discourseTitle) => isDiscourseBookmarked(discourseTitle);
 
@@ -296,127 +397,107 @@ export default function Reply({
       <TextHighlightPopover
         visible={showHighlightPopover}
         position={popoverPosition}
+        selectedTextPreview={selectedText}
         onHighlight={handleHighlight}
         onComment={handleComment}
+        onCommentModeChange={handleCommentModeChange}
         onClose={() => {
+          selectionFrozenRef.current = false;
           setShowHighlightPopover(false);
           window.getSelection().removeAllRanges();
         }}
       />
 
-      <div className="flex justify-end">
-        <div className="bg-[#f5f5f5] px-6 py-4 md:w-3/4 rounded">
-          <span className="text-[#252525] text-lg">{question}</span>
+      <div className="flex justify-end px-1 sm:px-0">
+        <div className="bg-[#f5f5f5] px-4 py-3 sm:px-6 sm:py-4 w-full sm:w-auto sm:max-w-[85%] md:max-w-3/4 rounded-lg">
+          <span className="text-[#252525] text-base sm:text-lg">{question}</span>
         </div>
       </div>
 
-      <div className="md:p-1 mx-2">
-        <div className="border-l border-primary p-2 px-4 flex flex-col">
-          <div className="px-2 py-1 flex items-end mb-2">
-            <div className="">
-              <p className="text-lg font-normal text-[#252525]">
-                Here are some discourses where you can start learning about the topic:
-              </p>
-            </div>
-          </div>
+      {/* Assistant reply — left-aligned bubble (mobile + desktop) */}
+      <div className="flex justify-start mt-3 md:mt-4 px-1 sm:px-0">
+        <div className="w-full sm:max-w-[94%] md:max-w-3/4">
+          <div className="rounded-2xl rounded-tl-sm bg-[#FEF4EB]/65 border border-orange-100/50 px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-4">
+            <p className="text-base sm:text-lg text-[#252525] leading-snug mb-3">
+              Here are some discourses where you can start learning about the topic:
+            </p>
 
-          <div className="m-2 flex flex-col bg-[#FEF4EB] rounded ">
-            <div className="mx-1 flex">
-              <div className="p-6">
+            <div className="flex flex-col divide-y divide-orange-100/70">
+              <div>
                 {citations.length > 0 ? (
                   citations.map((item, index) => {
                     const discourseTitle = `${item.title} of "${item.collection}"`;
                     const isSaved = isDiscourseSaved(discourseTitle);
 
                     return (
-                      <div key={index} className="text-[#252525] mb-6">
-                        <p className="text-xl font-bold">
-                          <span className="text-primary">
-                            [{index + 1}] {"\t\t"}
-                          </span>
-                          {item.title}
-                        </p>
-                        <p className="text-lg text-gray-600">
-                          {formatCollection(item.collection)}
-                        </p>
-                        <p className="italic">{item.date}</p>
-
-                        {/* Best-answer quote from the discourse (single sentence,
-                            selected by the backend via Cohere), shown in full */}
+                      <div
+                        key={index}
+                        className="text-[#252525] py-4 first:pt-0"
+                      >
                         <div
-                          className="p-2 ml-3 text-gray-800 text-xl italic"
-                          style={{ fontFamily: "'EB Garamond', serif" }}
+                          role="link"
+                          tabIndex={0}
+                          onClick={() => {
+                            const selected = window.getSelection()?.toString().trim();
+                            if (selected) return;
+                            navigate(`/blog/${item._id}`, {
+                              state: { citations, questionContext: question },
+                            });
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              navigate(`/blog/${item._id}`, {
+                                state: { citations, questionContext: question },
+                              });
+                            }
+                          }}
+                          className="block pb-2 cursor-pointer rounded-lg hover:bg-orange-50/40 transition-colors active:bg-orange-50/30 md:px-2 md:-mx-2"
                         >
-                          <span className="text-primary">&ldquo;</span>
-                          <span
-                            ref={(el) => contentRefs.current[item._id] = el}
-                            className="select-text"
-                            onMouseUp={() => handleTextSelection(item._id)}
-                            dangerouslySetInnerHTML={{
-                              __html: renderTextWithHighlights(
-                                item.best_sentence ||
-                                  (item.content && item.content.length > 200
-                                    ? item.content.slice(0, 200) + "..."
-                                    : item.content) ||
-                                  "",
-                                item._id
-                              )
-                            }}
-                          />
-                          <span className="text-primary">&rdquo;</span>
+                          <p className="text-lg sm:text-xl leading-snug">
+                            <span className="font-normal text-gray-500">{index + 1}.</span>{" "}
+                            <span className="font-bold text-primary">{item.title}</span>
+                          </p>
+                          <p className="text-sm sm:text-lg text-gray-600 mt-0.5">
+                            {formatCollection(item.collection)}
+                          </p>
+                          <p className="text-sm italic text-gray-500">{item.date}</p>
+
+                          <div
+                            className="mt-2 text-gray-800 text-base sm:text-xl italic leading-relaxed"
+                            style={{ fontFamily: "'EB Garamond', serif" }}
+                          >
+                            <span className="text-primary">&ldquo;</span>
+                            <span
+                              ref={(el) => contentRefs.current[item._id] = el}
+                              className="select-text"
+                              style={{ WebkitUserSelect: "text", WebkitTouchCallout: "default" }}
+                              onMouseUp={() => handleTextSelection(item._id)}
+                              dangerouslySetInnerHTML={{
+                                __html: renderTextWithHighlights(
+                                  item.best_sentence ||
+                                    (item.content && item.content.length > 200
+                                      ? item.content.slice(0, 200) + "..."
+                                      : item.content) ||
+                                    "",
+                                  item._id
+                                )
+                              }}
+                            />
+                            <span className="text-primary">&rdquo;</span>
+                          </div>
                         </div>
 
-                        {/* Show highlights for this discourse */}
-                        {highlights[item._id] && highlights[item._id].length > 0 && (
-                          <div className="mt-2 ml-3 p-2 bg-yellow-50 rounded border border-yellow-200">
-                            <p className="text-xs font-semibold text-gray-600 mb-2">
-                              Your highlights ({highlights[item._id].length}):
-                            </p>
-                            {highlights[item._id].map((highlight) => (
-                              <div key={highlight.id} className="mb-2 text-sm">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1">
-                                    <span className="bg-yellow-200 px-1 rounded">
-                                      "{highlight.text.substring(0, 50)}..."
-                                    </span>
-                                    {highlight.comment && (
-                                      <p className="mt-1 text-xs text-blue-700 italic">
-                                        💬 {highlight.comment}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <button
-                                    onClick={() => handleRemoveHighlight(item._id, highlight.id)}
-                                    className="text-gray-400 hover:text-red-600 transition-colors"
-                                    title="Remove highlight"
-                                  >
-                                    <MdClose size={16} />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="mt-4 flex items-center justify-between gap-4">
-                          <span className="text-primary underline text-lg">
-                            <Link
-                              to={`/blog/${item._id}`}
-                              state={{ citations, questionContext: question }}
-                              className="flex"
-                            >
-                              Read &ldquo;{item.title}&rdquo;
-                              <GoArrowUpRight size={22} />
-                            </Link>
-                          </span>
-
-                          {/* Per-discourse actions — horizontal, bottom-right */}
-                          <div className="flex items-center gap-4 text-primary shrink-0">
+                        <div className="flex justify-end -mr-1 sm:mr-0">
+                          {/* Per-discourse actions — horizontal, 44px touch targets */}
+                          <div className="flex items-center gap-1 sm:gap-2 text-primary shrink-0">
                             {user && user.token && (
                               <button
+                                type="button"
                                 onClick={() => handleBookmarkClick(item)}
                                 title={isSaved ? "Remove from saved" : "Save discourse"}
-                                className="hover:scale-110 transition-transform"
+                                aria-label={isSaved ? "Remove from saved" : "Save discourse"}
+                                className="flex items-center justify-center min-h-[44px] min-w-[44px] hover:scale-110 transition-transform"
                               >
                                 {isSaved ? (
                                   <BsBookmarkFill size={20} className="text-primary" />
@@ -425,30 +506,42 @@ export default function Reply({
                                 )}
                               </button>
                             )}
-                            <IoCopyOutline
-                              size={20}
+                            <button
+                              type="button"
                               title="Copy the quote"
-                              className="cursor-pointer hover:opacity-70 transition-opacity"
+                              aria-label="Copy the quote"
+                              className="flex items-center justify-center min-h-[44px] min-w-[44px] cursor-pointer hover:opacity-70 transition-opacity"
                               onClick={() => handleCopyQuote(item)}
-                            />
-                            <IoLinkOutline
-                              size={20}
+                            >
+                              <IoCopyOutline size={20} />
+                            </button>
+                            <button
+                              type="button"
                               title="Copy link to this discourse"
-                              className="cursor-pointer hover:opacity-70 transition-opacity"
+                              aria-label="Copy link to this discourse"
+                              className="flex items-center justify-center min-h-[44px] min-w-[44px] cursor-pointer hover:opacity-70 transition-opacity"
                               onClick={() => handleCopyDiscourseLink(item)}
-                            />
-                            <IoThumbsUpOutline
-                              size={20}
+                            >
+                              <IoLinkOutline size={20} />
+                            </button>
+                            <button
+                              type="button"
                               title="This discourse was helpful"
-                              className="cursor-pointer hover:opacity-70 transition-opacity"
+                              aria-label="This discourse was helpful"
+                              className="flex items-center justify-center min-h-[44px] min-w-[44px] cursor-pointer hover:opacity-70 transition-opacity"
                               onClick={() => handleFeedbackClick('up', item)}
-                            />
-                            <IoThumbsDownOutline
-                              size={20}
+                            >
+                              <IoThumbsUpOutline size={20} />
+                            </button>
+                            <button
+                              type="button"
                               title="This discourse was not helpful"
-                              className="cursor-pointer hover:opacity-70 transition-opacity"
+                              aria-label="This discourse was not helpful"
+                              className="flex items-center justify-center min-h-[44px] min-w-[44px] cursor-pointer hover:opacity-70 transition-opacity"
                               onClick={() => handleFeedbackClick('down', item)}
-                            />
+                            >
+                              <IoThumbsDownOutline size={20} />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -462,13 +555,46 @@ export default function Reply({
                   </p>
                 )}
               </div>
-              <div className="flex-grow w-20"></div>
             </div>
+          {reply?.citations?.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-orange-100/60">
+              {followUps && followUps.length > 0 ? (
+                <FollowUpQuestions
+                  questions={followUps}
+                  onQuestionClick={onFollowUpClick}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onGenerateFollowups()}
+                  disabled={followUpsLoading}
+                  className="border border-gray-300 rounded hover:border-orange-500 hover:bg-orange-100 px-4 py-2 text-gray-800 transition-all ease-linear cursor-pointer flex items-center gap-2 disabled:opacity-60"
+                >
+                  {followUpsLoading ? (
+                    <>
+                      <FaSpinner className="animate-spin text-orange-400" />
+                      Generating…
+                    </>
+                  ) : (
+                    "Generate Followup Questions"
+                  )}
+                </button>
+              )}
+            </div>
+          )}
           </div>
         </div>
       </div>
       {showFeedbackModal && createPortal(
-          <div className="fixed inset-0 flex justify-center items-center bg-black bg-opacity-40 z-[100] p-6">
+          <div
+            className="fixed inset-0 flex justify-center items-end sm:items-center bg-black/40 z-[100] p-4 safe-area-pb"
+            onClick={() => {
+              setshowFeedbackModal(false);
+              setFeedbackType(null);
+              setFeedbackItem(null);
+            }}
+          >
+            <div onClick={(e) => e.stopPropagation()}>
             <Feedback
               closeModalCallback={() => {
                 setshowFeedbackModal(false);
@@ -523,6 +649,7 @@ export default function Reply({
               }
               onSubmit={(reason, additionalComments) => handleFeedback(feedbackType, reason, additionalComments)}
             />
+            </div>
           </div>,
           document.body
         )}

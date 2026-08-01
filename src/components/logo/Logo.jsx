@@ -9,7 +9,7 @@ export default function Logo() {
         <img
           src={logo}
           alt="logo"
-          className="w-[320px] h-[50px]"
+          className="w-full max-w-[240px] sm:max-w-[280px] md:max-w-[320px] h-auto"
           // width={200}
           // height={42}
         />

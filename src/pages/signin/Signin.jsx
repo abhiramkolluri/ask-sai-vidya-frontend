@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import leaves from "../../images/leaves.png";
+import swami from "../../assets/illustrations/swami.svg";
 import Login from "../../components/login/Login";
 import Signup from "../../components/signup/Signup";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -52,28 +53,39 @@ export default function Signin({ showLogin = false }) {
   // }, [showLogin]);
 
   return (
-    <div className=" bg-[#fffbf8] lg:w-full md:w-auto h-[100vh] text-gray-800">
+    <div className="bg-[#fffbf8] w-full h-[100dvh] text-gray-800 overflow-hidden">
       <div
-        className="absolute top-0 left-0 h-full w-full bg-no-repeat opacity-100"
-        style={{ backgroundImage: `url("${leaves}")` }}>
-        {/* <img src={leaves} alt="" /> */}
-      </div>
-      <div className=" flex  h-full ">
-        <div className="hidden md:flex flex-col items-center justify-center  flex-grow">
+        className="absolute top-0 left-0 h-full w-full bg-no-repeat opacity-100 bg-cover sm:bg-contain"
+        style={{ backgroundImage: `url("${leaves}")` }}
+      />
+      <img
+        src={swami}
+        alt=""
+        aria-hidden="true"
+        className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-0 w-24 sm:w-32 opacity-40 md:opacity-60 md:w-44 pointer-events-none select-none"
+      />
+      <div className="flex h-full min-h-0">
+        <div className="hidden md:flex flex-col items-center justify-center flex-grow">
           <div className="lg:w-[600px] p-4">
-            <h1 className=" text-3xl font-bold text-primary">
+            <h1 className="text-3xl font-bold text-primary">
               Welcome to Ask Sai Vidya!
             </h1>
-            <p className=" leading-relaxed mt-4 tracking-wide">
+            <p className="leading-relaxed mt-4 tracking-wide">
               Embark on a spiritual journey with Sathya Sai Baba to find deeper
               understanding. Seek answers to your questions and engage directly
               for inner peace.
             </p>
           </div>
         </div>
-        <div className="sm:w-[100%] lg:w-[600px] h-full bg-white flex justify-center py-20 px-10 z-10">
-          <div>
-            <div className="w-full flex ">
+        <div className="w-full lg:w-[600px] h-full bg-white flex justify-center items-start sm:items-center overflow-y-auto py-8 sm:py-12 md:py-20 px-4 sm:px-8 md:px-10 z-10">
+          <div className="w-full max-w-[400px]">
+            <div className="md:hidden mb-6 text-center">
+              <h1 className="text-2xl font-bold text-primary">Ask Sai Vidya</h1>
+              <p className="mt-2 text-sm text-gray-600 leading-relaxed">
+                Sign in to save your questions, discourses, and highlights.
+              </p>
+            </div>
+            <div className="w-full flex">
               <div
                 className={` w-full transition-all ease-in flex justify-center items-center py-4 text-lg font-bold ${isLoginPage
                   ? "border-b border-primary"

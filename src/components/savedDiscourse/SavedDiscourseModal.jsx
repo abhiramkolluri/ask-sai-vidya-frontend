@@ -5,6 +5,7 @@ import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
 import { GoArrowUpRight } from "react-icons/go";
 import { BsBookmarkFill } from "react-icons/bs";
 import { HighlightsTabbedPanel } from "../highlights/HighlightsSidebar";
+import { hasHighlightComment } from "../../helpers/highlightUtils";
 
 const VALID_QUESTION_CONTEXTS = new Set([
   "",
@@ -26,13 +27,25 @@ export default function SavedDiscourseModal({
   if (!discourse) return null;
 
   const highlights = discourse.discourse?.highlights || [];
-  const highlightCount = highlights.filter((h) => !h.comment).length;
-  const commentCount = highlights.filter((h) => h.comment).length;
+  const highlightCount = highlights.filter((h) => !hasHighlightComment(h)).length;
+  const commentCount = highlights.filter((h) => hasHighlightComment(h)).length;
   const isAnnotations = variant === "annotations";
 
+  // Close when the backdrop itself is tapped (not the card). Routing the
+  // backdrop through the same onClose as the X button guarantees a clean React
+  // unmount — tapping outside previously did nothing here, so users dismissed
+  // via the browser back gesture, which left the fixed overlay's paint stuck on
+  // iOS Safari until a refresh.
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-50 p-4 font-ui">
-      <div className="bg-white rounded-2xl max-w-xl w-full min-h-[520px] max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-orange-100 animate-fadeIn">
+    <div
+      className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 font-ui"
+      onClick={handleBackdropClick}
+    >
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-xl w-full min-h-0 sm:min-h-[520px] max-h-[92dvh] flex flex-col shadow-2xl overflow-hidden border border-orange-100 animate-fadeIn sm:animate-fadeIn">
         <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-orange-100 bg-gradient-to-r from-orange-50 to-[#FEF4EB] flex-shrink-0">
           <div className="flex items-start gap-3 min-w-0">
             <div className="p-2 bg-white rounded-lg border border-orange-200/60 shadow-sm flex-shrink-0">
@@ -128,12 +141,12 @@ export default function SavedDiscourseModal({
           </div>
         </div>
 
-        <div className={`flex items-center gap-3 px-5 py-4 border-t border-orange-100 bg-gray-50/80 flex-shrink-0 ${isAnnotations ? "justify-end" : "justify-between"}`}>
+        <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 px-4 sm:px-5 py-4 border-t border-orange-100 bg-gray-50/80 flex-shrink-0 ${isAnnotations ? "sm:justify-end" : "sm:justify-between"}`}>
           {!isAnnotations && (
             <button
               type="button"
               onClick={() => onRemove(discourse.id)}
-              className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors"
+              className="px-4 py-2.5 sm:py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors order-2 sm:order-1"
             >
               Remove from Saved
             </button>
@@ -141,7 +154,7 @@ export default function SavedDiscourseModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2.5 sm:py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors order-1 sm:order-2"
           >
             Close
           </button>

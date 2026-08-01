@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { LuPencilLine } from "react-icons/lu";
 import { IoCalendar } from "react-icons/io5";
 import { useQuery } from "react-query";
@@ -17,6 +17,13 @@ import HighlightsSidebar from "../../components/highlights/HighlightsSidebar";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 import { formatCollection } from "../../helpers/formatCollection";
+import {
+  normalizeSelectionText,
+  getSelectionTextInContainer,
+  buildDiscourseTitle,
+  findSavedDiscourseForPost,
+  serializeHighlightsForSave,
+} from "../../helpers/highlightUtils";
 
 export default function Blog() {
   const { slugId } = useParams();
@@ -25,8 +32,10 @@ export default function Blog() {
 
   // Use saved discourses from context
   const {
+    savedDiscourses,
     saveHighlights,
     getSavedDiscourseByTitle,
+    findDiscourseForSave,
     deleteDiscourseRecord,
     clearAnnotations,
     loadingSaved,
@@ -53,6 +62,11 @@ export default function Blog() {
   const [activeHighlightId, setActiveHighlightId] = useState(null);
   const contentRef = useRef(null);
   const matchedRef = useRef(null); // the braces-wrapped matched passage block
+  const pinnedSelectedTextRef = useRef("");
+  const pendingLocalHighlightsRef = useRef(false);
+  const selectionFrozenRef = useRef(false);
+  const showPopoverRef = useRef(false);
+  const highlightsHydratedRef = useRef(false);
 
   const { isLoading, isRefetching, data, isError } = useQuery(
     ["blogPost", slugId],
@@ -67,7 +81,58 @@ export default function Blog() {
     setHighlights([]);
     setActiveHighlightId(null);
     setShowHighlightPopover(false);
+    pinnedSelectedTextRef.current = "";
+    pendingLocalHighlightsRef.current = false;
+    selectionFrozenRef.current = false;
+    highlightsHydratedRef.current = false;
   }, [slugId]);
+
+  const getSavedForCurrentPost = useCallback(() => {
+    return findSavedDiscourseForPost(data, savedDiscourses, getSavedDiscourseByTitle);
+  }, [data, savedDiscourses, getSavedDiscourseByTitle]);
+
+  showPopoverRef.current = showHighlightPopover;
+
+  const handleCommentModeChange = useCallback((frozen) => {
+    selectionFrozenRef.current = frozen;
+    if (frozen && contentRef.current) {
+      const text =
+        getSelectionTextInContainer(contentRef.current) ||
+        pinnedSelectedTextRef.current;
+      if (text) {
+        pinnedSelectedTextRef.current = text;
+        setSelectedText(text);
+      }
+    }
+  }, []);
+
+  const resolveSelectedText = useCallback(() => {
+    return (
+      pinnedSelectedTextRef.current ||
+      getSelectionTextInContainer(contentRef.current) ||
+      normalizeSelectionText(selectedText)
+    );
+  }, [selectedText]);
+
+  // Hydrate highlights when the discourse loads. Local state is authoritative
+  // after that — background reloads must not wipe freshly-saved comments.
+  useEffect(() => {
+    if (!data || data._id !== slugId || loadingSaved) return;
+    if (pendingLocalHighlightsRef.current) return;
+
+    const savedHighlights = getSavedForCurrentPost()?.discourse?.highlights || [];
+
+    if (!highlightsHydratedRef.current) {
+      setHighlights(savedHighlights);
+      highlightsHydratedRef.current = true;
+      return;
+    }
+
+    // Server data arrived after the first empty hydrate (slow network).
+    if (highlights.length === 0 && savedHighlights.length > 0) {
+      setHighlights(savedHighlights);
+    }
+  }, [slugId, data, loadingSaved, getSavedForCurrentPost, highlights.length]);
 
   // When a discourse is opened from a citation, scroll the matched passage into
   // view once it has rendered, so the answer is shown immediately.
@@ -81,46 +146,71 @@ export default function Blog() {
     return () => clearTimeout(t);
   }, [data, slugId]);
 
-  // Load saved discourse highlights for this blog post
-  useEffect(() => {
-    if (!data || data._id !== slugId || loadingSaved) return;
-
-    const discourseTitle = `${data.title} of "${data.collection}"`;
-    const savedDiscourse = getSavedDiscourseByTitle(discourseTitle);
-    setHighlights(savedDiscourse?.discourse?.highlights || []);
-  }, [slugId, data, loadingSaved, getSavedDiscourseByTitle]);
-
-  // Handle text selection
+  // Desktop text selection: fired on mouseup, positions the floating popover
+  // in the right margin.
   const handleTextSelection = () => {
     const selection = window.getSelection();
-    const selectedText = selection.toString().trim();
+    const selected = selection.toString().trim();
 
-    if (selectedText.length > 0 && user && user.token) {
+    if (selected.length > 0 && user && user.token) {
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
 
-      // Get content container to position popover in the right margin
       const contentContainer = contentRef.current;
       if (!contentContainer) return;
 
       const containerRect = contentContainer.getBoundingClientRect();
 
-      // Position the popover in the right margin, aligned with the selection
-      // Place it to the right of the content area
       setPopoverPosition({
-        x: containerRect.right + 20, // 20px margin from the right edge of content
-        y: rect.top, // Align with the top of the selection (no need for scrollY, using fixed positioning)
+        x: containerRect.right + 20,
+        y: rect.top,
       });
 
-      setSelectedText(selectedText);
+      setSelectedText(selected);
+      pinnedSelectedTextRef.current = normalizeSelectionText(selected);
       setShowHighlightPopover(true);
     } else {
       setShowHighlightPopover(false);
     }
   };
 
-  // Hide popover on scroll
+  // Mobile text selection: keep syncing while the action sheet is open so
+  // handle-drag adjustments update the preview. Only freeze once comment mode
+  // starts (keyboard would collapse the selection).
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(min-width: 1024px)").matches) return;
+    if (!user || !user.token) return;
+
+    let timer = null;
+    const onSelectionChange = () => {
+      if (selectionFrozenRef.current) return;
+
+      if (timer) clearTimeout(timer);
+      const delay = showPopoverRef.current ? 120 : 450;
+      timer = setTimeout(() => {
+        const text = getSelectionTextInContainer(contentRef.current);
+        if (text.length > 0) {
+          setSelectedText(text);
+          pinnedSelectedTextRef.current = text;
+          setShowHighlightPopover(true);
+        }
+      }, delay);
+    };
+
+    document.addEventListener("selectionchange", onSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", onSelectionChange);
+      if (timer) clearTimeout(timer);
+    };
+  }, [user]);
+
+  // Hide popover on scroll (desktop only — on mobile the bottom sheet is
+  // dismissed via its backdrop, and scroll events fire during touch selection).
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.matchMedia("(min-width: 1024px)").matches) {
+      return;
+    }
     const handleScroll = () => {
       if (showHighlightPopover) {
         setShowHighlightPopover(false);
@@ -133,63 +223,96 @@ export default function Blog() {
   }, [showHighlightPopover]);
 
   // Handle highlight action
-  const handleHighlight = async () => {
-    if (!selectedText || !user || !data) return;
+  const handleHighlight = async (passageText) => {
+    const text = normalizeSelectionText(passageText) || resolveSelectedText();
+    if (!text || !user || !data) return false;
 
     const highlightId = Date.now().toString();
     const newHighlight = {
       id: highlightId,
-      text: selectedText,
+      text,
       comment: null,
       timestamp: new Date().toISOString(),
     };
 
+    let updatedHighlights;
     const previousHighlights = highlights;
-    const updatedHighlights = [...previousHighlights, newHighlight];
-    setHighlights(updatedHighlights);
+    setHighlights((prev) => {
+      updatedHighlights = [...prev, newHighlight];
+      return updatedHighlights;
+    });
 
+    pendingLocalHighlightsRef.current = true;
     const saved = await saveDiscourseWithHighlights(updatedHighlights);
-    if (!saved) {
+    pendingLocalHighlightsRef.current = false;
+
+    if (!saved.ok) {
       setHighlights(previousHighlights);
+      return false;
+    }
+
+    if (saved.highlights) {
+      setHighlights(saved.highlights);
     }
 
     window.getSelection().removeAllRanges();
     setShowHighlightPopover(false);
     setSelectedText("");
+    pinnedSelectedTextRef.current = "";
+    selectionFrozenRef.current = false;
+    return true;
   };
 
-  // Handle comment action
-  const handleComment = async (commentText) => {
-    if (!selectedText || !user || !data) return;
+  // Handle comment action — passageText is the snapshot shown in the sheet
+  const handleComment = async (commentText, passageText) => {
+    const text = normalizeSelectionText(passageText) || resolveSelectedText();
+    if (!text || !user || !data) return false;
 
     const highlightId = Date.now().toString();
     const newHighlight = {
       id: highlightId,
-      text: selectedText,
+      text,
       comment: commentText,
       timestamp: new Date().toISOString(),
     };
 
+    let updatedHighlights;
     const previousHighlights = highlights;
-    const updatedHighlights = [...previousHighlights, newHighlight];
-    setHighlights(updatedHighlights);
+    setHighlights((prev) => {
+      updatedHighlights = [...prev, newHighlight];
+      return updatedHighlights;
+    });
 
+    pendingLocalHighlightsRef.current = true;
     const saved = await saveDiscourseWithHighlights(updatedHighlights);
-    if (!saved) {
+    pendingLocalHighlightsRef.current = false;
+
+    if (!saved.ok) {
       setHighlights(previousHighlights);
+      return false;
+    }
+
+    if (saved.highlights) {
+      setHighlights(saved.highlights);
     }
 
     window.getSelection().removeAllRanges();
     setShowHighlightPopover(false);
     setSelectedText("");
+    pinnedSelectedTextRef.current = "";
+    selectionFrozenRef.current = false;
+    return true;
   };
 
   // Save or update discourse with highlights
   const saveDiscourseWithHighlights = async (highlightsArray) => {
-    if (!user || !user.token || !data) return false;
+    if (!user || !user.token || !data) return { ok: false };
 
-    const discourseTitle = `${data.title} of "${data.collection}"`;
-    const existingSaved = getSavedDiscourseByTitle(discourseTitle);
+    const discourseTitle = buildDiscourseTitle(data.title, data.collection);
+    const existingSaved = findDiscourseForSave({
+      title: discourseTitle,
+      source_url: `/blog/${data._id}`,
+    });
 
     const discourseData = {
       title: discourseTitle,
@@ -200,17 +323,20 @@ export default function Blog() {
     };
 
     if (highlightsArray.length === 0) {
-      if (!existingSaved) return true;
+      if (!existingSaved) return { ok: true, highlights: [] };
       if (existingSaved.bookmarked) {
         const result = await clearAnnotations(existingSaved.id);
-        return Boolean(result);
+        return { ok: Boolean(result), highlights: result?.discourse?.highlights || [] };
       }
       const deleted = await deleteDiscourseRecord(existingSaved.id);
-      return Boolean(deleted);
+      return { ok: Boolean(deleted), highlights: [] };
     }
 
-    const result = await saveHighlights(discourseData, highlightsArray);
-    return Boolean(result);
+    const result = await saveHighlights(discourseData, serializeHighlightsForSave(highlightsArray));
+    return {
+      ok: Boolean(result),
+      highlights: result?.discourse?.highlights || highlightsArray,
+    };
   };
 
   // Remove highlight
@@ -220,8 +346,10 @@ export default function Blog() {
     setHighlights(updatedHighlights);
 
     const saved = await saveDiscourseWithHighlights(updatedHighlights);
-    if (!saved) {
+    if (!saved.ok) {
       setHighlights(previousHighlights);
+    } else if (saved.highlights) {
+      setHighlights(saved.highlights);
     }
   };
 
@@ -460,22 +588,25 @@ export default function Blog() {
     }
 
     return (
-      <div className="w-full">
+      <div className="w-full min-h-[100dvh] overflow-x-hidden">
         {/* Text Highlight Popover */}
         <TextHighlightPopover
           visible={showHighlightPopover}
           position={popoverPosition}
+          selectedTextPreview={selectedText}
           onHighlight={handleHighlight}
           onComment={handleComment}
+          onCommentModeChange={handleCommentModeChange}
           onClose={() => {
+            selectionFrozenRef.current = false;
             setShowHighlightPopover(false);
             window.getSelection().removeAllRanges();
           }}
         />
 
-        <div className="w-full h-[375px] flex flex-col bg-[#FE9F440A] items-center">
-          <div className="p-9 flex justify-between w-full items-start">
-            <div className="flex flex-col gap-2">
+        <div className="w-full min-h-[240px] sm:min-h-[320px] md:h-[375px] flex flex-col bg-[#FE9F440A] items-center">
+          <div className="p-4 sm:p-6 md:p-9 flex flex-col sm:flex-row justify-between w-full max-w-[1400px] items-start gap-3 sm:gap-4">
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
               <Logo />
               {user?.token && (
                 <HighlightsSidebar
@@ -486,30 +617,32 @@ export default function Blog() {
                 />
               )}
             </div>
-            <Navbar variant="blog" />
+            <div className="self-end sm:self-auto w-full sm:w-auto">
+              <Navbar variant="blog" />
+            </div>
           </div>
-          <h1 className=" text-[22px] text-center font-bold mb-10">
+          <h1 className="text-lg sm:text-xl md:text-[22px] text-center font-bold mb-6 sm:mb-10 px-4 max-w-3xl">
             {post?.title}
           </h1>
 
           <Link to="/">
-            <button className=" gap-1 shadow px-4 py-2 bg-orange-400 text-white flex items-center rounded mb-2">
+            <button className="gap-1 shadow px-4 py-2 bg-orange-400 text-white flex items-center rounded mb-2 text-sm sm:text-base">
               <LuPencilLine size={18} />
               {state?.citations?.length
                 ? "Go back to chat"
                 : "Ask your question"}
             </button>
           </Link>
-          <div>
-            <img src={bgflower} alt="" className="w-full " />
+          <div className="w-full overflow-hidden">
+            <img src={bgflower} alt="" className="w-full" />
           </div>
         </div>
-        <div className="flex flex-wrap md:flex-nowrap justify-center items-start w-[96vw] max-w-[1400px] mx-auto md:gap-4 gap-4 leading-8 px-2">
-          <div className="flex flex-col w-full md:w-[800px] md:flex-shrink-0 border border-gray-300 rounded shadow p-8 gap-8 relative -top-20 bg-white">
-            <h2 className=" text-[20px] mt-4 text-center font-bold text-[#4D4D4D]">
+        <div className="flex flex-wrap md:flex-nowrap justify-center items-start w-full max-w-[1400px] mx-auto md:gap-4 gap-4 leading-8 px-3 sm:px-4">
+          <div className="flex flex-col w-full md:w-[800px] md:flex-shrink-0 border border-gray-300 rounded shadow p-4 sm:p-6 md:p-8 gap-6 sm:gap-8 relative -top-12 sm:-top-16 md:-top-20 bg-white">
+            <h2 className="text-lg sm:text-[20px] mt-2 sm:mt-4 text-center font-bold text-[#4D4D4D]">
               {post?.occasion}
             </h2>
-            <div className="w-full flex justify-between">
+            <div className="w-full flex flex-col sm:flex-row sm:justify-between gap-2 sm:gap-0">
               {post.collection && (
                 <div className="flex gap-2 text-sm items-center">
                   <IoMdList size={18} className="text-orange-400" />
@@ -524,9 +657,13 @@ export default function Blog() {
                 </div>
               )}
             </div>
-            <div className="p-4 md:p-8 flex flex-col gap-8" ref={contentRef}>
-              {/* Content with text selection enabled - Added padding bottom for scroll space */}
-              <div onMouseUp={handleTextSelection} className="select-text cursor-text pb-[50vh]">
+            <div className="p-2 sm:p-4 md:p-8 flex flex-col gap-6 sm:gap-8" ref={contentRef}>
+              {/* Content with text selection enabled */}
+              <div
+                onMouseUp={handleTextSelection}
+                className="select-text cursor-text pb-[30vh] sm:pb-[40vh] md:pb-[50vh]"
+                style={{ WebkitUserSelect: "text", WebkitTouchCallout: "default" }}
+              >
                 {contentLines.map((text, index) => {
                   // The paragraph holding the quote: highlight just the quote span
                   // and anchor the scroll ref to it.
@@ -558,179 +695,130 @@ export default function Blog() {
               </div>
             </div>
           </div>
-
-          {state?.citations?.length && (
-            <div className="w-full md:w-[360px] md:flex-shrink-0 flex flex-col mt-12 md:mt-0 gap-2 mb-12 relative -top-20">
-              <p>Citations</p>
-              {state?.citations?.map((c, i) => (
-                <Link
-                  to={`/blog/${c._id}`}
-                  state={state}
-                  key={i}
-                // reloadDocument
-                >
-                  <div
-                    className={`w-[420px] border ${slugId === c._id
-                      ? "border-[#FE9F44] bg-[#fe9e4417] "
-                      : "border-b hover:bg-[#fe9e4425]"
-                      } rounded-lg p-6 flex flex-col gap-4`}>
-                    <p className="text-[#4D4D4D]">{c?.title}</p>
-                    <div className="flex gap-2 text-sm items-center">
-                      <IoMdList size={18} className="text-orange-400" />
-                      <p className="text-gray-500">{formatCollection(c?.collection)}</p>
-                    </div>
-                    <div className="flex gap-2 text-sm items-center ">
-                      <IoCalendar size={18} className="text-orange-400" />
-                      <p className="text-gray-500">{c?.date}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              {/* <div className="w-[420px] bg-[##FE9F440A] border border-[#FE9F44] rounded-lg p-6 flex flex-col gap-4">
-              <p className="text-[#4D4D4D]">Sristi and Dristhi</p>
-              <div className="flex gap-2 text-sm items-center">
-                <IoMdList size={18} className="text-orange-400" />
-                <p className="text-gray-500">SSS, Vol 29 Disc. 10</p>
-              </div>
-              <div className="flex gap-2 text-sm items-center ">
-                <IoCalendar size={18} className="text-orange-400" />
-                <p className="text-gray-500">12 April 1996</p>
-              </div>
-            </div>
-            <div className="w-[420px]  border-b rounded-lg p-6 flex flex-col gap-4">
-              <p>Nammi Nammi</p>
-              <div className="flex gap-2 text-sm items-center">
-                <IoMdList size={18} className="text-orange-400" />
-                <p className="text-gray-500">SSS, Vol 29 Disc. 10</p>
-              </div>
-              <div className="flex gap-2 text-sm items-center ">
-                <IoCalendar size={18} className="text-orange-400" />
-                <p className="text-gray-500">12 April 1996</p>
-              </div>
-            </div>
-            <div className="w-[420px]  border-b rounded-lg p-6 flex flex-col gap-4">
-              <p>Power of meditation</p>
-              <div className="flex gap-2 text-sm items-center">
-                <IoMdList size={18} className="text-orange-400" />
-                <p className="text-gray-500">SSS, Vol 29 Disc. 10</p>
-              </div>
-              <div className="flex gap-2 text-sm items-center ">
-                <IoCalendar size={18} className="text-orange-400" />
-                <p className="text-gray-500">12 April 1996</p>
-              </div>
-            </div> */}
-            </div>
-          )}
         </div>
 
-        {/* Floating Citations Tab */}
+        {/* Floating Citations Tab — opens side drawer on all screen sizes */}
         {citations.length > 0 && (
           <button
+            type="button"
             onClick={() => setCitationsOpen(true)}
-            className="fixed top-1/2 -translate-y-1/2 right-0 z-40 flex items-center gap-2 bg-white border border-gray-200 shadow-lg px-3 py-4 rounded-l-xl text-orange-400 hover:bg-orange-50 transition-colors"
-            style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+            className="fixed top-1/2 -translate-y-1/2 right-0 z-40 flex items-center gap-2 bg-white border border-gray-200 shadow-lg px-2 sm:px-3 py-3 sm:py-4 rounded-l-xl text-orange-400 hover:bg-orange-50 transition-colors"
+            aria-label={`Open citations (${citations.length})`}
           >
             <TbLayoutSidebarRightExpand size={20} style={{ transform: "rotate(180deg)" }} />
-            <span className="text-xs font-semibold tracking-wide text-gray-600">Citations ({citations.length})</span>
+            <span
+              className="text-[10px] sm:text-xs font-semibold tracking-wide text-gray-600"
+              style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+            >
+              Citations ({citations.length})
+            </span>
           </button>
         )}
 
-        {/* Citations Drawer Overlay */}
-        {citationsOpen && (
-          <div className="fixed inset-0 z-50 flex justify-end">
-            {/* Dimmed background */}
-            <div
-              className="absolute inset-0 bg-black/20"
-              onClick={() => setCitationsOpen(false)}
-            />
+        {/* Citations side drawer — all screen sizes */}
+        <div
+          className={`fixed inset-0 z-50 flex justify-end transition-opacity duration-300 ${
+            citationsOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <button
+            type="button"
+            aria-label="Close citations"
+            tabIndex={citationsOpen ? 0 : -1}
+            className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${
+              citationsOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+            }`}
+            onClick={() => setCitationsOpen(false)}
+          />
 
-            {/* Drawer panel */}
-            <div className="relative w-full max-w-sm bg-white h-full shadow-2xl flex flex-col overflow-hidden">
-              {/* Drawer header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <button
-                  onClick={() => setCitationsOpen(false)}
-                  className="text-gray-400 hover:text-gray-700 transition-colors"
-                >
-                  <MdClose size={22} />
-                </button>
-                <h2 className="text-sm font-semibold text-gray-700">Citations ({citations.length})</h2>
-                <div className="w-6" />
-              </div>
+          <div
+            className={`relative w-full max-w-sm md:max-w-md bg-white h-full shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-out safe-area-pt ${
+              citationsOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
+            }`}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <button
+                type="button"
+                onClick={() => setCitationsOpen(false)}
+                className="p-2 -ml-2 text-gray-400 hover:text-gray-700 transition-colors"
+                aria-label="Close"
+              >
+                <MdClose size={22} />
+              </button>
+              <h2 className="text-sm font-semibold text-gray-700">Citations ({citations.length})</h2>
+              <div className="w-6" />
+            </div>
 
-              {/* Citation cards */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
-                {citations.map((c, i) => {
-                  const lookupTitle = `${c.title} of "${c.collection}"`;
-                  const savedDiscourse = getSavedDiscourseByTitle(lookupTitle);
-                  const recentHighlights = user && savedDiscourse?.discourse?.highlights
-                    ? [...savedDiscourse.discourse.highlights]
-                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                        .slice(0, 3)
-                    : [];
-                  const isActive = slugId === c._id;
+            <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
+              {citations.map((c, i) => {
+                const lookupTitle = `${c.title} of "${c.collection}"`;
+                const savedDiscourse = getSavedDiscourseByTitle(lookupTitle);
+                const recentHighlights = user && savedDiscourse?.discourse?.highlights
+                  ? [...savedDiscourse.discourse.highlights]
+                      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                      .slice(0, 3)
+                  : [];
+                const isActive = slugId === c._id;
 
-                  return (
-                    <Link
-                      key={i}
-                      to={`/blog/${c._id}`}
-                      state={{ citations, questionContext: state?.questionContext }}
-                      onClick={() => setCitationsOpen(false)}
-                    >
-                      <div className={`rounded-xl border p-4 flex flex-col gap-3 transition-colors ${
-                        isActive
-                          ? "border-orange-400 bg-orange-50"
-                          : "border-gray-200 hover:bg-orange-50/50"
-                      }`}>
-                        <p className={`font-medium text-sm ${isActive ? "text-orange-600" : "text-gray-800"}`}>
-                          {c.title}
-                        </p>
+                return (
+                  <Link
+                    key={i}
+                    to={`/blog/${c._id}`}
+                    state={{ citations, questionContext: state?.questionContext }}
+                    onClick={() => setCitationsOpen(false)}
+                  >
+                    <div className={`rounded-xl border p-4 flex flex-col gap-3 transition-colors ${
+                      isActive
+                        ? "border-orange-400 bg-orange-50"
+                        : "border-gray-200 hover:bg-orange-50/50"
+                    }`}>
+                      <p className={`font-medium text-sm ${isActive ? "text-orange-600" : "text-gray-800"}`}>
+                        {c.title}
+                      </p>
 
-                        <div className="flex flex-col gap-1">
-                          {c.collection && (
-                            <div className="flex gap-2 items-center text-xs text-gray-500">
-                              <IoMdList size={14} className="text-orange-400 shrink-0" />
-                              <span>{c.collection.replace(/(\d)(Disc\.)/g, '$1 $2')}</span>
-                            </div>
-                          )}
-                          {c.date && (
-                            <div className="flex gap-2 items-center text-xs text-gray-500">
-                              <IoCalendar size={14} className="text-orange-400 shrink-0" />
-                              <span>{c.date}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Highlights & comments */}
-                        {recentHighlights.length > 0 && (
-                          <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
-                            <p className="text-xs font-semibold text-gray-500">
-                              Your highlights {savedDiscourse.discourse.highlights.length > 3 ? `(showing 3 of ${savedDiscourse.discourse.highlights.length})` : ""}
-                            </p>
-                            {recentHighlights.map((h) => (
-                              <div key={h.id} className="flex flex-col gap-1">
-                                <div className="bg-yellow-100 rounded px-2 py-1">
-                                  <p className="text-xs text-gray-700 line-clamp-2">
-                                    "{h.text.substring(0, 80)}{h.text.length > 80 ? "…" : ""}"
-                                  </p>
-                                </div>
-                                {h.comment && (
-                                  <p className="text-xs text-blue-600 italic pl-2 border-l-2 border-blue-300">
-                                    {h.comment}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
+                      <div className="flex flex-col gap-1">
+                        {c.collection && (
+                          <div className="flex gap-2 items-center text-xs text-gray-500">
+                            <IoMdList size={14} className="text-orange-400 shrink-0" />
+                            <span>{c.collection.replace(/(\d)(Disc\.)/g, '$1 $2')}</span>
+                          </div>
+                        )}
+                        {c.date && (
+                          <div className="flex gap-2 items-center text-xs text-gray-500">
+                            <IoCalendar size={14} className="text-orange-400 shrink-0" />
+                            <span>{c.date}</span>
                           </div>
                         )}
                       </div>
-                    </Link>
-                  );
-                })}
-              </div>
+
+                      {recentHighlights.length > 0 && (
+                        <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+                          <p className="text-xs font-semibold text-gray-500">
+                            Your highlights {savedDiscourse.discourse.highlights.length > 3 ? `(showing 3 of ${savedDiscourse.discourse.highlights.length})` : ""}
+                          </p>
+                          {recentHighlights.map((h) => (
+                            <div key={h.id} className="flex flex-col gap-1">
+                              <div className="bg-yellow-100 rounded px-2 py-1">
+                                <p className="text-xs text-gray-700 line-clamp-2">
+                                  "{h.text.substring(0, 80)}{h.text.length > 80 ? "…" : ""}"
+                                </p>
+                              </div>
+                              {h.comment && (
+                                <p className="text-xs text-blue-600 italic pl-2 border-l-2 border-blue-300">
+                                  {h.comment}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
-        )}
+        </div>
       </div>
     );
   }

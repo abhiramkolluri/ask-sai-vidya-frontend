@@ -13,7 +13,7 @@ export default function SampleQuestions({ onQuestionClick = () => {} }) {
       {sampleQuestions.map((question, index) => (
         <div
           key={index}
-          className="border border-gray-300 rounded hover:border-orange-500 hover:bg-orange-100 flex items-center justify-center px-4 py-2 w-[346px] h-16 transition-all ease-linear text-center"
+          className="border border-gray-300 rounded hover:border-orange-500 hover:bg-orange-100 flex items-center justify-center px-4 py-3 sm:py-2 w-full max-w-[346px] min-h-[4rem] sm:h-16 transition-all ease-linear text-center text-base sm:text-lg leading-snug"
           onClick={() => onQuestionClick(question)}
         >
           {question}

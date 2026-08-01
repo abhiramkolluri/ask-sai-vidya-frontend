@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { MdClose, MdOutlineAutoStories, MdOutlineHighlight } from "react-icons/md";
 import { IoChatbubbleEllipsesOutline, IoChevronDown } from "react-icons/io5";
+import {
+  getHighlightPreviewText,
+  hasHighlightComment,
+} from "../../helpers/highlightUtils";
 
 const PREVIEW_LENGTH = 100;
 
@@ -13,10 +17,8 @@ function HighlightCard({
   readOnly = false,
 }) {
   const isActive = activeHighlightId === highlight.id;
-  const preview =
-    highlight.text.length > PREVIEW_LENGTH
-      ? `${highlight.text.substring(0, PREVIEW_LENGTH)}...`
-      : highlight.text;
+  const preview = getHighlightPreviewText(highlight, PREVIEW_LENGTH);
+  const commentText = typeof highlight.comment === "string" ? highlight.comment.trim() : "";
   const isClickable = !readOnly && onHighlightClick;
 
   return (
@@ -39,18 +41,22 @@ function HighlightCard({
                   size={15}
                   className="text-orange-400 flex-shrink-0 mt-0.5"
                 />
-                <span>{highlight.comment}</span>
+                <span className="min-w-0 break-words">{commentText}</span>
               </p>
-              <blockquote className="border-l-2 border-orange-200 bg-orange-50/50 pl-2.5 py-1.5 rounded-r-md">
-                <p className="text-[11px] leading-relaxed text-gray-500 break-words italic">
-                  "{preview}"
-                </p>
-              </blockquote>
+              {preview ? (
+                <blockquote className="border-l-2 border-orange-200 bg-orange-50/50 pl-2.5 py-1.5 rounded-r-md">
+                  <p className="text-[11px] leading-relaxed text-gray-500 break-words italic">
+                    "{preview}"
+                  </p>
+                </blockquote>
+              ) : (
+                <p className="text-[11px] text-gray-400 italic">Selected passage unavailable</p>
+              )}
             </>
           ) : (
             <blockquote className="border-l-[3px] border-orange-400 bg-orange-50/70 pl-3 py-2 rounded-r-md">
               <p className="text-[13px] leading-relaxed text-gray-700 break-words">
-                {preview}
+                {preview || "Selected passage unavailable"}
               </p>
             </blockquote>
           )}
@@ -140,9 +146,24 @@ export function HighlightsTabbedPanel({
 }) {
   const [activeTab, setActiveTab] = useState(defaultTab);
 
-  const highlightOnlyItems = highlights.filter((h) => !h.comment);
-  const commentItems = highlights.filter((h) => h.comment);
+  const highlightOnlyItems = highlights.filter((h) => !hasHighlightComment(h));
+  const commentItems = highlights.filter((h) => hasHighlightComment(h));
   const visibleItems = activeTab === "comments" ? commentItems : highlightOnlyItems;
+
+  // When a new item is added, jump to its tab so it's visible immediately.
+  // Otherwise adding a comment while on the Highlights tab looks like nothing
+  // happened ("comment didn't populate") because it lands on the other tab.
+  const prevCounts = useRef({ h: highlightOnlyItems.length, c: commentItems.length });
+  useEffect(() => {
+    const h = highlightOnlyItems.length;
+    const c = commentItems.length;
+    if (c > prevCounts.current.c) {
+      setActiveTab("comments");
+    } else if (h > prevCounts.current.h) {
+      setActiveTab("highlights");
+    }
+    prevCounts.current = { h, c };
+  }, [highlightOnlyItems.length, commentItems.length]);
 
   const emptyMessage =
     activeTab === "comments"
@@ -250,7 +271,7 @@ export default function HighlightsSidebar({
   const containerRef = useRef(null);
 
   useEffect(() => {
-    const commentCount = highlights.filter((h) => h.comment).length;
+    const commentCount = highlights.filter((h) => hasHighlightComment(h)).length;
     const added = highlights.length > prevCountRef.current;
 
     if (added) {
@@ -277,14 +298,48 @@ export default function HighlightsSidebar({
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen]);
 
   const toggle = () => setIsOpen((prev) => !prev);
+  const commentCount = highlights.filter((h) => hasHighlightComment(h)).length;
+  const highlightOnlyCount = highlights.length - commentCount;
+
+  const panelContent = (showCloseInHeader) => (
+    <>
+      {showCloseInHeader && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-orange-200/50 bg-gradient-to-r from-orange-50 to-[#FEF4EB] flex-shrink-0">
+          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <MdOutlineAutoStories size={18} className="text-orange-400" />
+            Highlights & Comments
+          </h3>
+          <button
+            type="button"
+            onClick={toggle}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            aria-label="Close panel"
+          >
+            <MdClose size={18} />
+          </button>
+        </div>
+      )}
+
+      <HighlightsTabbedPanel
+        key={`${commentCount}-${highlightOnlyCount}-${highlights.length}`}
+        highlights={highlights}
+        onHighlightClick={onHighlightClick}
+        onRemoveHighlight={onRemoveHighlight}
+        activeHighlightId={activeHighlightId}
+        showHeader={!showCloseInHeader}
+      />
+    </>
+  );
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -294,8 +349,28 @@ export default function HighlightsSidebar({
         totalCount={highlights.length}
       />
 
+      {/* Mobile / tablet: bottom sheet so the panel isn't clipped in the header */}
       <div
-        className={`absolute left-0 top-full mt-2 w-[min(320px,calc(100vw-2rem))] z-50 origin-top transition-all duration-200 ease-out ${
+        className={`lg:hidden fixed inset-0 z-[60] flex flex-col justify-end transition-opacity duration-300 ${
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        aria-hidden={!isOpen}
+      >
+        <button
+          type="button"
+          aria-label="Close highlights and comments"
+          tabIndex={isOpen ? 0 : -1}
+          className="absolute inset-0 bg-black/40"
+          onClick={toggle}
+        />
+        <div className="relative font-ui flex flex-col bg-[#FEF4EB] border-t border-orange-200/60 rounded-t-2xl shadow-2xl overflow-hidden max-h-[min(85dvh,560px)] safe-area-pb">
+          {panelContent(true)}
+        </div>
+      </div>
+
+      {/* Desktop: dropdown below the toggle */}
+      <div
+        className={`hidden lg:block absolute left-0 top-full mt-2 w-[min(320px,calc(100vw-2rem))] z-50 origin-top transition-all duration-200 ease-out ${
           isOpen
             ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
             : "opacity-0 -translate-y-1 scale-[0.98] pointer-events-none"
@@ -303,28 +378,7 @@ export default function HighlightsSidebar({
         aria-hidden={!isOpen}
       >
         <div className="font-ui flex flex-col bg-[#FEF4EB] border border-orange-200/60 rounded-xl shadow-lg overflow-hidden max-h-[min(70vh,520px)]">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-orange-200/50 bg-gradient-to-r from-orange-50 to-[#FEF4EB] flex-shrink-0">
-            <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-              <MdOutlineAutoStories size={18} className="text-orange-400" />
-              Highlights & Comments
-            </h3>
-            <button
-              type="button"
-              onClick={toggle}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded"
-              aria-label="Close panel"
-            >
-              <MdClose size={18} />
-            </button>
-          </div>
-
-          <HighlightsTabbedPanel
-            highlights={highlights}
-            onHighlightClick={onHighlightClick}
-            onRemoveHighlight={onRemoveHighlight}
-            activeHighlightId={activeHighlightId}
-            showHeader={false}
-          />
+          {panelContent(true)}
         </div>
       </div>
     </div>
@@ -360,7 +414,7 @@ export function HighlightsList({
             activeHighlightId={activeHighlightId}
             onHighlightClick={onHighlightClick}
             onRemoveHighlight={onRemoveHighlight}
-            variant={highlight.comment ? "comment" : "highlight"}
+            variant={hasHighlightComment(highlight) ? "comment" : "highlight"}
           />
         ))}
       </div>

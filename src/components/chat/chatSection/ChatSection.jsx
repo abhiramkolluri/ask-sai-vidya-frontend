@@ -20,7 +20,7 @@ export default function ChatSection({
 
 	return (
 		<div className="">
-			<div className="flex text-lg font-medium text-gray-700 my-4 justify-center items-center">
+			<div className="flex text-base font-medium text-gray-600 my-3 justify-center items-center">
 				<div className="flex-grow">{formatMonthYear(monthYear)}</div>
 				<div
 					className="cursor-pointer hover:text-orange-400"
