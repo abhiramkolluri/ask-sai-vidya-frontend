@@ -29,8 +29,10 @@ export default function Signin({ showLogin = false }) {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
 
-        // Update auth context
-        loginUser({ email: user.email, token, isGoogleLogin: true });
+        // Update auth context. Pass the whole user object, not just the email —
+        // the Navbar renders first_name/last_name for non-Auth0 users, so
+        // dropping them here leaves the signed-in name blank.
+        loginUser({ email: user.email, token, isGoogleLogin: true, user });
 
         // Redirect to home
         navigate('/home', { replace: true });

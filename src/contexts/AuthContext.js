@@ -49,6 +49,40 @@ export const AuthProvider = ({ children }) => {
     setLoggingIn(true);
     setError(null);
 
+    // Google OAuth (redirect flow) is ALREADY authenticated by the time we get
+    // here: /auth/google/callback verified the code with Google, minted this
+    // app's own session JWT (token_type "google") and handed it back on the
+    // URL, which Signin.jsx passes in. There is nothing left to authenticate,
+    // so adopt it and stop.
+    //
+    // Falling through to POST /login is what used to happen, and it always
+    // failed: that is the PASSWORD endpoint, a Google login has no password,
+    // and app.py rejects it with "Email and password are required". The
+    // isGoogleLogin flag has been passed from Signin.jsx since 2025-10-24 but
+    // was never read here.
+    if (credentials?.isGoogleLogin) {
+      const googleUser = credentials.user || {};
+      const userData = {
+        email: credentials.email,
+        first_name: googleUser.first_name || '',
+        last_name: googleUser.last_name || '',
+        token: credentials.token,
+        isAuth0: false,
+      };
+      setUser(userData);
+      // Same shape the password path persists, so loadStoredUser() rehydrates
+      // identically on refresh.
+      localStorage.setItem('user', JSON.stringify({
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+      }));
+      localStorage.setItem('token', credentials.token);
+      setSuccess('Login successful!');
+      setLoggingIn(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
