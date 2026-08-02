@@ -3,23 +3,11 @@ import { Link } from "react-router-dom";
 import { FaSpinner } from "react-icons/fa";
 import { IoSearch, IoClose } from "react-icons/io5";
 import { useDiscourseSearchIndex } from "./useCollections";
+// norm/skeleton/matchScore moved to helpers/searchMatch so the
+// within-collection search in CollectionDetail matches identically.
+import { skeleton, matchScore } from "../../helpers/searchMatch";
 
 const MAX_DISCOURSE_RESULTS = 30;
-
-const norm = (s) => (s || "").toLowerCase();
-// Consonant skeleton so transliteration variants match the corpus spelling:
-// "gita" -> "gt" is contained in "geeta" -> "gt".
-const skeleton = (s) => norm(s).replace(/[aeiou]|[^a-z]/g, "");
-
-// Rank: prefix match beats substring beats skeleton; 0 = no match.
-function matchScore(text, query, querySkeleton) {
-  const t = norm(text);
-  const q = norm(query);
-  if (t.startsWith(q)) return 3;
-  if (t.includes(q)) return 2;
-  if (querySkeleton.length > 2 && skeleton(text).includes(querySkeleton)) return 1;
-  return 0;
-}
 
 function discourseLabel(row) {
   if (row.volume) return `${row.book}, Vol ${row.volume}`;

@@ -29,6 +29,36 @@ export function useDiscourseSearchIndex(enabled) {
   );
 }
 
+// Full-text search restricted to one collection. The backend applies the
+// `filters` object as a hard scope (search/pipeline.py) — it will return an
+// empty result rather than widening to the rest of the corpus, so an empty
+// response here genuinely means "not in this collection".
+//
+// Not cached like the catalog hooks: this is a live search, and the 6h
+// staleTime used for the collections index would be wrong for it.
+export function useScopedCollectionSearch(query, { book, volume, year }) {
+  const trimmed = (query || "").trim();
+  const filters = { book };
+  if (volume) filters.volume = Number(volume);
+  if (year) filters.year_start = Number(year);
+
+  return useQuery(
+    ["scopedCollectionSearch", book, volume, year, trimmed],
+    async () => {
+      const response = await fetch(apiRoute("search"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: trimmed, include_trace: true, filters }),
+      });
+      if (!response.ok) throw new Error(response.statusText);
+      return response.json();
+    },
+    // Only fires once there is something to search for, keeping this off the
+    // initial render path the same way useDiscourseSearchIndex does.
+    { enabled: Boolean(book && trimmed), retry: 1, keepPreviousData: true }
+  );
+}
+
 export function useCollectionChapters(book, volume, year, undated) {
   // Query string (never path segments) so book names with spaces/apostrophes
   // survive the API Gateway proxy unmangled.
