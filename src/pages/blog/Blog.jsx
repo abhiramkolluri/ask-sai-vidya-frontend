@@ -25,6 +25,7 @@ import {
   serializeHighlightsForSave,
   normalizeSelectionText,
   getSelectionTextInContainer,
+  hasHighlightComment,
 } from "../../helpers/highlightUtils";
 
 // Scroll an element to the middle of the viewport, animating where that works.
@@ -101,6 +102,24 @@ export default function Blog() {
   const [popoverPosition, setPopoverPosition] = useState({ x: 0, y: 0 });
   const [selectedText, setSelectedText] = useState("");
   const [highlights, setHighlights] = useState([]);
+  // Whether the user's own highlights/notes are painted into the document.
+  // Until now they were invisible in the text unless you clicked one in the
+  // sidebar, so a discourse you had annotated looked untouched. Persisted
+  // because it is a reading preference, not per-document state.
+  const [showAnnotations, setShowAnnotations] = useState(() => {
+    try {
+      return localStorage.getItem("asv_show_annotations") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("asv_show_annotations", showAnnotations ? "1" : "0");
+    } catch {
+      /* private mode — the toggle still works for this session */
+    }
+  }, [showAnnotations]);
   const [activeHighlightId, setActiveHighlightId] = useState(null);
   const contentRef = useRef(null);
   const matchedRef = useRef(null); // the braces-wrapped matched passage block
@@ -457,30 +476,65 @@ export default function Blog() {
   // exactly the previous behaviour. Without this, turning on keyword marking
   // would silently break clicking a saved highlight in HighlightsSidebar.
   const renderContentWithHighlight = (text, transform = (t) => t) => {
-    if (!activeHighlightId) return transform(text);
+    // With the toggle on, every saved highlight is painted. With it off we fall
+    // back to the original behaviour: only the one clicked in the sidebar, so
+    // that interaction still works while the document stays clean.
+    const candidates = showAnnotations
+      ? highlights
+      : highlights.filter((h) => h.id === activeHighlightId);
+    if (!candidates.length) return transform(text);
 
-    const activeHighlight = highlights.find(h => h.id === activeHighlightId);
-    if (!activeHighlight) return transform(text);
+    // Locate each highlight within THIS line; most won't be here.
+    const ranges = [];
+    candidates.forEach((h) => {
+      if (!h?.text) return;
+      const at = text.indexOf(h.text);
+      if (at === -1) return;
+      ranges.push({ start: at, end: at + h.text.length, highlight: h });
+    });
+    if (!ranges.length) return transform(text);
 
-    const highlightText = activeHighlight.text;
-    const index = text.indexOf(highlightText);
+    ranges.sort((a, b) => a.start - b.start);
 
-    if (index === -1) return transform(text);
-
-    // Split text and add animated highlight
-    const before = text.substring(0, index);
-    const highlight = text.substring(index, index + highlightText.length);
-    const after = text.substring(index + highlightText.length);
-
-    return (
-      <>
-        {transform(before)}
-        <span className="bg-orange-300 animate-pulse px-1 rounded transition-all duration-300">
-          {transform(highlight)}
-        </span>
-        {transform(after)}
-      </>
-    );
+    // Emit alternating plain/marked segments. Plain segments go through
+    // `transform` so keyword marking still composes; marked segments run it on
+    // their inner text so a search term inside a highlight is still marked.
+    const nodes = [];
+    let cursor = 0;
+    ranges.forEach((r, i) => {
+      // Overlapping highlights: keep the first, skip the rest. Splitting a mark
+      // across another mark's boundary would nest <mark> elements.
+      if (r.start < cursor) return;
+      if (r.start > cursor) {
+        nodes.push(
+          <React.Fragment key={`t${cursor}`}>{transform(text.slice(cursor, r.start))}</React.Fragment>
+        );
+      }
+      const isActive = r.highlight.id === activeHighlightId;
+      const annotated = hasHighlightComment(r.highlight);
+      nodes.push(
+        <mark
+          key={`h${r.highlight.id}-${i}`}
+          title={annotated ? r.highlight.comment : undefined}
+          className={
+            isActive
+              ? "bg-orange-300 animate-pulse px-1 rounded transition-all duration-300"
+              // A note gets an underline as well as the wash, so an annotated
+              // passage is distinguishable from a plain highlight at a glance.
+              : annotated
+                ? "bg-[#FE9F4459] rounded px-0.5 border-b-2 border-[#BC5B01]/60"
+                : "bg-[#FE9F4459] rounded px-0.5"
+          }
+        >
+          {transform(text.slice(r.start, r.end))}
+        </mark>
+      );
+      cursor = r.end;
+    });
+    if (cursor < text.length) {
+      nodes.push(<React.Fragment key={`t${cursor}`}>{transform(text.slice(cursor))}</React.Fragment>);
+    }
+    return <>{nodes}</>;
   };
 
   if (isLoading || isRefetching) {
@@ -924,6 +978,52 @@ export default function Blog() {
                   <IoBookOutline size={18} className="text-orange-400" />
                   <p className="text-gray-500">{chapterLabel}</p>
                 </div>
+              )}
+
+              {/* Sits in the metadata row directly above the text it affects,
+                  rather than under the Highlights panel where it was easy to
+                  miss. Shown whenever signed in — NOT gated on the document
+                  having highlights, because a control that disappears exactly
+                  when you go looking for it is worse than one that is
+                  momentarily a no-op. The count tells you whether there is
+                  anything to show. */}
+              {user?.token && (
+                <button
+                  type="button"
+                  onClick={() => setShowAnnotations((v) => !v)}
+                  aria-pressed={showAnnotations}
+                  title={
+                    showAnnotations
+                      ? "Hide your highlights and notes in the text"
+                      : "Show your highlights and notes in the text"
+                  }
+                  className={`font-ui order-last flex items-center gap-2 rounded-lg border-[1.5px] px-2.5 py-1 text-sm font-medium transition-all ${
+                    showAnnotations
+                      ? "border-orange-300 bg-orange-50 text-gray-800"
+                      : "border-gray-200 bg-white text-gray-500 hover:bg-orange-50"
+                  }`}
+                >
+                  {/* Track/knob switch: on/off reads at a glance, unlike a
+                      button whose pressed state you have to infer. */}
+                  <span
+                    aria-hidden="true"
+                    className={`relative inline-block h-4 w-7 shrink-0 rounded-full transition-colors ${
+                      showAnnotations ? "bg-[#BC5B01]" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all ${
+                        showAnnotations ? "left-3.5" : "left-0.5"
+                      }`}
+                    />
+                  </span>
+                  My highlights
+                  {highlights.length > 0 && (
+                    <span className="text-xs font-semibold text-[#BC5B01]">
+                      {highlights.length}
+                    </span>
+                  )}
+                </button>
               )}
 
               {post.date && (
