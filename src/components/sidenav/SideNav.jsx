@@ -9,8 +9,18 @@ import { MdOutlineAutoStories } from "react-icons/md";
 import { GoArrowUpRight } from "react-icons/go";
 import ChatSection from "../chat/chatSection/ChatSection";
 import SavedDiscourseModal from "../savedDiscourse/SavedDiscourseModal";
+import { HighlightCard } from "../highlights/HighlightsSidebar";
 import { useSavedDiscourses } from "../../contexts/SavedDiscoursesContext";
 import { formatCollection } from "../../helpers/formatCollection";
+
+// How many of a discourse's annotations to show inline in the sidebar before
+// collapsing the rest behind "+N more". The column is ~380px and a user can
+// have many annotated discourses at once, so this stays deliberately small.
+const SIDEBAR_ANNOTATION_PREVIEW = 2;
+
+// Same idea for the Saved Discourses list itself: show a few, keep the rest one
+// click away so a long library doesn't push Highlights & Notes off the screen.
+const SIDEBAR_SAVED_PREVIEW = 3;
 
 // Saved titles are stored as `Title of "Collection"`; split so we can show the
 // discourse title above and its source below.
@@ -41,7 +51,15 @@ export default function SideNav({
   const [searchQuery, setSearchQuery] = useState("");
   const [chatHistoryOpen, setChatHistoryOpen] = useState(false);
   const [savedDiscoursesOpen, setSavedDiscoursesOpen] = useState(false);
+  // Whether the Saved Discourses list is showing everything or just the first
+  // SIDEBAR_SAVED_PREVIEW. Separate from savedDiscoursesOpen, which is the
+  // accordion itself.
+  const [savedShowAll, setSavedShowAll] = useState(false);
   const [annotationsOpen, setAnnotationsOpen] = useState(false);
+  // Same for the annotated-discourse list. Note this caps how many DISCOURSES
+  // are listed; SIDEBAR_ANNOTATION_PREVIEW separately caps how many annotations
+  // each one previews.
+  const [annotationsShowAll, setAnnotationsShowAll] = useState(false);
   const [selectedSavedDiscourse, setSelectedSavedDiscourse] = useState(null);
   const [selectedAnnotatedDiscourse, setSelectedAnnotatedDiscourse] = useState(null);
   const [pendingAction, setPendingAction] = useState(null);
@@ -218,7 +236,10 @@ export default function SideNav({
                 </div>
               ) : savedDiscourses.length > 0 ? (
                 <div className="flex flex-col gap-1.5">
-                  {savedDiscourses.map((saved) => (
+                  {(savedShowAll
+                    ? savedDiscourses
+                    : savedDiscourses.slice(0, SIDEBAR_SAVED_PREVIEW)
+                  ).map((saved) => (
                     <div
                       key={saved.id}
                       className="p-3 hover:bg-orange-50/70 rounded-xl cursor-pointer border border-transparent hover:border-orange-200/50 transition-all group"
@@ -263,6 +284,17 @@ export default function SideNav({
                       </div>
                     </div>
                   ))}
+                  {savedDiscourses.length > SIDEBAR_SAVED_PREVIEW && (
+                    <button
+                      type="button"
+                      onClick={() => setSavedShowAll((v) => !v)}
+                      className="self-start px-3 py-1.5 text-[13px] font-medium text-orange-500 hover:text-orange-600"
+                    >
+                      {savedShowAll
+                        ? "Show less"
+                        : `+${savedDiscourses.length - SIDEBAR_SAVED_PREVIEW} more`}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-500 text-center px-3">
@@ -310,16 +342,30 @@ export default function SideNav({
                 </div>
               ) : annotatedDiscourses.length > 0 ? (
                 <div className="flex flex-col gap-1.5">
-                  {annotatedDiscourses.map((item) => (
+                  {(annotationsShowAll
+                    ? annotatedDiscourses
+                    : annotatedDiscourses.slice(0, SIDEBAR_SAVED_PREVIEW)
+                  ).map((item) => (
                     <div
                       key={item.id}
                       className="p-3 hover:bg-orange-50/70 rounded-xl cursor-pointer border border-transparent hover:border-orange-200/50 transition-all group"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
+                          {/* Same treatment as the Saved Discourses list above:
+                              the stored title is the composite
+                              `Title of "Collection"`, and the collection half is
+                              raw corpus data ("SSS, Vol 14Disc. 57"). Split it
+                              and run the source through formatCollection, or the
+                              user sees the database string verbatim. */}
                           <p className="font-medium text-gray-800 text-[15px] truncate">
-                            {item.discourse.title}
+                            {splitSavedTitle(item.discourse.title).title}
                           </p>
+                          {splitSavedTitle(item.discourse.title).source && (
+                            <p className="text-[13px] text-gray-500 truncate mt-0.5">
+                              {formatCollection(splitSavedTitle(item.discourse.title).source)}
+                            </p>
+                          )}
                           <div className="flex items-center gap-3 mt-2">
                             {item.discourse.source_url && (
                               <Link
@@ -339,6 +385,34 @@ export default function SideNav({
                               Quick view
                             </button>
                           </div>
+
+                          {/* The annotations themselves. Listing only titles here
+                              read as "my highlights aren't showing" — they were
+                              a Quick view click away. Preview the first few in
+                              STORED order (not filtered by type, so a recent
+                              comment can't silently drop out of view) and hand
+                              the overflow to the same modal the button opens. */}
+                          {(() => {
+                            const all = item.discourse.highlights || [];
+                            const shown = all.slice(0, SIDEBAR_ANNOTATION_PREVIEW);
+                            const rest = all.length - shown.length;
+                            return (
+                              <div className="mt-2.5 space-y-2">
+                                {shown.map((h) => (
+                                  <HighlightCard key={h.id} highlight={h} readOnly />
+                                ))}
+                                {rest > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedAnnotatedDiscourse(item)}
+                                    className="text-[13px] font-medium text-orange-500 hover:text-orange-600"
+                                  >
+                                    +{rest} more
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <button
                           onClick={() => setPendingAction({ type: "annotations", id: item.id })}
@@ -350,6 +424,17 @@ export default function SideNav({
                       </div>
                     </div>
                   ))}
+                  {annotatedDiscourses.length > SIDEBAR_SAVED_PREVIEW && (
+                    <button
+                      type="button"
+                      onClick={() => setAnnotationsShowAll((v) => !v)}
+                      className="self-start px-3 py-1.5 text-[13px] font-medium text-orange-500 hover:text-orange-600"
+                    >
+                      {annotationsShowAll
+                        ? "Show less"
+                        : `+${annotatedDiscourses.length - SIDEBAR_SAVED_PREVIEW} more`}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-gray-500 text-center px-3">

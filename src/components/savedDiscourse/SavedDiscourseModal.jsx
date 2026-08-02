@@ -6,6 +6,7 @@ import { GoArrowUpRight } from "react-icons/go";
 import { BsBookmarkFill } from "react-icons/bs";
 import { HighlightsTabbedPanel } from "../highlights/HighlightsSidebar";
 import { hasHighlightComment } from "../../helpers/highlightUtils";
+import { formatCollection } from "../../helpers/formatCollection";
 
 const VALID_QUESTION_CONTEXTS = new Set([
   "",
@@ -59,8 +60,12 @@ export default function SavedDiscourseModal({
               <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-500 mb-0.5">
                 {isAnnotations ? "Highlights & Comments" : "Saved Discourse"}
               </p>
+              {/* The stored title embeds the raw corpus collection string
+                  (`… of "SSS, Vol 14Disc. 57"`). formatCollection is documented
+                  as safe to run over the whole composite, so the heading reads
+                  as prose instead of as a database value. */}
               <h2 className="text-base font-semibold text-gray-800 leading-snug break-words">
-                {discourse.discourse.title}
+                {formatCollection(discourse.discourse.title)}
               </h2>
             </div>
           </div>

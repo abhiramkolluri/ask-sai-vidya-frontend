@@ -8,7 +8,10 @@ import {
 
 const PREVIEW_LENGTH = 100;
 
-function HighlightCard({
+// Exported so the SideNav's "Highlights & Notes" section can preview a
+// discourse's annotations inline without re-implementing this styling (active
+// ring, comment badge, truncation). Everything else here still uses it locally.
+export function HighlightCard({
   highlight,
   activeHighlightId,
   onHighlightClick,
